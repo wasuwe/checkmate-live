@@ -199,12 +199,21 @@ func TestIntegrationGames(t *testing.T) {
 	if err := s.insertGame(ctx, makruk); err != nil {
 		t.Fatalf("insert makruk game: %v", err)
 	}
+	checkers := rec
+	checkers.RoomID, checkers.Variant, checkers.Result, checkers.Reason = "checkersrm22", "checkers", "1-0", "wipeout"
+	if err := s.insertGame(ctx, checkers); err != nil {
+		t.Fatalf("insert checkers game: %v", err)
+	}
+	checkers.RoomID, checkers.Reason = "checkersrm33", "blocked"
+	if err := s.insertGame(ctx, checkers); err != nil {
+		t.Fatalf("insert blocked checkers game: %v", err)
+	}
 	var variants string
 	if err := s.pool.QueryRow(ctx, "select string_agg(variant, ',' order by variant) from games").Scan(&variants); err != nil {
 		t.Fatal(err)
 	}
-	if variants != "chess,makruk" {
-		t.Fatalf("variants = %q, want chess,makruk", variants)
+	if variants != "checkers,checkers,chess,makruk" {
+		t.Fatalf("variants = %q, want checkers,checkers,chess,makruk", variants)
 	}
 	bad = rec
 	bad.RoomID, bad.Variant = "badvariant22", "Not A Game"

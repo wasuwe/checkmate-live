@@ -328,6 +328,7 @@ func (r *Room) handleMove(c *Client, ply int, m game.Move) {
 	if r.flagIfOutOfTime(now) {
 		return
 	}
+	mover := r.game.Turn()
 	if err := r.game.Move(m); err != nil {
 		code := errCodeIllegalMove
 		if errors.Is(err, game.ErrGameOver) {
@@ -336,7 +337,10 @@ func (r *Room) handleMove(c *Client, ply int, m game.Move) {
 		c.Send(encodeError(code))
 		return
 	}
-	r.clock.press(now)
+	// เกมที่กินหลายต่อได้ (หมากฮอส) ตายังเป็นของฝ่ายเดิมจนกว่าจะกินจบ นาฬิกาจึงยังไม่สลับ
+	if r.game.Over() || r.game.Turn() != mover {
+		r.clock.press(now)
+	}
 
 	if r.game.Over() {
 		r.finish()
@@ -433,6 +437,7 @@ func (r *Room) broadcastState() {
 	if r.status == StatusPlaying {
 		// เกมที่หน้าเว็บไม่มีกติกาของตัวเอง: ส่งตาเดินที่ถูกกติกาไปให้ใช้ไฮไลต์ (ตาเดินจริงยังถูกตรวจที่นี่เสมอ)
 		base.Legal, base.Check, base.Count = r.game.Legal(), r.game.Check(), r.game.Count()
+		base.Forced = r.game.Forced()
 	}
 
 	// ผู้ใช้คนเดียวกันได้ข้อความเหมือนกัน จึง encode ครั้งเดียวต่อ user

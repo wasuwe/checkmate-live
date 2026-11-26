@@ -10,6 +10,8 @@ const REASONS: Record<string, string> = {
   abandon: 'หลุดจากเกมเกินเวลา',
   draw: 'เสมอตามกติกา',
   count: 'นับศักดิ์ครบ',
+  wipeout: 'กินหมากหมดกระดาน',
+  blocked: 'ไม่มีตาเดินเหลือ',
 }
 
 const ERRORS: Record<string, string> = {
@@ -64,6 +66,12 @@ export function countText(state: StateMsg): string {
   if (count.kind === 'board') return `นับศักดิ์กระดาน ${count.n}/${count.limit}`
   const who = count.side ? ` (ฝ่าย${colorName(count.side)}นับ)` : ''
   return `นับศักดิ์หมาก ${count.n}/${count.limit}${who}`
+}
+
+/** ข้อความเตือนว่าต้องกิน (หมากฮอสบังคับกิน) แสดงเฉพาะกับผู้เล่นที่ถึงตา หรือ '' */
+export function forcedText(state: StateMsg): string {
+  if (!state.forced || state.status !== 'playing' || state.you.color !== state.turn) return ''
+  return 'มีหมากให้กิน ต้องกินก่อน'
 }
 
 /** ข้อความสถานะหลักเหนือกระดาน */

@@ -16,19 +16,23 @@ export const VS = '︎'
 export const GLYPH_FONT =
   "'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Apple Symbols', 'DejaVu Sans', sans-serif"
 
-/** ชนิดหมาก: หกตัวแรกของหมากรุกสากล และ M เม็ด, S โคน, F เบี้ยหงาย ของหมากรุกไทย */
-export type Kind = 'K' | 'Q' | 'R' | 'B' | 'N' | 'P' | 'M' | 'S' | 'F'
+/**
+ * ชนิดหมาก: หกตัวแรกของหมากรุกสากล, M เม็ด S โคน F เบี้ยหงาย ของหมากรุกไทย,
+ * C เบี้ย H ฮอส ของหมากฮอส
+ */
+export type Kind = 'K' | 'Q' | 'R' | 'B' | 'N' | 'P' | 'M' | 'S' | 'F' | 'C' | 'H'
 export const KINDS: Kind[] = ['K', 'Q', 'R', 'B', 'N', 'P']
 export const MAKRUK_KINDS: Kind[] = ['K', 'M', 'S', 'N', 'R', 'P', 'F']
-const ALL_KINDS: Kind[] = ['K', 'Q', 'R', 'B', 'N', 'P', 'M', 'S', 'F']
+export const CHECKERS_KINDS: Kind[] = ['C', 'H']
+const ALL_KINDS: Kind[] = ['K', 'Q', 'R', 'B', 'N', 'P', 'M', 'S', 'F', 'C', 'H']
 
 /** สัญลักษณ์ทึบ ใช้เป็นตัวหมาก (เบี้ยหงายใช้เบี้ยกลับหัว) */
 export const GLYPH: Record<Kind, string> = {
-  K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟', M: '♛', S: '♝', F: '♟',
+  K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟', M: '♛', S: '♝', F: '♟', C: '●', H: '◉',
 }
 /** สัญลักษณ์โปร่ง ใช้เป็นป้ายบอกชนิดหมาก (เบี้ยหงายเดินแบบเม็ด จึงใช้ป้ายเดียวกับเม็ด) */
 export const BADGE: Record<Kind, string> = {
-  K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙', M: '♕', S: '♗', F: '♕',
+  K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙', M: '♕', S: '♗', F: '♕', C: '○', H: '◎',
 }
 /** หมากที่วาดกลับหัว */
 export const FLIPPED: Partial<Record<Kind, boolean>> = { F: true }
@@ -97,6 +101,7 @@ export function pieceSvg(
   kind: Kind,
   opts: { badge?: boolean; className?: string; style?: CSSProperties; key?: string | number } = {},
 ): JSX.Element {
+  if (kind === 'C' || kind === 'H') return discSvg(set, color, kind === 'H', opts)
   return (
     <svg key={opts.key} viewBox="0 0 45 45" className={opts.className ?? 'piece'} style={opts.style}>
       <text
@@ -130,6 +135,51 @@ export function pieceSvg(
             {BADGE[kind] + VS}
           </text>
         </>
+      )}
+    </svg>
+  )
+}
+
+/**
+ * หมากฮอสเป็นเหรียญกลม ฮอสคือเหรียญสองชั้นซ้อนกันและมีมงกุฎ
+ * รูปทรงบอกชนิดได้เอง จึงไม่มีป้ายที่มุม
+ */
+function discSvg(
+  set: BoardSet,
+  color: Color,
+  king: boolean,
+  opts: { className?: string; style?: CSSProperties; key?: string | number },
+): JSX.Element {
+  const fill = color === 'w' ? set.w : set.b
+  const disc = (cy: number) => (
+    <>
+      <circle cx="22.5" cy={cy} r="15.5" fill={fill} stroke={INK} strokeWidth="2" />
+      <circle cx="22.5" cy={cy} r="10.5" fill="none" stroke={INK} strokeWidth="1.1" opacity="0.4" />
+    </>
+  )
+  return (
+    <svg key={opts.key} viewBox="0 0 45 45" className={opts.className ?? 'piece'} style={opts.style}>
+      {king ? (
+        <>
+          {disc(26)}
+          {disc(20)}
+          <text
+            x="22.5"
+            y="21"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize="15"
+            fontFamily={GLYPH_FONT}
+            fill={color === 'w' ? INK : '#FFFFFF'}
+            stroke={INK}
+            strokeWidth="0.8"
+            paintOrder="stroke"
+          >
+            {'♛' + VS}
+          </text>
+        </>
+      ) : (
+        disc(22.5)
       )}
     </svg>
   )

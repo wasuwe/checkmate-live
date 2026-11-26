@@ -3,7 +3,9 @@
 
 import { Chess, type Square } from 'chess.js'
 import { gameOf } from './games'
-import { makrukApply, makrukPosition, type BoardPosition } from './makruk'
+import { checkersApply, checkersPosition } from './checkers'
+import { makrukApply, makrukPosition } from './makruk'
+import type { BoardPosition } from './placement'
 import type { Color, GameId, Promo, StateMsg } from './protocol'
 
 function load(fen: string): Chess | null {
@@ -72,7 +74,7 @@ export function pieceColor(pieceType: string): Color | null {
 
 // ---------- ตัวช่วยที่เลือกวิธีตามชนิดของเกม ----------
 // หมากรุกสากล: คำนวณในหน้าเว็บด้วย chess.js
-// หมากรุกไทย: ใช้ตาเดินที่ถูกกติกาและช่องที่ถูกรุกซึ่งเซิร์ฟเวอร์ส่งมากับ state
+// หมากรุกไทย หมากฮอส: ใช้ตาเดินที่ถูกกติกาและช่องที่ถูกรุกซึ่งเซิร์ฟเวอร์ส่งมากับ state
 
 /** ช่องที่หมากบน `square` เดินไปได้ */
 export function targetsFor(state: StateMsg, square: string): string[] {
@@ -87,9 +89,10 @@ export function needsPromotion(state: StateMsg, from: string, to: string): boole
 
 /** ตำแหน่งหลังเดิน สำหรับแสดงผลล่วงหน้า หรือ null ถ้าเดินแบบนี้ไม่ได้ */
 export function previewFor(state: StateMsg, from: string, to: string, promo: Promo): string | null {
-  if (gameOf(state) === 'chess') return applyMove(state.fen, from, to, promo)
+  const game = gameOf(state)
+  if (game === 'chess') return applyMove(state.fen, from, to, promo)
   if (!targetsFor(state, from).includes(to)) return null
-  return makrukApply(state.fen, from, to)
+  return game === 'checkers' ? checkersApply(state.fen, from, to) : makrukApply(state.fen, from, to)
 }
 
 /**
@@ -103,5 +106,16 @@ export function checkSquareFor(state: StateMsg, fen: string): string | null {
 
 /** ตำแหน่งในรูปที่ react-chessboard รับ */
 export function boardPosition(game: GameId, fen: string): string | BoardPosition {
-  return game === 'chess' ? fen : makrukPosition(fen)
+  if (game === 'chess') return fen
+  return game === 'checkers' ? checkersPosition(fen) : makrukPosition(fen)
+}
+
+/**
+ * หมากที่ต้องกินต่อในหมากฮอส: ฝ่ายเดิมยังถึงตา ถูกบังคับกิน และเดินได้เฉพาะหมากที่เพิ่งกินมา
+ * หน้าเว็บเลือกหมากตัวนี้ให้เองเพื่อให้กินต่อได้ด้วยการกดช่องปลายทางครั้งเดียว
+ */
+export function chainSquare(state: StateMsg): string | null {
+  if (gameOf(state) !== 'checkers' || !state.forced || !state.lastMove) return null
+  const movable = Object.keys(state.legal ?? {})
+  return movable.length === 1 && movable[0] === state.lastMove.to ? movable[0] : null
 }

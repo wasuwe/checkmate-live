@@ -88,8 +88,8 @@ describe('game-aware move helpers', () => {
 })
 
 describe('games list', () => {
-  test('chess and makruk are playable, the other two are still marked as coming soon', () => {
-    expect(PLAYABLE).toEqual(['chess', 'makruk'])
+  test('makruk is playable, and every game that is not playable is marked as coming soon', () => {
+    expect(PLAYABLE).toContain('makruk')
     for (const g of GAMES) expect(g.soon).toBe(!isGameId(g.id))
     expect(gameName('makruk')).toBe('หมากรุกไทย')
     expect(gameOf({ game: 'makruk' })).toBe('makruk')

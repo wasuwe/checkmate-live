@@ -288,7 +288,7 @@ func TestMakrukForfeitAndReplay(t *testing.T) {
 }
 
 func TestParseVariant(t *testing.T) {
-	for in, want := range map[string]Variant{"": VariantChess, "chess": VariantChess, "makruk": VariantMakruk} {
+	for in, want := range map[string]Variant{"": VariantChess, "chess": VariantChess, "makruk": VariantMakruk, "checkers": VariantCheckers} {
 		if got, ok := ParseVariant(in); !ok || got != want {
 			t.Errorf("ParseVariant(%q) = %q, %v", in, got, ok)
 		}

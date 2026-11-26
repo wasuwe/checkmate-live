@@ -96,3 +96,41 @@ func TestMakrukRoomSurvivesRestart(t *testing.T) {
 		t.Fatalf("game record = %+v", g)
 	}
 }
+
+func TestCheckersMultiJumpKeepsTheClock(t *testing.T) {
+	h := newTestHub(t, Config{})
+	id, err := h.CreateGameRoom(game.VariantCheckers, TimeControl{}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := h.room(id)
+	// ตั้งตำแหน่งก่อนมีใครเข้าห้อง: เบี้ยขาวที่ c3 กินได้สองต่อ
+	g, err := game.NewCheckersFromFEN("8/c7/5c2/8/3c4/2C5/8/8 w")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.game = g
+
+	alice, bob := newFakeClient(t, "alice"), newFakeClient(t, "bob")
+	alice.join(r)
+	bob.join(r)
+	start := alice.untilState("playing", isStatus(StatusPlaying))
+	if start.Game != game.VariantCheckers || !start.Forced || len(start.Legal) != 1 {
+		t.Fatalf("start state: game=%q forced=%v legal=%v", start.Game, start.Forced, start.Legal)
+	}
+
+	alice.move(r, 0, "c3e5")
+	mid := bob.untilState("ply 1", atPly(1))
+	if mid.Turn != game.White || mid.Clock.Running != game.White || !mid.Forced {
+		t.Fatalf("mid-chain: turn=%q clock=%q forced=%v, want white to keep the move and the clock", mid.Turn, mid.Clock.Running, mid.Forced)
+	}
+	// อีกฝ่ายยังเดินไม่ได้ระหว่างที่กินไม่จบ
+	bob.move(r, 1, "a7b6")
+	bob.expectError(errCodeNotYourTurn)
+
+	alice.move(r, 1, "e5g7")
+	end := bob.untilState("ply 2", atPly(2))
+	if end.Turn != game.Black || end.Clock.Running != game.Black || end.Forced {
+		t.Fatalf("after the chain: turn=%q clock=%q forced=%v", end.Turn, end.Clock.Running, end.Forced)
+	}
+}
