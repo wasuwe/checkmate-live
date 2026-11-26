@@ -13,9 +13,17 @@ interface Props {
 
 type Field = RegisterField
 
+const EMPTY: Record<Field, string> = { name: '', email: '', password: '', confirm: '' }
+
+/**
+ * สิ่งที่กรอกค้างไว้ เก็บในหน่วยความจำของแท็บนี้ เพื่อให้ไปอ่านข้อตกลงแล้วกลับมายังอยู่ครบ
+ * ไม่เขียนลง storage (มีรหัสผ่านอยู่ด้วย) จึงหายเมื่อโหลดหน้าใหม่หรือปิดแท็บ และถูกล้างเมื่อสมัครสำเร็จ
+ */
+let draft: Record<Field, string> = EMPTY
+
 export function RegisterPage({ navigate }: Props) {
   const me = useMe()
-  const [values, setValues] = useState<Record<Field, string>>({ name: '', email: '', password: '', confirm: '' })
+  const [values, setValues] = useState<Record<Field, string>>(() => draft)
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({})
   const [accepted, setAccepted] = useState(termsAccepted)
   const [formError, setFormError] = useState<string | null>(null)
@@ -28,7 +36,8 @@ export function RegisterPage({ navigate }: Props) {
   }, [signedIn, navigate])
 
   function change(field: Field, value: string) {
-    setValues((v) => ({ ...v, [field]: value }))
+    draft = { ...draft, [field]: value }
+    setValues(draft)
     setErrors((e) => ({ ...e, [field]: undefined }))
   }
 
@@ -56,7 +65,11 @@ export function RegisterPage({ navigate }: Props) {
     setBusy(false)
     if (!result.ok) {
       setFormError(result.message)
-    } else if (result.needsEmailConfirm) {
+      return
+    }
+    // สมัครสำเร็จ: ไม่เก็บสิ่งที่กรอกไว้อีก
+    draft = EMPTY
+    if (result.needsEmailConfirm) {
       setValues((v) => ({ ...v, password: '', confirm: '' }))
       setNotice('ส่งลิงก์ยืนยันไปที่อีเมลแล้ว เปิดลิงก์นั้นแล้วกลับมาเข้าสู่ระบบ')
     }
@@ -125,10 +138,9 @@ export function RegisterPage({ navigate }: Props) {
         <form className="card" onSubmit={onSubmit} noValidate>
           {text('name', 'ชื่อที่แสดง (ไม่บังคับ)', { placeholder: 'เช่น ม้าน้อยใจกล้า', autoComplete: 'nickname' })}
           {text('email', 'อีเมล', { type: 'email', placeholder: 'you@example.com', autoComplete: 'email' })}
-          <div className="fields-2">
-            {password('password', 'รหัสผ่าน', `อย่างน้อย ${PASSWORD_MIN} ตัว`)}
-            {password('confirm', 'ยืนยันรหัสผ่าน', 'พิมพ์อีกครั้ง')}
-          </div>
+          {/* คนละบรรทัด: วางคู่กันแล้วช่องสั้นเกินจนเห็นรหัสผ่านไม่ครบ (เจ้าของโปรเจกต์กำหนด) */}
+          {password('password', 'รหัสผ่าน', `อย่างน้อย ${PASSWORD_MIN} ตัว`)}
+          {password('confirm', 'ยืนยันรหัสผ่าน', 'พิมพ์อีกครั้ง')}
           <div className="row small">
             <button
               type="button"
