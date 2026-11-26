@@ -56,7 +56,7 @@ export function HomePage({ navigate }: Props) {
         <h1 className="hero-name">
           CheckMate <em>Live</em>
         </h1>
-        <p className="center pretty">เล่นหมากรุกกับเพื่อนผ่านลิงก์ ไม่ต้องสมัครสมาชิก</p>
+        <p className="center pretty">เล่นหมากรุก หมากฮอส และหมากหนีบกับเพื่อนผ่านลิงก์ ไม่ต้องสมัครสมาชิก</p>
       </div>
 
       <div className="menu">

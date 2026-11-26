@@ -1,5 +1,6 @@
 // ข้อความภาษาไทยที่แสดงให้ผู้เล่นเห็น
 
+import { gameOf } from './games'
 import type { Color, PlayerInfo, StateMsg } from './protocol'
 
 const REASONS: Record<string, string> = {
@@ -12,6 +13,12 @@ const REASONS: Record<string, string> = {
   count: 'นับศักดิ์ครบ',
   wipeout: 'กินหมากหมดกระดาน',
   blocked: 'ไม่มีตาเดินเหลือ',
+}
+
+/** เหตุผลที่เกมจบเป็นข้อความ หมากรุกไทยเรียกการรุกจนกระดานว่า "รุกจน" */
+function reasonText(state: StateMsg): string {
+  if (state.reason === 'checkmate' && gameOf(state) === 'makruk') return 'รุกจน'
+  return REASONS[state.reason ?? ''] ?? ''
 }
 
 const ERRORS: Record<string, string> = {
@@ -49,7 +56,7 @@ function winnerOf(result: string | undefined): Color | 'draw' | null {
 /** ข้อความสรุปผลเกม จากมุมของผู้ที่กำลังดูหน้าจอ */
 export function resultText(state: StateMsg): string {
   const winner = winnerOf(state.result)
-  const reason = REASONS[state.reason ?? ''] ?? ''
+  const reason = reasonText(state)
   if (winner === null) return 'เกมจบแล้ว'
   if (winner === 'draw') return reason ? `เสมอ — ${reason}` : 'เสมอ'
 
@@ -96,7 +103,7 @@ export function resultParts(state: StateMsg): {
   outcome: 'win' | 'loss' | 'draw' | 'watch'
 } {
   const winner = winnerOf(state.result)
-  const reason = REASONS[state.reason ?? ''] ?? ''
+  const reason = reasonText(state)
   if (winner === null) return { headline: 'เกมจบแล้ว', reason, outcome: 'watch' }
   if (winner === 'draw') return { headline: 'เสมอ', reason, outcome: 'draw' }
   const you = state.you.color

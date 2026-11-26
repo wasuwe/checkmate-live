@@ -297,3 +297,32 @@ func TestParseVariant(t *testing.T) {
 		t.Error("ParseVariant accepted an unknown game")
 	}
 }
+
+func TestMakrukBlockedPawnsCannotGoOnForever(t *testing.T) {
+	// เบี้ยคว่ำยันกันที่ h3/h4 เดินไม่ได้ทั้งคู่ การนับศักดิ์จึงไม่มีวันเริ่ม
+	g := mustMakruk(t, "8/5K2/8/8/3k3p/7P/8/8 w")
+	if g.Count() != nil {
+		t.Fatalf("counting with unpromoted bia on the board: %+v", g.Count())
+	}
+	g.quiet = makrukQuietLimit - 2
+	playM(t, g, "f7f8")
+	if g.Over() {
+		t.Fatal("draw one ply early")
+	}
+	playM(t, g, "d4d5")
+	if result, reason := g.Result(); result != "1/2-1/2" || reason != ReasonDraw {
+		t.Fatalf("result = %q %q, want a draw after %d quiet plies", result, reason, makrukQuietLimit)
+	}
+
+	// การกินและการเดินเบี้ยเริ่มนับใหม่
+	g = NewMakruk()
+	g.quiet = 40
+	playM(t, g, "b1d2")
+	if g.quiet != 41 {
+		t.Fatalf("quiet = %d after a piece move, want 41", g.quiet)
+	}
+	playM(t, g, "e6e5")
+	if g.quiet != 0 {
+		t.Fatalf("quiet = %d after a bia move, want 0", g.quiet)
+	}
+}

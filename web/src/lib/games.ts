@@ -35,7 +35,9 @@ export function gameName(id: GameId): string {
   return GAMES.find((g) => g.id === id)?.name ?? ''
 }
 
-/** คำที่ขึ้นบนกระดานเมื่อรุกและเมื่อเกมจบด้วยการรุก */
+/** คำที่ขึ้นบนกระดานเมื่อรุก และเมื่อเกมจบบนกระดาน (รุกจน กินหมด หรือปิดจนเดินไม่ได้) */
 export function checkWords(id: GameId): { check: string; mate: string } {
-  return id === 'makruk' ? { check: 'รุก!', mate: 'รุกจน!' } : { check: 'รุก!', mate: 'รุกฆาต!' }
+  if (id === 'makruk') return { check: 'รุก!', mate: 'รุกจน!' }
+  if (id === 'chess') return { check: 'รุก!', mate: 'รุกฆาต!' }
+  return { check: '', mate: 'จบเกม!' }
 }
