@@ -48,6 +48,8 @@ export interface PieceStyle {
   draw?: (kind: ChessKind, paint: Paint) => JSX.Element
   /** โฟลเดอร์ของไฟล์รูป เช่น '/pieces/cute' (ไฟล์ชื่อ wK.svg, bQ.svg, ...) */
   images?: string
+  /** ที่อยู่รูปรายตัว (รหัสเช่น 'wK') ของรูปแบบที่เพิ่มจากหน้าจัดการรูปแบบหมาก */
+  imageOf?: Record<string, string>
 }
 
 const stroke = (ink: string, width = 1.7) => ({ stroke: ink, strokeWidth: width, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const })
@@ -140,8 +142,80 @@ export const PIECE_STYLES: PieceStyle[] = [
 
 export const DEFAULT_STYLE = PIECE_STYLES[0].id
 
+// ---------- รูปแบบที่เพิ่มจากหน้าจัดการรูปแบบหมาก (มาจากเซิร์ฟเวอร์) ----------
+
+/** รูปแบบหนึ่งชุดตามที่เซิร์ฟเวอร์เก็บ */
+export interface RemoteStyle {
+  id: string
+  rev: number
+  name: string
+  /** รหัสตัวหมาก (เช่น 'wK') → ที่อยู่รูป */
+  images: Record<string, string>
+}
+
+const IMAGE_URL = /^\/api\/content-images\/[0-9a-f]{32}$/
+const PIECE_CODE = /^[wb][KQRBNP]$/
+
+/** อ่าน response ของ /api/piece-styles ค่าที่รูปแบบผิดถูกทิ้ง คืน null ถ้าไม่ใช่รูปแบบที่รู้จัก */
+export function parseRemoteStyles(body: unknown): RemoteStyle[] | null {
+  const list = (body as { styles?: unknown } | null)?.styles
+  if (!Array.isArray(list)) return null
+  const out: RemoteStyle[] = []
+  for (const item of list) {
+    if (typeof item !== 'object' || item === null) continue
+    const raw = item as Record<string, unknown>
+    if (typeof raw.id !== 'string' || !/^[a-z0-9_-]{1,24}$/.test(raw.id)) continue
+    const images: Record<string, string> = {}
+    for (const [piece, url] of Object.entries((raw.images ?? {}) as Record<string, unknown>)) {
+      if (PIECE_CODE.test(piece) && typeof url === 'string' && IMAGE_URL.test(url)) images[piece] = url
+    }
+    out.push({ id: raw.id, rev: typeof raw.rev === 'number' ? raw.rev : 0, name: typeof raw.name === 'string' ? raw.name : '', images })
+  }
+  return out
+}
+
+/** ตัวหมากที่รูปแบบจากเซิร์ฟเวอร์มีรูปครบทั้งสองสี (ตัวที่ยังไม่ครบไม่ขึ้นให้เลือก) */
+export function readyKinds(style: RemoteStyle): ChessKind[] {
+  return CHESS_KINDS.filter((k) => style.images['w' + k] && style.images['b' + k])
+}
+
+/** รหัสของรูปแบบจากเซิร์ฟเวอร์ ขึ้นต้นด้วย u- เพื่อไม่ชนกับรูปแบบในระบบ */
+export const remoteStyleId = (id: string) => 'u-' + id
+
+let remote: PieceStyle[] = []
+let remoteRequested = false
+
+/** ตั้งรายการรูปแบบจากเซิร์ฟเวอร์ (เรียกหลังโหลด และหลังแก้ในหน้าจัดการ) */
+export function setRemoteStyles(list: RemoteStyle[]): void {
+  remote = list
+    .map((s) => ({ id: remoteStyleId(s.id), name: s.name, desc: 'รูปแบบที่ทีมงานเพิ่ม', kinds: readyKinds(s), imageOf: s.images }))
+    .filter((s) => s.kinds.length > 0)
+  // เปลี่ยนตัวอ้างอิงของค่าที่เลือก เพื่อให้กระดานและหน้าโปรไฟล์วาดใหม่ด้วยรูปแบบที่เพิ่งมาถึง
+  current = { ...getSnapshot() }
+  for (const notify of listeners) notify()
+}
+
+function requestRemoteStyles(): void {
+  if (remoteRequested || typeof fetch !== 'function') return
+  remoteRequested = true
+  fetch('/api/piece-styles')
+    .then((res) => (res.ok ? res.json() : null))
+    .then((body) => {
+      const list = parseRemoteStyles(body)
+      if (list) setRemoteStyles(list)
+    })
+    .catch(() => {
+      // โหลดไม่ได้: ใช้รูปแบบในระบบต่อไป ตัวที่เลือกแบบจากเซิร์ฟเวอร์ไว้จะแสดงเป็นแบบเริ่มต้น
+    })
+}
+
+/** รูปแบบทั้งหมดที่เลือกได้ตอนนี้: ของระบบ ตามด้วยของที่เพิ่มจากหน้าจัดการ */
+export function allStyles(): PieceStyle[] {
+  return remote.length > 0 ? [...PIECE_STYLES, ...remote] : PIECE_STYLES
+}
+
 export function styleById(id: string | undefined): PieceStyle {
-  return PIECE_STYLES.find((s) => s.id === id) ?? PIECE_STYLES[0]
+  return allStyles().find((s) => s.id === id) ?? PIECE_STYLES[0]
 }
 
 /** รูปแบบนี้มีตัวหมากชนิดนี้หรือไม่ */
@@ -151,7 +225,7 @@ export function styleHas(style: PieceStyle, kind: ChessKind): boolean {
 
 /** รูปแบบที่เลือกได้สำหรับตัวหมากชนิดหนึ่ง */
 export function stylesFor(kind: ChessKind): PieceStyle[] {
-  return PIECE_STYLES.filter((s) => styleHas(s, kind))
+  return allStyles().filter((s) => styleHas(s, kind))
 }
 
 /** รูปแบบที่ผู้เล่นเลือกของตัวหมากแต่ละชนิด */
@@ -160,16 +234,24 @@ export type StylePrefs = Record<ChessKind, string>
 export const DEFAULT_STYLES: StylePrefs = { K: DEFAULT_STYLE, Q: DEFAULT_STYLE, R: DEFAULT_STYLE, B: DEFAULT_STYLE, N: DEFAULT_STYLE, P: DEFAULT_STYLE }
 
 /**
- * ทำให้ค่าที่อ่านมาใช้ได้เสมอ: รูปแบบที่ไม่มีแล้ว (ถูกเอาออก) หรือไม่มีตัวหมากชนิดนั้น กลับไปใช้แบบเริ่มต้น
+ * ทำให้ค่าที่อ่านมาใช้ได้เสมอ: ค่าที่ไม่ใช่รหัสรูปแบบกลับไปเป็นแบบเริ่มต้น
+ * รหัสที่ยังไม่รู้จักถูกเก็บไว้ เพราะรูปแบบจากเซิร์ฟเวอร์มาถึงทีหลัง ตอนวาด (drawPiece) ถ้ารูปแบบนั้นไม่มีแล้ว
+ * หรือไม่มีตัวหมากชนิดนั้น จะวาดเป็นแบบเริ่มต้นเอง
  */
 export function cleanStylePrefs(value: unknown): StylePrefs {
   const raw = (typeof value === 'object' && value !== null ? value : {}) as Record<string, unknown>
   const out = { ...DEFAULT_STYLES }
   for (const kind of CHESS_KINDS) {
-    const style = PIECE_STYLES.find((s) => s.id === raw[kind])
-    if (style && styleHas(style, kind)) out[kind] = style.id
+    const id = raw[kind]
+    if (typeof id === 'string' && /^[a-z0-9_-]{1,40}$/.test(id)) out[kind] = id
   }
   return out
+}
+
+/** รูปแบบที่ใช้วาดตัวหมากชนิดนี้จริง (ถ้าที่เลือกไว้ใช้ไม่ได้ = แบบเริ่มต้น) */
+export function effectiveStyle(styleId: string | undefined, kind: ChessKind): PieceStyle {
+  const style = styleById(styleId)
+  return styleHas(style, kind) ? style : PIECE_STYLES[0]
 }
 
 /** ตัวหมากของเกมอื่นใช้รูปแบบของตัวหมากรุกสากลที่หน้าตาตรงกัน: เม็ด=ควีน โคน=บิชอป เบี้ยหงาย=เบี้ย */
@@ -183,8 +265,11 @@ export function styleKind(kind: string): ChessKind | null {
 
 /** วาดตัวหมากตามรูปแบบ (เฉพาะรูปทรง ไม่รวมป้ายที่มุม) */
 export function drawPiece(styleId: string | undefined, kind: ChessKind, paint: Paint): JSX.Element {
-  let style = styleById(styleId)
-  if (!styleHas(style, kind)) style = PIECE_STYLES[0]
+  const style = effectiveStyle(styleId, kind)
+  const url = style.imageOf?.[paint.color + kind]
+  if (url) {
+    return <image href={url} x="1.5" y="1.5" width="42" height="42" preserveAspectRatio="xMidYMid meet" />
+  }
   if (style.images) {
     return <image href={`${style.images}/${paint.color}${kind}.svg`} x="2" y="2" width="41" height="41" preserveAspectRatio="xMidYMid meet" />
   }
@@ -211,6 +296,7 @@ function getSnapshot(): StylePrefs {
 }
 
 function subscribe(onChange: () => void): () => void {
+  requestRemoteStyles()
   const onStorage = (e: StorageEvent) => {
     if (e.key !== STORAGE_KEY) return
     current = read()
@@ -255,4 +341,5 @@ export function useStylePrefs(): StylePrefs {
 /** ใช้ใน test: ล้างค่าที่จำไว้ในหน่วยความจำ */
 export function resetStylePrefsForTest(): void {
   current = null
+  remote = []
 }

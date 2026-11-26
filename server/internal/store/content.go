@@ -108,6 +108,78 @@ func (c *Content) UpdateCredits(ctx context.Context, by string, fn func(*content
 	return &next, nil
 }
 
+const pieceStylesKey = "piece_styles"
+
+func decodePieceStyles(data []byte) (*content.PieceStyles, error) {
+	var out content.PieceStyles
+	if err := json.Unmarshal(data, &out); err != nil {
+		return nil, err
+	}
+	// ตรวจซ้ำตอนอ่าน เหมือนข้อมูลเครดิต
+	if err := out.Clean(); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *Content) PieceStyles(ctx context.Context) (*content.PieceStyles, error) {
+	var data []byte
+	err := c.s.pool.QueryRow(ctx, "select data from site_content where key = $1", pieceStylesKey).Scan(&data)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return &content.PieceStyles{Styles: []content.PieceStyle{}}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return decodePieceStyles(data)
+}
+
+// UpdatePieceStyles แก้รูปแบบตัวหมากภายใน transaction เดียว โดยล็อกแถวไว้ตั้งแต่อ่านจนเขียน
+// ถ้ายังไม่มีแถว จะสร้างแถวว่างก่อนแล้วจึงล็อก คำขอที่มาพร้อมกันจึงถูกทำทีละคำขอเสมอ
+func (c *Content) UpdatePieceStyles(ctx context.Context, by string, fn func(*content.PieceStyles) error) (*content.PieceStyles, error) {
+	tx, err := c.s.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	if _, err := tx.Exec(ctx, `
+		insert into site_content (key, data, updated_by) values ($1, '{"styles":[]}', $2)
+		on conflict (key) do nothing`, pieceStylesKey, by); err != nil {
+		return nil, err
+	}
+	var data []byte
+	if err := tx.QueryRow(ctx, "select data from site_content where key = $1 for update", pieceStylesKey).Scan(&data); err != nil {
+		return nil, err
+	}
+	before, err := decodePieceStyles(data)
+	if err != nil {
+		return nil, err
+	}
+	next := before.Clone()
+	if err := fn(&next); err != nil {
+		return nil, err
+	}
+	data, err = json.Marshal(next)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := tx.Exec(ctx,
+		"update site_content set data = $2, updated_by = $3, updated_at = now() where key = $1",
+		pieceStylesKey, data, by); err != nil {
+		return nil, err
+	}
+	if unused := content.UnusedPieceImages(before, &next); len(unused) > 0 {
+		if _, err := tx.Exec(ctx, "delete from content_images where id = any($1)", unused); err != nil {
+			return nil, err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return &next, nil
+}
+
 func (c *Content) DeleteImage(ctx context.Context, id string) error {
 	_, err := c.s.pool.Exec(ctx, "delete from content_images where id = $1", id)
 	return err

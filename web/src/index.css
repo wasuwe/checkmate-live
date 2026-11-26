@@ -3572,6 +3572,70 @@ a.cb-card:focus-visible {
   }
 }
 
+/* ---------- หน้าจัดการรูปแบบหมาก ---------- */
+
+.studio-add {
+  align-items: flex-end;
+}
+
+.studio .btn {
+  min-height: 44px;
+}
+
+.studio-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.studio-slot {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 8px;
+  border: 2.5px solid var(--ink);
+  border-radius: 16px;
+  background: var(--cream);
+  text-align: center;
+}
+
+.studio-slot .btn {
+  padding: 6px 4px;
+  white-space: nowrap;
+}
+
+.studio-preview {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: #ffe9f0;
+  font-family: var(--font-head);
+  font-size: 26px;
+  color: var(--muted);
+}
+
+.studio-preview.dark {
+  background: #f7a1bb;
+  color: #fff;
+}
+
+.studio-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+@media (max-width: 720px) {
+  .studio-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 /* ---------- รูปแบบตัวหมากรุก (เลือกเป็นรายตัว) ---------- */
 
 .chip.style-all {

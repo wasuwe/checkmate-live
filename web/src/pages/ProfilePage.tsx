@@ -23,7 +23,8 @@ import {
 import {
   CHESS_KINDS,
   KIND_NAMES,
-  PIECE_STYLES,
+  allStyles,
+  effectiveStyle,
   setAllPieceStyles,
   setPieceStyle,
   stylesFor,
@@ -271,12 +272,12 @@ function PieceStyleSection({ set }: { set: BoardSet }) {
         <span className="small" style={{ fontWeight: 700 }}>
           ใช้ทั้งชุด:
         </span>
-        {PIECE_STYLES.map((style) => (
+        {allStyles().map((style) => (
           <button
             key={style.id}
             type="button"
             className="chip dark style-all"
-            aria-pressed={CHESS_KINDS.every((k) => prefs[k] === style.id)}
+            aria-pressed={CHESS_KINDS.every((k) => effectiveStyle(prefs[k], k).id === style.id)}
             title={style.desc}
             onClick={() => setAllPieceStyles(style.id)}
           >
@@ -295,7 +296,7 @@ function PieceStyleSection({ set }: { set: BoardSet }) {
                   key={style.id}
                   type="button"
                   className="style-option"
-                  aria-pressed={prefs[kind] === style.id}
+                  aria-pressed={effectiveStyle(prefs[kind], kind).id === style.id}
                   aria-label={`${KIND_NAMES[kind]}แบบ${style.name}`}
                   title={style.desc}
                   onClick={() => setPieceStyle(kind, style.id)}

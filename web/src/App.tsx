@@ -4,6 +4,7 @@ import { AdminPage } from './pages/AdminPage'
 import { CreditsPage } from './pages/CreditsPage'
 import { GalleryPage } from './pages/GalleryPage'
 import { HomePage } from './pages/HomePage'
+import { PieceStudioPage } from './pages/PieceStudioPage'
 import { LoginPage } from './pages/LoginPage'
 import { PlayPage } from './pages/PlayPage'
 import { ProfilePage } from './pages/ProfilePage'
@@ -41,6 +42,8 @@ function App() {
         return <ProfilePage navigate={navigate} />
       case 'credits':
         return <CreditsPage navigate={navigate} />
+      case 'pieces':
+        return <PieceStudioPage navigate={navigate} />
       case 'gallery':
         return <GalleryPage navigate={navigate} />
       case 'admin':

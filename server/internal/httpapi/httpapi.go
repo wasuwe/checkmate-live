@@ -94,6 +94,12 @@ func New(cfg Config) http.Handler {
 			mux.HandleFunc("POST /api/admin/credits/ops", a.postCreditsOp)
 			mux.HandleFunc("PUT /api/admin/credits/{kind}/{id}/image", a.putOcImage)
 			mux.HandleFunc("DELETE /api/admin/credits/{kind}/{id}/image", a.deleteOcImage)
+			mux.HandleFunc("GET /api/piece-styles", a.getPieceStyles)
+			mux.HandleFunc("POST /api/pieces/styles", a.postPieceStyle)
+			mux.HandleFunc("PUT /api/pieces/styles/{id}", a.putPieceStyle)
+			mux.HandleFunc("DELETE /api/pieces/styles/{id}", a.deletePieceStyle)
+			mux.HandleFunc("PUT /api/pieces/styles/{id}/images/{piece}", a.putPieceImage)
+			mux.HandleFunc("DELETE /api/pieces/styles/{id}/images/{piece}", a.deletePieceImage)
 		}
 		// path ใต้ /api ที่ไม่มีจริงต้องได้ 404 ไม่ใช่หน้าเว็บ
 		mux.HandleFunc("/api/", http.NotFound)

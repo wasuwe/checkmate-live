@@ -28,6 +28,7 @@ import {
   type Person,
   type TeamGroup,
 } from '../lib/credits'
+import { PIECE_STUDIO_PATH } from '../lib/router'
 import { loginAvailable } from '../lib/session'
 
 interface Props {
@@ -237,6 +238,9 @@ function CreditsEditor({ navigate }: Props) {
         </button>
         <button type="button" className="btn mini" onClick={() => navigate('/gallery')}>
           ดูแกลเลอรี
+        </button>
+        <button type="button" className="btn mini" onClick={() => navigate(PIECE_STUDIO_PATH)}>
+          จัดการรูปแบบหมาก
         </button>
       </div>
 

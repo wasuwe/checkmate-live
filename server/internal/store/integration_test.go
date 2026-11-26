@@ -524,3 +524,55 @@ func TestIntegrationContent(t *testing.T) {
 		t.Fatal("bad image id was accepted")
 	}
 }
+
+func TestIntegrationPieceStyles(t *testing.T) {
+	s, _ := openTestStore(t)
+	ctx := context.Background()
+	c := s.Content()
+	const imgA, imgB = "cccccccccccccccccccccccccccccccc", "dddddddddddddddddddddddddddddddd"
+
+	// ยังไม่มีข้อมูล = รายการว่าง ไม่ใช่ error
+	if got, err := c.PieceStyles(ctx); err != nil || got == nil || len(got.Styles) != 0 {
+		t.Fatalf("styles before any save: %v %v", got, err)
+	}
+	got, err := c.UpdatePieceStyles(ctx, "artist-1", func(p *content.PieceStyles) error { return p.Create("ชุดแรก") })
+	if err != nil || len(got.Styles) != 1 || got.Styles[0].Rev != 1 {
+		t.Fatalf("create: %v %v", got, err)
+	}
+	id := got.Styles[0].ID
+	img := content.Image{ContentType: "image/png", Data: []byte("x")}
+	for _, imageID := range []string{imgA, imgB} {
+		if err := c.SaveImage(ctx, imageID, img, "artist-1"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := c.UpdatePieceStyles(ctx, "artist-1", func(p *content.PieceStyles) error {
+		return p.SetImage(id, 1, "wK", content.ImagePath(imgA))
+	}); err != nil {
+		t.Fatal(err)
+	}
+	// เปลี่ยนรูป: รูปเก่าถูกลบใน transaction เดียวกัน
+	if _, err := c.UpdatePieceStyles(ctx, "artist-1", func(p *content.PieceStyles) error {
+		return p.SetImage(id, 2, "wK", content.ImagePath(imgB))
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.Image(ctx, imgA); !errors.Is(err, content.ErrNotFound) {
+		t.Fatalf("the replaced image is still stored: %v", err)
+	}
+	// fn ที่คืน error ไม่บันทึกอะไร
+	if _, err := c.UpdatePieceStyles(ctx, "artist-1", func(p *content.PieceStyles) error { return p.Rename(id, 1, "stale") }); !errors.Is(err, content.ErrConflict) {
+		t.Fatalf("stale rename: %v", err)
+	}
+	read, err := c.PieceStyles(ctx)
+	if err != nil || read.Styles[0].Name != "ชุดแรก" || read.Styles[0].Images["wK"] != content.ImagePath(imgB) || read.Styles[0].Rev != 3 {
+		t.Fatalf("read back: %+v %v", read, err)
+	}
+	// ลบรูปแบบ: รูปที่เหลือถูกลบด้วย และไม่กระทบข้อมูลเครดิต
+	if _, err := c.UpdatePieceStyles(ctx, "artist-1", func(p *content.PieceStyles) error { return p.Delete(id, 3) }); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.Image(ctx, imgB); !errors.Is(err, content.ErrNotFound) {
+		t.Fatalf("the deleted style's image is still stored: %v", err)
+	}
+}

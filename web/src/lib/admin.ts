@@ -153,7 +153,7 @@ export async function fetchIsAdmin(): Promise<boolean> {
 }
 
 /**
- * สถานะ admin ของผู้ใช้ปัจจุบัน: null = กำลังตรวจ
+ * สถานะ admin ของผู้ใช้ปัจจุบัน: null = กำลังตรวจ (ใช้กับทั้งหน้าจัดการข้อมูลและหน้าจัดการรูปแบบหมาก)
  * ผู้เล่นรับเชิญไม่มีทางเป็น admin จึงไม่ต้องถามเซิร์ฟเวอร์
  */
 export function useIsAdmin(): boolean | null {
@@ -180,10 +180,10 @@ export function fitWithin(width: number, height: number, max: number): { width: 
 }
 
 /** ย่อรูปในเบราว์เซอร์เป็น PNG (คงพื้นหลังโปร่ง) ก่อนส่ง */
-export async function resizeOcImage(file: Blob): Promise<Blob> {
+export async function resizeOcImage(file: Blob, max = OC_IMAGE_SIDE): Promise<Blob> {
   const bitmap = await createImageBitmap(file) // โยน error ถ้าไม่ใช่รูป
   try {
-    const size = fitWithin(bitmap.width, bitmap.height, OC_IMAGE_SIDE)
+    const size = fitWithin(bitmap.width, bitmap.height, max)
     const canvas = document.createElement('canvas')
     canvas.width = size.width
     canvas.height = size.height

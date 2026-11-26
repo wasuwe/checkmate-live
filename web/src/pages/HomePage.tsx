@@ -3,7 +3,7 @@ import { useState, type ClipboardEvent, type FormEvent } from 'react'
 import { AccountPanel } from '../components/AccountPanel'
 import { VS } from '../lib/pieceSets'
 import { extractRoomId, isRoomId, ROOM_ID_LENGTH } from '../lib/protocol'
-import { roomPath, ADMIN_PATH } from '../lib/router'
+import { roomPath, ADMIN_PATH, PIECE_STUDIO_PATH } from '../lib/router'
 
 interface Props {
   navigate: (to: string) => void
@@ -135,6 +135,11 @@ export function HomePage({ navigate }: Props) {
         {isAdmin && (
           <button type="button" className="link" onClick={() => navigate(ADMIN_PATH)}>
             จัดการข้อมูล
+          </button>
+        )}
+        {isAdmin && (
+          <button type="button" className="link" onClick={() => navigate(PIECE_STUDIO_PATH)}>
+            จัดการรูปแบบหมาก
           </button>
         )}
       </nav>
