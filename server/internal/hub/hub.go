@@ -23,6 +23,8 @@ type Config struct {
 	IdleTTL time.Duration
 	// AbandonGrace คือเวลาที่ผู้เล่นซึ่งหลุดระหว่างเกมกลับเข้ามาได้ก่อนถูกปรับแพ้
 	AbandonGrace time.Duration
+	// Store คือที่เก็บข้อมูลถาวร ถ้าเป็น nil ทุกอย่างอยู่ใน memory อย่างเดียว
+	Store Store
 	// CoinFlip ใช้สุ่มสี คืน true เพื่อสลับให้คนที่เข้าทีหลังเป็นขาว (test กำหนดเองได้)
 	CoinFlip func() bool
 	Logger   *slog.Logger
@@ -74,6 +76,11 @@ func New(cfg Config, authn auth.Authenticator) *Hub {
 
 // CreateRoom สร้างห้องใหม่และคืนรหัสห้อง ถ้า tc เป็นค่าว่างจะใช้ DefaultTimeControl
 func (h *Hub) CreateRoom(tc TimeControl) (string, error) {
+	return h.CreateRoomBy(tc, "")
+}
+
+// CreateRoomBy เหมือน CreateRoom แต่บันทึก user ID ของผู้สร้างห้องไว้ด้วย
+func (h *Hub) CreateRoomBy(tc TimeControl, createdBy string) (string, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if h.closed {
@@ -91,8 +98,9 @@ func (h *Hub) CreateRoom(tc TimeControl) (string, error) {
 		}
 	}
 
-	room := newRoom(id, h.cfg, tc, h.removeRoom)
+	room := newRoom(id, h.cfg, tc, createdBy, h.removeRoom)
 	h.rooms[id] = room
+	room.persist() // ยังไม่มี goroutine ของห้อง จึงเรียกจากตรงนี้ได้
 	h.wg.Go(func() { room.run(h.stop) })
 	return id, nil
 }

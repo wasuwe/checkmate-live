@@ -118,6 +118,17 @@ docker-compose.yml
 
 ค่า `reason` ที่ใช้ได้: `checkmate`, `resign`, `timeout`, `draw`, `stalemate`, `abandon`
 
+### ที่ทำจริง (เฟส 5)
+- ไฟล์ migration อยู่ที่ `server/internal/store/migrations/` ฝังในโปรแกรมและรันเองตอนเซิร์ฟเวอร์เริ่ม (บันทึกในตาราง `schema_migrations`)
+- `rooms` มีคอลัมน์ `time_control` และ `snapshot` (jsonb: ที่นั่ง ตาเดิน เวลาบนนาฬิกา) บันทึกทุกครั้งที่ที่นั่งหรือตาเดินเปลี่ยน
+- ตอนเริ่ม เซิร์ฟเวอร์โหลดห้องที่ยังไม่จบกลับมา ตาเดินถูกเล่นซ้ำและตรวจกติกาใหม่ เวลาที่เซิร์ฟเวอร์ดับไม่ถูกหักจากนาฬิกา ผู้เล่นมีเวลา `ABANDON_GRACE` ในการกลับเข้ามา
+- `games.white_id` / `black_id` อ้างถึง `auth.users` และเป็น `NULL` เมื่อผู้เล่นเป็น guest
+- การเขียนทั้งหมดทำเบื้องหลัง ฐานข้อมูลช้าหรือล่มไม่ทำให้เกมค้าง งานที่เขียนไม่สำเร็จถูกลองใหม่
+- ทุกตารางเปิด RLS โดยไม่มี policy และถอนสิทธิ์ของ role `anon` / `authenticated`
+- ต้องตั้ง `GUEST_SECRET` ให้คงที่ ไม่งั้นหลังรีสตาร์ต guest จะกลับที่นั่งเดิมไม่ได้
+- แชทไม่ถูกบันทึก หายเมื่อรีสตาร์ต
+- ตรวจการเชื่อมต่อและดูข้อมูล: `go run ./cmd/dbcheck` และ `go run ./cmd/dbcheck -summary` (ในโฟลเดอร์ `server`)
+
 ### ข้อควรระวัง
 - **Connection:** Go server ทำงานต่อเนื่อง ให้ใช้ **Session pooler (port 5432)** ถ้าใช้ Transaction pooler (6543) ต้องปิด prepared statements โดยตั้ง `default_query_exec_mode=simple_protocol` ใน pgx
 - **Free plan:** จะถูก pause ถ้าใช้งานน้อยใน 7 วัน ถ้าเปิดให้คนเล่นจริงควรใช้ Pro

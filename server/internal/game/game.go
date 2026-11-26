@@ -4,6 +4,8 @@ package game
 
 import (
 	"errors"
+	"fmt"
+	"slices"
 
 	"github.com/corentings/chess/v2"
 )
@@ -53,6 +55,7 @@ type Game struct {
 	g      *chess.Game
 	ply    int
 	last   *Move
+	moves  []Move
 	reason string // ตั้งเมื่อจบด้วยเหตุนอกกระดาน (resign, abandon, timeout)
 }
 
@@ -99,6 +102,7 @@ func (g *Game) Move(m Move) error {
 			}
 			g.ply++
 			g.last = &Move{From: m.From, To: m.To, Promo: m.Promo}
+			g.moves = append(g.moves, *g.last)
 			g.claimDraws()
 			return nil
 		}
@@ -193,6 +197,23 @@ func (g *Game) LastMove() *Move {
 	}
 	m := *g.last
 	return &m
+}
+
+// Moves คืนตาเดินทั้งหมดตั้งแต่เริ่มเกม (สำเนา)
+func (g *Game) Moves() []Move {
+	return slices.Clone(g.moves)
+}
+
+// Replay สร้างเกมจากตำแหน่งเริ่มต้นแล้วเดินตามลำดับที่ให้มา ใช้กู้เกมคืนจากที่บันทึกไว้
+// ทุกตาถูกตรวจกติกาใหม่ ข้อมูลที่บันทึกไว้จึงทำให้เกิดตำแหน่งที่ผิดกติกาไม่ได้
+func Replay(moves []Move) (*Game, error) {
+	g := New()
+	for i, m := range moves {
+		if err := g.Move(m); err != nil {
+			return nil, fmt.Errorf("move %d (%s%s%s): %w", i+1, m.From, m.To, m.Promo, err)
+		}
+	}
+	return g, nil
 }
 
 // PGN คืนบันทึกเกมในรูป PGN
