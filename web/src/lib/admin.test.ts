@@ -1,104 +1,86 @@
 import { describe, expect, test } from 'vitest'
-import {
-  addGroup,
-  addOc,
-  addPerson,
-  fieldLabel,
-  firstProblem,
-  fitWithin,
-  moved,
-  newId,
-  ocsUsing,
-  removePerson,
-  replaced,
-  toggleMember,
-} from './admin'
-import { SAMPLE_CREDITS as DATA, type CreditsData } from './credits'
+import { fieldLabel, fitWithin, isDirty, ocsUsing, orderAfterMove, problemIn, readResult } from './admin'
+import { SAMPLE_CREDITS as DATA } from './credits'
 
-const EMPTY: CreditsData = { people: [], team: [], ocs: [] }
+describe('reading what the server answers', () => {
+  const credits = JSON.parse(JSON.stringify(DATA))
 
-describe('adding and removing people', () => {
-  test('a new person gets an id that is not taken, and the original data is untouched', () => {
-    const next = addPerson(DATA)
-    expect(next.people).toHaveLength(DATA.people.length + 1)
-    expect(DATA.people).toHaveLength(4)
-    const added = next.people[next.people.length - 1]
-    expect(DATA.people.some((p) => p.id === added.id)).toBe(false)
-    expect(added.id).toMatch(/^[a-z0-9_-]{1,24}$/)
-    expect(added.bg).toMatch(/^#[0-9A-F]{6}$/)
+  test('a successful change carries the new data', () => {
+    const result = readResult(200, { credits })
+    expect(result).toEqual({ status: 'ok', data: DATA })
+    expect(readResult(200, { credits: 'nope' })).toMatchObject({ status: 'error' })
   })
 
-  test('ids stay unique when earlier ones are already used', () => {
-    expect(newId('p', [])).toBe('p1')
-    expect(newId('p', ['p1'])).toBe('p2')
-    expect(newId('p', ['p2', 'p3'])).toBe('p4')
-    expect(newId('oc', ['oc1', 'x'])).toBe('oc3')
+  test('a refused change because someone else edited the item is a conflict, with the latest data', () => {
+    const result = readResult(409, { error: 'conflict', credits })
+    expect(result.status).toBe('conflict')
+    if (result.status === 'conflict') {
+      expect(result.data).toEqual(DATA)
+      expect(result.message).toContain('มีคนอื่นแก้หรือลบรายการนี้ไปก่อนแล้ว')
+    }
   })
 
-  test('someone who still owns or draws a character cannot be removed', () => {
-    expect(ocsUsing(DATA, 'mew').map((o) => o.id)).toEqual(['kaimuk', 'phueng', 'kong'])
-    expect(removePerson(DATA, 'mew')).toBe(DATA)
+  test('the other refusals explain themselves', () => {
+    expect(readResult(409, { error: 'in_use', credits })).toMatchObject({ status: 'conflict', message: expect.stringContaining('ยังเป็นเจ้าของหรือผู้วาด') })
+    expect(readResult(409, { error: 'exists', credits })).toMatchObject({ status: 'conflict', message: 'มีคนตั้งต้นข้อมูลไปแล้ว' })
+    // 409 ที่ไม่มีข้อมูลแนบมาก็ยังเป็น conflict
+    expect(readResult(409, {})).toMatchObject({ status: 'conflict', data: null })
   })
 
-  test('removing a person also takes them out of every team group', () => {
-    const extra = addPerson(DATA)
-    const id = extra.people[extra.people.length - 1].id
-    const inTeam = toggleMember(extra, 0, id)
-    expect(inTeam.team[0].ids).toContain(id)
-    const removed = removePerson(inTeam, id)
-    expect(removed.people.some((p) => p.id === id)).toBe(false)
-    expect(removed.team[0].ids).not.toContain(id)
-  })
-})
-
-describe('team groups and characters', () => {
-  test('toggling a member adds then removes them, only in that group', () => {
-    const added = toggleMember(DATA, 0, 'mew')
-    expect(added.team[0].ids).toEqual(['nok', 'tae', 'mew'])
-    expect(added.team[1].ids).toEqual(DATA.team[1].ids)
-    expect(toggleMember(added, 0, 'mew').team[0].ids).toEqual(['nok', 'tae'])
+  test('errors are turned into Thai messages', () => {
+    expect(readResult(400, { error: 'bad_credits', field: 'ocs[2].owner' })).toEqual({ status: 'error', message: 'ข้อมูลไม่ถูกต้องที่ ตัวละครลำดับที่ 3: เจ้าของ' })
+    expect(readResult(403, { error: 'forbidden' })).toEqual({ status: 'error', message: 'บัญชีนี้ไม่มีสิทธิ์จัดการข้อมูล' })
+    expect(readResult(400, { error: 'bad_image' })).toMatchObject({ message: expect.stringContaining('PNG หรือ JPEG') })
+    expect(readResult(500, null)).toEqual({ status: 'error', message: 'ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง' })
   })
 
-  test('a new group starts empty', () => {
-    const next = addGroup(DATA)
-    expect(next.team[next.team.length - 1]).toMatchObject({ role: '', ids: [] })
-  })
-
-  test('a new character belongs to the first person, and needs at least one person', () => {
-    const next = addOc(DATA)
-    const oc = next.ocs[next.ocs.length - 1]
-    expect(oc).toMatchObject({ owner: 'nok', artist: 'nok', name: '', image: '' })
-    expect(DATA.ocs.some((o) => o.id === oc.id)).toBe(false)
-    expect(addOc(EMPTY)).toBe(EMPTY)
-  })
-
-  test('moving and replacing return new lists and ignore impossible moves', () => {
-    const list = ['a', 'b', 'c']
-    expect(moved(list, 0, 1)).toEqual(['b', 'a', 'c'])
-    expect(moved(list, 2, -1)).toEqual(['a', 'c', 'b'])
-    expect(moved(list, 0, -1)).toBe(list)
-    expect(moved(list, 2, 1)).toBe(list)
-    expect(list).toEqual(['a', 'b', 'c'])
-    expect(replaced([{ n: 1, m: 2 }, { n: 3, m: 4 }], 1, { n: 9 })).toEqual([{ n: 1, m: 2 }, { n: 9, m: 4 }])
-  })
-})
-
-describe('messages', () => {
   test('server field names are turned into readable Thai', () => {
     expect(fieldLabel('ocs[2].owner')).toBe('ตัวละครลำดับที่ 3: เจ้าของ')
     expect(fieldLabel('people[0].link')).toContain('คนลำดับที่ 1: ลิงก์')
     expect(fieldLabel('team[1].ids[0]')).toBe('กลุ่มทีมลำดับที่ 2: สมาชิก')
     expect(fieldLabel('ocs')).toBe('จำนวนตัวละครมากเกินไป')
+    expect(fieldLabel('ocs.owner')).toBe('ตัวละคร: เจ้าของ')
     expect(fieldLabel('<script>')).toBe('ข้อมูลบางช่อง')
+  })
+})
+
+describe('editing one item', () => {
+  test('a draft is dirty only when a field the form owns has changed', () => {
+    const oc = DATA.ocs[0]
+    expect(isDirty({ ...oc }, oc)).toBe(false)
+    expect(isDirty({ ...oc, name: 'อื่น' }, oc)).toBe(true)
+    expect(isDirty({ ...oc, bio: oc.bio + ' ' }, oc)).toBe(true)
+    // rev และ image เปลี่ยนที่เซิร์ฟเวอร์ ไม่ใช่สิ่งที่ผู้แก้พิมพ์
+    expect(isDirty({ ...oc, rev: 9 }, oc)).toBe(false)
+    expect(isDirty({ ...oc, image: '/api/content-images/0123456789abcdef0123456789abcdef' }, oc)).toBe(false)
+    const group = DATA.team[0]
+    expect(isDirty({ ...group, ids: [...group.ids] }, group)).toBe(false)
+    expect(isDirty({ ...group, ids: [...group.ids, 'mew'] }, group)).toBe(true)
   })
 
   test('obvious problems are caught before sending', () => {
-    expect(firstProblem(DATA)).toBe('')
-    expect(firstProblem(addPerson(DATA))).toBe('คนลำดับที่ 5 ยังไม่มีชื่อ')
-    expect(firstProblem(addGroup(DATA))).toBe('กลุ่มทีมลำดับที่ 3 ยังไม่มีชื่อบทบาท')
-    expect(firstProblem(addOc(DATA))).toBe('ตัวละครลำดับที่ 7 ยังไม่มีชื่อ')
-    const badLink = { ...DATA, people: replaced(DATA.people, 0, { link: 'example.com' }) }
-    expect(firstProblem(badLink)).toContain('ลิงก์ของ Nok')
+    expect(problemIn('people', DATA.people[0])).toBe('')
+    expect(problemIn('people', { ...DATA.people[0], name: '  ' })).toBe('ยังไม่มีชื่อ')
+    expect(problemIn('people', { ...DATA.people[0], link: 'example.com' })).toContain('ลิงก์ต้องขึ้นต้นด้วย http')
+    expect(problemIn('people', { ...DATA.people[0], link: 'https://example.com' })).toBe('')
+    expect(problemIn('team', { ...DATA.team[0], role: '' })).toBe('ยังไม่มีชื่อบทบาท')
+    expect(problemIn('team', DATA.team[0])).toBe('')
+    expect(problemIn('ocs', { ...DATA.ocs[0], name: '' })).toBe('ยังไม่มีชื่อ')
+  })
+
+  test('someone who still owns or draws a character is reported as in use', () => {
+    expect(ocsUsing(DATA, 'mew').map((o) => o.id)).toEqual(['kaimuk', 'phueng', 'kong'])
+    expect(ocsUsing(DATA, 'nobody')).toEqual([])
+  })
+
+  test('moving gives the new order, or nothing when the move is impossible', () => {
+    const ids = ['a', 'b', 'c']
+    expect(orderAfterMove(ids, 0, 1)).toEqual(['b', 'a', 'c'])
+    expect(orderAfterMove(ids, 2, -1)).toEqual(['a', 'c', 'b'])
+    expect(orderAfterMove(ids, 0, -1)).toBeNull()
+    expect(orderAfterMove(ids, 2, 1)).toBeNull()
+    expect(orderAfterMove(ids, 5, 1)).toBeNull()
+    expect(ids).toEqual(['a', 'b', 'c'])
   })
 })
 

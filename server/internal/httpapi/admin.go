@@ -76,14 +76,61 @@ func (a *api) getCredits(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]*content.Credits{"credits": c})
 }
 
-// putCredits บันทึกข้อมูลหน้าเครดิตทั้งชุด (admin เท่านั้น)
-func (a *api) putCredits(w http.ResponseWriter, r *http.Request) {
+// creditsFailure แปลง error จากการแก้ข้อมูลเครดิตเป็น response คืน true ถ้าเขียน response แล้ว
+// 409 ส่งข้อมูลล่าสุดกลับไปด้วย เพื่อให้หน้าจัดการแสดงค่าที่คนอื่นแก้ไว้ได้ทันที
+func (a *api) creditsFailure(w http.ResponseWriter, r *http.Request, err error) bool {
+	if err == nil {
+		return false
+	}
+	var field *content.FieldError
+	conflict := ""
+	switch {
+	case errors.As(err, &field):
+		// ชื่อช่องมาจากโค้ดของเรา ไม่มีข้อมูลของผู้ใช้
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad_credits", "field": field.Field})
+		return true
+	case errors.Is(err, content.ErrBadOp):
+		writeError(w, http.StatusBadRequest, "bad_request")
+		return true
+	case errors.Is(err, content.ErrConflict):
+		conflict = "conflict"
+	case errors.Is(err, content.ErrInUse):
+		conflict = "in_use"
+	case errors.Is(err, content.ErrExists):
+		conflict = "exists"
+	case errors.Is(err, content.ErrNoCredits):
+		conflict = "not_created"
+	default:
+		a.cfg.Logger.Error("update credits", "err", err)
+		writeError(w, http.StatusServiceUnavailable, "unavailable")
+		return true
+	}
+	current, loadErr := a.cfg.Content.Credits(r.Context())
+	if loadErr != nil {
+		a.cfg.Logger.Error("load credits", "err", loadErr)
+	}
+	writeJSON(w, http.StatusConflict, map[string]any{"error": conflict, "credits": current})
+	return true
+}
+
+// adminWrite ตรวจว่าเป็น admin และยังไม่เกินโควตา คืนตัวตนของผู้เรียก
+func (a *api) adminWrite(w http.ResponseWriter, r *http.Request) (auth.Identity, bool) {
 	id, ok := a.admin(w, r)
 	if !ok {
-		return
+		return auth.Identity{}, false
 	}
 	if !a.limits.admin.Allow(id.UserID) {
 		tooMany(w)
+		return auth.Identity{}, false
+	}
+	return id, true
+}
+
+// putCredits ตั้งต้นข้อมูลหน้าเครดิตทั้งชุด ทำได้เฉพาะตอนที่ยังไม่มีข้อมูล (admin เท่านั้น)
+// หลังจากนั้นการแก้ทั้งหมดทำทีละรายการผ่าน postCreditsOp
+func (a *api) putCredits(w http.ResponseWriter, r *http.Request) {
+	id, ok := a.adminWrite(w, r)
+	if !ok {
 		return
 	}
 	var c content.Credits
@@ -93,33 +140,59 @@ func (a *api) putCredits(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "bad_request")
 		return
 	}
-	if err := c.Clean(); err != nil {
-		var field *content.FieldError
-		if errors.As(err, &field) {
-			// บอกช่องที่ผิดให้หน้าจัดการชี้ได้ (ชื่อช่องมาจากโค้ดของเรา ไม่มีข้อมูลของผู้ใช้)
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad_credits", "field": field.Field})
-			return
-		}
-		writeError(w, http.StatusBadRequest, "bad_request")
+	err := c.Seed()
+	if err == nil {
+		err = a.cfg.Content.InitCredits(r.Context(), c, id.UserID)
+	}
+	if a.creditsFailure(w, r, err) {
 		return
 	}
-	if err := a.cfg.Content.SaveCredits(r.Context(), c, id.UserID); err != nil {
-		a.cfg.Logger.Error("save credits", "err", err)
-		writeError(w, http.StatusServiceUnavailable, "unavailable")
-		return
-	}
-	a.cfg.Logger.Info("credits updated", "by", id.UserID, "people", len(c.People), "ocs", len(c.Ocs))
+	a.cfg.Logger.Info("credits created", "by", id.UserID, "people", len(c.People), "ocs", len(c.Ocs))
 	writeJSON(w, http.StatusOK, map[string]*content.Credits{"credits": &c})
 }
 
-// postContentImage รับไฟล์รูปตัวละคร (JPEG หรือ PNG) เป็น body ตรง ๆ คืนที่อยู่ของรูป (admin เท่านั้น)
-func (a *api) postContentImage(w http.ResponseWriter, r *http.Request) {
+// postCreditsOp แก้ข้อมูลเครดิตหนึ่งรายการ: เพิ่ม บันทึก ลบ หรือจัดลำดับ (admin เท่านั้น)
+// ถ้ารายการถูกคนอื่นแก้ไปก่อน ตอบ 409 พร้อมข้อมูลล่าสุด และไม่มีอะไรถูกบันทึก
+func (a *api) postCreditsOp(w http.ResponseWriter, r *http.Request) {
+	id, ok := a.adminWrite(w, r)
+	if !ok {
+		return
+	}
+	var op content.Op
+	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&op); err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request")
+		return
+	}
+	c, err := a.cfg.Content.UpdateCredits(r.Context(), id.UserID, func(c *content.Credits) error { return c.Apply(op) })
+	if a.creditsFailure(w, r, err) {
+		return
+	}
+	a.cfg.Logger.Info("credits changed", "by", id.UserID, "op", op.Op, "kind", op.Kind)
+	writeJSON(w, http.StatusOK, map[string]*content.Credits{"credits": c})
+}
+
+// ocImageTarget อ่านรหัสตัวละครจาก path และเลขรุ่นจาก query ?rev=
+func ocImageTarget(r *http.Request) (id string, rev int, ok bool) {
+	rev, err := strconv.Atoi(r.URL.Query().Get("rev"))
+	return r.PathValue("id"), rev, err == nil && rev > 0
+}
+
+// putOcImage รับไฟล์รูป (JPEG หรือ PNG) เป็น body แล้วตั้งเป็นรูปของตัวละครทันที (admin เท่านั้น)
+// รูปเดิมของตัวละครถูกลบจากที่เก็บในขั้นตอนเดียวกัน
+func (a *api) putOcImage(w http.ResponseWriter, r *http.Request) {
 	id, ok := a.admin(w, r)
 	if !ok {
 		return
 	}
 	if !a.limits.adminImage.Allow(id.UserID) {
 		tooMany(w)
+		return
+	}
+	ocID, rev, ok := ocImageTarget(r)
+	if !ok {
+		writeError(w, http.StatusBadRequest, "bad_request")
 		return
 	}
 	data, err := io.ReadAll(http.MaxBytesReader(w, r.Body, content.MaxImageBytes))
@@ -146,8 +219,41 @@ func (a *api) postContentImage(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "unavailable")
 		return
 	}
-	a.cfg.Logger.Info("content image uploaded", "by", id.UserID, "bytes", len(img.Data))
-	writeJSON(w, http.StatusCreated, map[string]string{"url": content.ImagePath(imageID)})
+	c, err := a.cfg.Content.UpdateCredits(r.Context(), id.UserID, func(c *content.Credits) error {
+		return c.SetOcImage(ocID, rev, content.ImagePath(imageID))
+	})
+	if err != nil {
+		// ตั้งรูปไม่สำเร็จ (เช่น มีคนแก้ตัวละครไปก่อน): รูปที่เพิ่งเก็บไม่มีใครใช้ ต้องลบทิ้ง
+		if delErr := a.cfg.Content.DeleteImage(r.Context(), imageID); delErr != nil {
+			a.cfg.Logger.Error("delete unused content image", "err", delErr)
+		}
+	}
+	if a.creditsFailure(w, r, err) {
+		return
+	}
+	a.cfg.Logger.Info("oc image set", "by", id.UserID, "bytes", len(img.Data))
+	writeJSON(w, http.StatusOK, map[string]*content.Credits{"credits": c})
+}
+
+// deleteOcImage เอารูปของตัวละครออก และลบรูปนั้นจากที่เก็บ (admin เท่านั้น)
+func (a *api) deleteOcImage(w http.ResponseWriter, r *http.Request) {
+	id, ok := a.adminWrite(w, r)
+	if !ok {
+		return
+	}
+	ocID, rev, ok := ocImageTarget(r)
+	if !ok {
+		writeError(w, http.StatusBadRequest, "bad_request")
+		return
+	}
+	c, err := a.cfg.Content.UpdateCredits(r.Context(), id.UserID, func(c *content.Credits) error {
+		return c.SetOcImage(ocID, rev, "")
+	})
+	if a.creditsFailure(w, r, err) {
+		return
+	}
+	a.cfg.Logger.Info("oc image removed", "by", id.UserID)
+	writeJSON(w, http.StatusOK, map[string]*content.Credits{"credits": c})
 }
 
 // getContentImage เสิร์ฟรูปตัวละคร ไม่ต้อง login

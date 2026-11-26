@@ -8,6 +8,8 @@ import { useEffect, useState } from 'react'
 
 export interface Person {
   id: string
+  /** เลขรุ่นของรายการ เพิ่มทุกครั้งที่ถูกแก้ หน้าจัดการส่งกลับไปตอนบันทึกเพื่อกันการแก้ทับกัน */
+  rev: number
   name: string
   /** ชื่อบัญชีที่แสดงใต้ชื่อ เช่น '@nok.dev' */
   handle: string
@@ -17,6 +19,8 @@ export interface Person {
 }
 
 export interface TeamGroup {
+  id: string
+  rev: number
   role: string
   bg: string
   ids: string[]
@@ -24,6 +28,7 @@ export interface TeamGroup {
 
 export interface Oc {
   id: string
+  rev: number
   name: string
   title: string
   /** id ของเจ้าของและผู้วาดใน people */
@@ -45,27 +50,27 @@ export interface CreditsData {
 
 export const SAMPLE_CREDITS: CreditsData = {
   people: [
-    { id: 'nok', name: 'Nok', handle: '@nok.dev', link: '', bg: '#FFB8CC' },
-    { id: 'mew', name: 'Mew', handle: '@mewdraws', link: '', bg: '#9FE3C9' },
-    { id: 'pim', name: 'Pim', handle: '@pim.art', link: '', bg: '#C9BDFF' },
-    { id: 'tae', name: 'Tae', handle: '@taecodes', link: '', bg: '#FFDC85' },
+    { id: 'nok', rev: 1, name: 'Nok', handle: '@nok.dev', link: '', bg: '#FFB8CC' },
+    { id: 'mew', rev: 1, name: 'Mew', handle: '@mewdraws', link: '', bg: '#9FE3C9' },
+    { id: 'pim', rev: 1, name: 'Pim', handle: '@pim.art', link: '', bg: '#C9BDFF' },
+    { id: 'tae', rev: 1, name: 'Tae', handle: '@taecodes', link: '', bg: '#FFDC85' },
   ],
   team: [
-    { role: 'Developer', bg: '#A9D6F7', ids: ['nok', 'tae'] },
-    { role: 'Artist', bg: '#FFB8CC', ids: ['mew', 'pim'] },
+    { id: 'dev', rev: 1, role: 'Developer', bg: '#A9D6F7', ids: ['nok', 'tae'] },
+    { id: 'art', rev: 1, role: 'Artist', bg: '#FFB8CC', ids: ['mew', 'pim'] },
   ],
   ocs: [
-    { id: 'kaimuk', name: 'ไข่มุก', title: 'ราชินีขนมหวาน', owner: 'mew', artist: 'mew', color: '#FF8FB1', pale: '#FFE8EF', bio: 'ราชินีผู้ชอบกินขนมระหว่างเดินหมาก ถ้าแพ้จะงอนไปสามวัน', image: '' },
-    { id: 'phueng', name: 'ผึ้ง', title: 'อัศวินน้ำผึ้ง', owner: 'mew', artist: 'pim', color: '#FFD36E', pale: '#FFF7DA', bio: 'อัศวินขี่ม้าตัวจิ๋ว เดินเป็นรูปตัว L ไปทุกที่ แม้แต่ในชีวิตจริง', image: '' },
-    { id: 'mintra', name: 'มินตรา', title: 'บิชอปมิ้นต์', owner: 'nok', artist: 'pim', color: '#86D9B9', pale: '#E8FAF2', bio: 'เดินทแยงอย่างเดียวและภูมิใจกับมันมาก ชอบดื่มชามิ้นต์', image: '' },
-    { id: 'kong', name: 'ก้อง', title: 'ป้อมปราการ', owner: 'nok', artist: 'mew', color: '#B9AAF5', pale: '#F1EDFF', bio: 'ตัวใหญ่ใจดี ยืนเฝ้ามุมกระดานจนกว่าจะถึงตาเข้าป้อม', image: '' },
-    { id: 'fah', name: 'ฟ้า', title: 'เบี้ยผู้ฝันไกล', owner: 'tae', artist: 'pim', color: '#8CC7F2', pale: '#E6F4FF', bio: 'เบี้ยธรรมดาที่ฝันจะเดินถึงแถวสุดท้ายแล้วกลายเป็นควีน', image: '' },
-    { id: 'koko', name: 'โกโก้', title: 'ขุนผู้ง่วงนอน', owner: 'pim', artist: 'pim', color: '#C69B72', pale: '#F7E9D7', bio: 'ขุนที่ขยับทีละช่องเพราะยังไม่ตื่นดี แต่ไม่เคยโดนรุกจนสักครั้ง', image: '' },
+    { id: 'kaimuk', rev: 1, name: 'ไข่มุก', title: 'ราชินีขนมหวาน', owner: 'mew', artist: 'mew', color: '#FF8FB1', pale: '#FFE8EF', bio: 'ราชินีผู้ชอบกินขนมระหว่างเดินหมาก ถ้าแพ้จะงอนไปสามวัน', image: '' },
+    { id: 'phueng', rev: 1, name: 'ผึ้ง', title: 'อัศวินน้ำผึ้ง', owner: 'mew', artist: 'pim', color: '#FFD36E', pale: '#FFF7DA', bio: 'อัศวินขี่ม้าตัวจิ๋ว เดินเป็นรูปตัว L ไปทุกที่ แม้แต่ในชีวิตจริง', image: '' },
+    { id: 'mintra', rev: 1, name: 'มินตรา', title: 'บิชอปมิ้นต์', owner: 'nok', artist: 'pim', color: '#86D9B9', pale: '#E8FAF2', bio: 'เดินทแยงอย่างเดียวและภูมิใจกับมันมาก ชอบดื่มชามิ้นต์', image: '' },
+    { id: 'kong', rev: 1, name: 'ก้อง', title: 'ป้อมปราการ', owner: 'nok', artist: 'mew', color: '#B9AAF5', pale: '#F1EDFF', bio: 'ตัวใหญ่ใจดี ยืนเฝ้ามุมกระดานจนกว่าจะถึงตาเข้าป้อม', image: '' },
+    { id: 'fah', rev: 1, name: 'ฟ้า', title: 'เบี้ยผู้ฝันไกล', owner: 'tae', artist: 'pim', color: '#8CC7F2', pale: '#E6F4FF', bio: 'เบี้ยธรรมดาที่ฝันจะเดินถึงแถวสุดท้ายแล้วกลายเป็นควีน', image: '' },
+    { id: 'koko', rev: 1, name: 'โกโก้', title: 'ขุนผู้ง่วงนอน', owner: 'pim', artist: 'pim', color: '#C69B72', pale: '#F7E9D7', bio: 'ขุนที่ขยับทีละช่องเพราะยังไม่ตื่นดี แต่ไม่เคยโดนรุกจนสักครั้ง', image: '' },
   ],
 }
 
 /** คนที่ไม่พบ (ข้อมูลอ้างถึง id ที่ไม่มี) แสดงเป็นชื่อว่างแทนการทำให้หน้าพัง */
-const NOBODY: Person = { id: '', name: '—', handle: '', link: '', bg: '#FFFFFF' }
+const NOBODY: Person = { id: '', rev: 0, name: '—', handle: '', link: '', bg: '#FFFFFF' }
 
 export function personOf(data: CreditsData, id: string): Person {
   return data.people.find((p) => p.id === id) ?? NOBODY
@@ -130,6 +135,7 @@ export function initialOf(name: string): string {
 }
 
 const str = (v: unknown): string => (typeof v === 'string' ? v : '')
+const num = (v: unknown): number => (typeof v === 'number' && Number.isInteger(v) ? v : 0)
 
 /**
  * แปลงข้อมูลจากเซิร์ฟเวอร์ให้อยู่ในรูปที่หน้าเว็บใช้ได้เสมอ คืน null ถ้าไม่ใช่ข้อมูลเครดิต
@@ -141,14 +147,17 @@ export function parseCredits(value: unknown): CreditsData | null {
   if (!Array.isArray(raw.people) || !Array.isArray(raw.team) || !Array.isArray(raw.ocs)) return null
   const obj = (v: unknown) => (typeof v === 'object' && v !== null ? (v as Record<string, unknown>) : {})
   return {
-    people: raw.people.map(obj).map((p) => ({ id: str(p.id), name: str(p.name), handle: str(p.handle), link: str(p.link), bg: str(p.bg) })),
+    people: raw.people.map(obj).map((p) => ({ id: str(p.id), rev: num(p.rev), name: str(p.name), handle: str(p.handle), link: str(p.link), bg: str(p.bg) })),
     team: raw.team.map(obj).map((g) => ({
+      id: str(g.id),
+      rev: num(g.rev),
       role: str(g.role),
       bg: str(g.bg),
       ids: Array.isArray(g.ids) ? g.ids.filter((id): id is string => typeof id === 'string') : [],
     })),
     ocs: raw.ocs.map(obj).map((o) => ({
       id: str(o.id),
+      rev: num(o.rev),
       name: str(o.name),
       title: str(o.title),
       owner: str(o.owner),

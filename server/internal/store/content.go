@@ -44,16 +44,72 @@ func (c *Content) Credits(ctx context.Context) (*content.Credits, error) {
 	return &out, nil
 }
 
-func (c *Content) SaveCredits(ctx context.Context, credits content.Credits, by string) error {
+func (c *Content) InitCredits(ctx context.Context, credits content.Credits, by string) error {
 	data, err := json.Marshal(credits)
 	if err != nil {
 		return err
 	}
-	_, err = c.s.pool.Exec(ctx, `
+	tag, err := c.s.pool.Exec(ctx, `
 		insert into site_content (key, data, updated_by) values ($1, $2, $3)
-		on conflict (key) do update
-		set data = excluded.data, updated_by = excluded.updated_by, updated_at = now()`,
+		on conflict (key) do nothing`,
 		creditsKey, data, by)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return content.ErrExists
+	}
+	return nil
+}
+
+// UpdateCredits แก้ข้อมูลภายใน transaction เดียว โดยล็อกแถวไว้ตั้งแต่อ่านจนเขียน (select ... for update)
+// คำขอแก้ไขที่มาพร้อมกันจึงถูกทำทีละคำขอ และแต่ละคำขอเห็นผลของคำขอก่อนหน้าเสมอ
+func (c *Content) UpdateCredits(ctx context.Context, by string, fn func(*content.Credits) error) (*content.Credits, error) {
+	tx, err := c.s.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }() // ไม่มีผลถ้า commit ไปแล้ว
+
+	var data []byte
+	err = tx.QueryRow(ctx, "select data from site_content where key = $1 for update", creditsKey).Scan(&data)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, content.ErrNoCredits
+	}
+	if err != nil {
+		return nil, err
+	}
+	var before content.Credits
+	if err := json.Unmarshal(data, &before); err != nil {
+		return nil, err
+	}
+	next := before.Clone()
+	if err := fn(&next); err != nil {
+		return nil, err
+	}
+	data, err = json.Marshal(next)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := tx.Exec(ctx,
+		"update site_content set data = $2, updated_by = $3, updated_at = now() where key = $1",
+		creditsKey, data, by); err != nil {
+		return nil, err
+	}
+	// รูปที่ข้อมูลเลิกใช้ ลบใน transaction เดียวกัน: ถ้าบันทึกไม่สำเร็จ รูปก็ยังอยู่
+	if unused := content.UnusedImages(&before, &next); len(unused) > 0 {
+		if _, err := tx.Exec(ctx, "delete from content_images where id = any($1)", unused); err != nil {
+			return nil, err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return &next, nil
+}
+
+func (c *Content) DeleteImage(ctx context.Context, id string) error {
+	_, err := c.s.pool.Exec(ctx, "delete from content_images where id = $1", id)
 	return err
 }
 

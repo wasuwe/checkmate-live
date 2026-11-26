@@ -15,12 +15,12 @@ import (
 func validCredits() Credits {
 	return Credits{
 		People: []Person{
-			{ID: "nok", Name: "Nok", Handle: "@nok.dev", Link: "https://example.com/nok", Bg: "#FFB8CC"},
-			{ID: "mew", Name: "Mew", Handle: "", Link: "", Bg: "#9fe3c9"},
+			{ID: "nok", Rev: 1, Name: "Nok", Handle: "@nok.dev", Link: "https://example.com/nok", Bg: "#FFB8CC"},
+			{ID: "mew", Rev: 1, Name: "Mew", Handle: "", Link: "", Bg: "#9fe3c9"},
 		},
-		Team: []TeamGroup{{Role: "Developer", Bg: "#A9D6F7", IDs: []string{"nok"}}},
+		Team: []TeamGroup{{ID: "dev", Rev: 1, Role: "Developer", Bg: "#A9D6F7", IDs: []string{"nok"}}},
 		Ocs: []Oc{{
-			ID: "kaimuk", Name: "ไข่มุก", Title: "ราชินีขนมหวาน", Owner: "mew", Artist: "nok",
+			ID: "kaimuk", Rev: 1, Name: "ไข่มุก", Title: "ราชินีขนมหวาน", Owner: "mew", Artist: "nok",
 			Color: "#FF8FB1", Pale: "#FFE8EF", Bio: "ชอบกินขนม\nระหว่างเดินหมาก",
 			Image: "/api/content-images/0123456789abcdef0123456789abcdef",
 		}},
@@ -55,6 +55,10 @@ func TestCleanRejectsBadFields(t *testing.T) {
 	}{
 		{"people[0].id", func(c *Credits) { c.People[0].ID = "Nok Dev" }},
 		{"people[1].id", func(c *Credits) { c.People[1].ID = "nok" }}, // ซ้ำ
+		{"people[0].rev", func(c *Credits) { c.People[0].Rev = 0 }},
+		{"team[0].id", func(c *Credits) { c.Team[0].ID = "" }},
+		{"team[0].rev", func(c *Credits) { c.Team[0].Rev = -1 }},
+		{"ocs[0].rev", func(c *Credits) { c.Ocs[0].Rev = 0 }},
 		{"people[0].name", func(c *Credits) { c.People[0].Name = "" }},
 		{"people[0].name", func(c *Credits) { c.People[0].Name = strings.Repeat("ก", 41) }},
 		{"people[0].name", func(c *Credits) { c.People[0].Name = "a‮b" }}, // อักขระกลับทิศทาง
@@ -172,7 +176,7 @@ func TestMemoryStore(t *testing.T) {
 		t.Fatalf("empty store: %v %v", c, err)
 	}
 	want := validCredits()
-	if err := m.SaveCredits(ctx, want, "admin-1"); err != nil {
+	if err := m.InitCredits(ctx, want, "admin-1"); err != nil {
 		t.Fatal(err)
 	}
 	got, err := m.Credits(ctx)
