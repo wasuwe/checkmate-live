@@ -23,6 +23,8 @@ interface Props {
   online: boolean
   /** เพิ่มขึ้นทุกครั้งที่เซิร์ฟเวอร์ปฏิเสธตาเดิน ใช้ยกเลิกการแสดงผลล่วงหน้า */
   errorSeq: number
+  /** เปลี่ยนทุกครั้งที่การเชื่อมต่อขาด ตาเดินที่ยังรอคำตอบจาก socket เดิมถือว่าไม่ถึงเซิร์ฟเวอร์ */
+  session: number
   sendMove: (from: string, to: string, promo: Promo) => boolean
 }
 
@@ -33,6 +35,7 @@ interface Pending {
   to: string
   ply: number
   errorSeq: number
+  session: number
 }
 
 const LAST_MOVE: CSSProperties = { backgroundColor: '#FFE27A' }
@@ -47,16 +50,17 @@ const DOT: CSSProperties = {
 const RING: CSSProperties = { boxShadow: 'inset 0 0 0 0.75cqw #FF5C8D', borderRadius: '28%' }
 
 
-export function GameBoard({ state, online, errorSeq, sendMove }: Props) {
+export function GameBoard({ state, online, errorSeq, session, sendMove }: Props) {
   const { set } = useSetPrefs()
   const styles = useStylePrefs()
   const [pending, setPending] = useState<Pending | null>(null)
   const [selected, setSelected] = useState<{ square: string; ply: number } | null>(null)
   const [promotion, setPromotion] = useState<{ from: string; to: string; ply: number } | null>(null)
 
-  // ค่าที่ผูกกับ ply เก่าหรือถูกเซิร์ฟเวอร์ปฏิเสธแล้วถือว่าหมดอายุ ไม่ต้องล้างด้วย effect
+  // ค่าที่ผูกกับ ply เก่า ถูกเซิร์ฟเวอร์ปฏิเสธ หรือส่งบนการเชื่อมต่อที่ขาดไปแล้ว ถือว่าหมดอายุ ไม่ต้องล้างด้วย effect
+  // (กรณีหลัง: ถ้าไม่ทิ้ง หน้าจอจะค้างแสดงว่าเดินแล้วตลอดไป ขณะที่เซิร์ฟเวอร์ยังรอตาเดินนั้นอยู่)
   const activePending =
-    pending && pending.ply === state.ply && pending.errorSeq === errorSeq ? pending : null
+    pending && pending.ply === state.ply && pending.errorSeq === errorSeq && pending.session === session ? pending : null
   const pickedSquare = selected && selected.ply === state.ply ? selected.square : null
   const activePromotion = promotion && promotion.ply === state.ply ? promotion : null
 
@@ -86,7 +90,7 @@ export function GameBoard({ state, online, errorSeq, sendMove }: Props) {
     const next = previewFor(state, from, to, promo)
     if (next === null) return false
     if (!sendMove(from, to, promo)) return false
-    setPending({ fen: next, from, to, ply: state.ply, errorSeq })
+    setPending({ fen: next, from, to, ply: state.ply, errorSeq, session })
     setSelected(null)
     return true
   }

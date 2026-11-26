@@ -153,7 +153,7 @@ export function RoomPage({ roomId, navigate }: Props) {
           <AbsenceNotice state={state} stateAt={game.stateAt} />
           <Clocks state={state} stateAt={game.stateAt} pop={pop} names={chatNames(state)}>
             <ChatPopover pop={pop}>{chat}</ChatPopover>
-            <GameBoard state={state} online={online} errorSeq={game.errorSeq} sendMove={game.sendMove} />
+            <GameBoard state={state} online={online} errorSeq={game.errorSeq} session={game.session} sendMove={game.sendMove} />
           </Clocks>
         </div>
       </div>

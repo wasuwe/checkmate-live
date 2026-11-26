@@ -30,6 +30,11 @@ export interface Snapshot {
   chatLimitedSeq: number
   /** id ของข้อความแชทที่เซิร์ฟเวอร์รับการรายงานแล้ว */
   reported: number[]
+  /**
+   * เพิ่มทุกครั้งที่การเชื่อมต่อขาด ตาเดินที่ส่งไปบน socket เดิมแล้วยังไม่ได้คำตอบอาจไม่ถึงเซิร์ฟเวอร์
+   * (เช่น เซิร์ฟเวอร์ดับกลางทาง) หน้าเว็บจึงต้องเลิกแสดงตาเดินนั้นเมื่อค่านี้เปลี่ยน แล้วเชื่อ state ใหม่จากเซิร์ฟเวอร์
+   */
+  session: number
 }
 
 /** จำนวนข้อความแชทสูงสุดที่เก็บไว้ในหน้าเว็บ */
@@ -76,6 +81,7 @@ export class GameSocket {
     chat: [],
     chatLimitedSeq: 0,
     reported: [],
+    session: 0,
   }
 
   constructor(opts: GameSocketOptions) {
@@ -98,7 +104,7 @@ export class GameSocket {
     const ws = this.ws
     this.ws = null
     ws?.close()
-    this.update({ connection: 'closed' })
+    this.update({ connection: 'closed', session: this.snapshot.session + 1 })
   }
 
   /**
@@ -114,7 +120,7 @@ export class GameSocket {
     const ws = this.ws
     this.ws = null
     ws?.close()
-    this.update({ connection: 'reconnecting' })
+    this.update({ connection: 'reconnecting', session: this.snapshot.session + 1 })
   }
 
   /** เชื่อมต่อใหม่เมื่อผู้ใช้กลับมาที่หน้าเดิม (pageshow) */
@@ -191,6 +197,7 @@ export class GameSocket {
     ws.onclose = () => {
       if (this.ws !== ws) return // socket เก่าที่ถูกแทนไปแล้ว
       this.ws = null
+      this.update({ session: this.snapshot.session + 1 })
       if (!this.stopped && !this.snapshot.fatal) this.scheduleReconnect()
     }
   }
