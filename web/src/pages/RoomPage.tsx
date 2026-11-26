@@ -8,7 +8,7 @@ import { useGameSocket } from '../hooks/useGameSocket'
 import { clockAt, describeTimeControl } from '../lib/clock'
 import { absences } from '../lib/presence'
 import type { Color, StateMsg } from '../lib/protocol'
-import { colorName, errorText, statusText } from '../lib/text'
+import { colorName, errorText, playerName, statusText } from '../lib/text'
 
 interface Props {
   roomId: string
@@ -93,6 +93,7 @@ export function RoomPage({ roomId, navigate }: Props) {
 
       <ChatPanel
         messages={game.chat}
+        players={state.players}
         online={game.connection === 'open'}
         rateLimitedSeq={game.chatLimitedSeq}
         sendChat={game.sendChat}
@@ -134,14 +135,25 @@ function Clocks({
   const left = clockAt(state, stateAt, Math.max(now, stateAt))
   const bottom: Color = state.you.color === 'b' ? 'b' : 'w'
   const top: Color = bottom === 'w' ? 'b' : 'w'
-  const label = (color: Color) =>
-    state.you.color === color ? `คุณ (${colorName(color)})` : colorName(color)
+  const row = (color: Color) => {
+    const info = state.players?.[color]
+    const mine = state.you.color === color
+    return (
+      <ClockRow
+        label={info ? playerName(info, color) : mine ? 'คุณ' : colorName(color)}
+        detail={info || mine ? colorName(color) + (info && mine ? ' · คุณ' : '') : undefined}
+        avatar={info ? (info.avatar ?? '') : undefined}
+        ms={left[color]}
+        running={running === color}
+      />
+    )
+  }
 
   return (
     <div className="board-area">
-      <ClockRow label={label(top)} ms={left[top]} running={running === top} />
+      {row(top)}
       {children}
-      <ClockRow label={label(bottom)} ms={left[bottom]} running={running === bottom} />
+      {row(bottom)}
     </div>
   )
 }

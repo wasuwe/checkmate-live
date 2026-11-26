@@ -156,6 +156,11 @@ type playerInfo struct {
 	Connected bool `json:"connected"`
 	// GraceLeft คือจำนวนวินาทีที่ผู้เล่นซึ่งหลุดอยู่ยังกลับเข้ามาได้ก่อนถูกปรับแพ้ (มีเฉพาะตอนหลุด)
 	GraceLeft int `json:"graceLeft,omitempty"`
+	// Name และ Avatar มาจากโปรไฟล์ของผู้ใช้ที่ login (ว่างถ้าไม่ได้ตั้ง) ไม่มีการส่ง user ID ของคู่แข่ง
+	Name   string `json:"name,omitempty"`
+	Avatar string `json:"avatar,omitempty"`
+	// Guest คือผู้เล่นที่ไม่ได้ login
+	Guest bool `json:"guest,omitempty"`
 }
 
 // clockInfo คือเวลาที่เหลือของแต่ละฝั่งเป็นมิลลิวินาที ณ ตอนที่ส่งข้อความ

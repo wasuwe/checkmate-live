@@ -10,7 +10,8 @@ import {
 import { absences } from './presence'
 import { extractRoomId, isRoomId, parseServerMsg, type StateMsg } from './protocol'
 import { parseRoute, roomPath } from './router'
-import { errorText, resultText, statusText } from './text'
+import { centerSquare } from './profile'
+import { errorText, playerName, resultText, statusText } from './text'
 
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 const PROMO = '8/P6k/8/8/8/8/8/K7 w - - 0 1'
@@ -221,5 +222,22 @@ describe('text', () => {
   test('errorText falls back for unknown codes', () => {
     expect(errorText('illegal_move')).toBe('เดินแบบนี้ไม่ได้')
     expect(errorText('???')).toBe('เกิดข้อผิดพลาด ลองใหม่อีกครั้ง')
+  })
+})
+
+describe('player names', () => {
+  test('profile name wins, otherwise the kind of player is shown', () => {
+    expect(playerName({ connected: true, name: 'Alice' }, 'w')).toBe('Alice')
+    expect(playerName({ connected: true, guest: true }, 'w')).toBe('ผู้เล่นรับเชิญ')
+    expect(playerName({ connected: true }, 'b')).toBe('ผู้เล่น')
+    expect(playerName(undefined, 'b')).toBe('ดำ')
+  })
+})
+
+describe('avatar crop', () => {
+  test('takes the largest centred square', () => {
+    expect(centerSquare(600, 400)).toEqual({ x: 100, y: 0, side: 400 })
+    expect(centerSquare(300, 900)).toEqual({ x: 0, y: 300, side: 300 })
+    expect(centerSquare(256, 256)).toEqual({ x: 0, y: 0, side: 256 })
   })
 })

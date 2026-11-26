@@ -29,6 +29,11 @@ type Guest struct {
 
 const guestPrefix = "guest_"
 
+// IsGuest บอกว่า user ID นี้เป็นของผู้เล่นที่ไม่ได้ login หรือไม่
+func IsGuest(userID string) bool {
+	return strings.HasPrefix(userID, guestPrefix)
+}
+
 // NewGuest สร้างตัวออก token ถ้า secret ว่างจะสุ่มใหม่
 // (token เดิมจะใช้ไม่ได้หลังเซิร์ฟเวอร์รีสตาร์ต ฝั่งเว็บจะขอใหม่เอง)
 func NewGuest(secret []byte) (*Guest, error) {

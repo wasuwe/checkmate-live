@@ -6,9 +6,17 @@ import "sync"
 // ถ้าเต็มแปลว่า client รับไม่ทัน จะถูกตัดการเชื่อมต่อแทนที่จะทำให้ห้องค้าง
 const sendBuffer = 32
 
+// PlayerProfile คือชื่อและรูปที่ผู้เล่นคนอื่นในห้องเห็น
+type PlayerProfile struct {
+	Name   string // "" = ยังไม่ได้ตั้งชื่อ
+	Avatar string // รหัสรูป "" = ไม่มีรูป
+}
+
 // Client คือ connection หนึ่งเส้นของผู้ใช้ ผู้ใช้คนเดียวมีได้หลาย Client (หลายแท็บ)
 type Client struct {
 	UserID string
+	// Profile คือชื่อและรูป ณ ตอนที่เชื่อมต่อ
+	Profile PlayerProfile
 
 	send     chan []byte
 	kick     func()

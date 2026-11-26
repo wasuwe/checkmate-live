@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { ProfileEditor } from './ProfileEditor'
 import { loginAvailable, signIn, signOut, signUp, useSession, type AuthResult } from '../lib/session'
 
 type Mode = 'signin' | 'signup'
@@ -22,6 +23,7 @@ export function AccountPanel() {
         <p>
           เข้าสู่ระบบในชื่อ <strong>{session.email}</strong>
         </p>
+        <ProfileEditor />
         <button type="button" onClick={() => void signOut()}>
           ออกจากระบบ
         </button>

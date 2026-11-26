@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
+	"io/fs"
 	"os"
 	"testing"
 	"time"
@@ -12,6 +14,7 @@ import (
 
 	"github.com/wasuwe/checkmate-live/server/internal/envfile"
 	"github.com/wasuwe/checkmate-live/server/internal/hub"
+	"github.com/wasuwe/checkmate-live/server/internal/profile"
 )
 
 // test ในไฟล์นี้ต่อฐานข้อมูลจริง และถูกข้ามถ้าไม่มี DATABASE_URL (เช่นใน CI)
@@ -70,8 +73,12 @@ func TestIntegrationMigrateIsRepeatable(t *testing.T) {
 	if err := s.pool.QueryRow(ctx, "select count(*) from schema_migrations").Scan(&n); err != nil {
 		t.Fatal(err)
 	}
-	if n != 1 {
-		t.Fatalf("schema_migrations has %d rows, want 1", n)
+	files, err := fs.Glob(migrationFiles, "migrations/*.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != len(files) {
+		t.Fatalf("schema_migrations has %d rows, want %d (one per file)", n, len(files))
 	}
 }
 
@@ -273,5 +280,68 @@ func TestIntegrationTablesAreClosedToWebRoles(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+func TestIntegrationProfiles(t *testing.T) {
+	s, _ := openTestStore(t)
+	ctx := context.Background()
+	p := s.Profiles()
+	const alice, bob = "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"
+	const id1, id2 = "0123456789abcdef0123456789abcdef", "fedcba9876543210fedcba9876543210"
+
+	if got, err := p.Get(ctx, alice); err != nil || got != (profile.Profile{}) {
+		t.Fatalf("new account = %+v, %v", got, err)
+	}
+	// guest ไม่มีโปรไฟล์: อ่านได้ค่าว่าง เขียนไม่ได้
+	if got, err := p.Get(ctx, "guest_abc"); err != nil || got != (profile.Profile{}) {
+		t.Fatalf("guest get = %+v, %v", got, err)
+	}
+	if _, err := p.SetName(ctx, "guest_abc", "Guest"); err == nil {
+		t.Fatal("guest could set a name")
+	}
+
+	// ลบรูปของคนที่ยังไม่มีโปรไฟล์ต้องไม่ error
+	if got, err := p.DeleteAvatar(ctx, alice); err != nil || got != (profile.Profile{}) {
+		t.Fatalf("delete with no profile = %+v, %v", got, err)
+	}
+
+	// อัปโหลดรูปก่อนตั้งชื่อก็ได้ และค่าที่ตั้งทีหลังไม่ลบอีกค่า
+	if got, err := p.SetAvatar(ctx, alice, id1, profile.Avatar{ContentType: "image/png", Data: []byte("one")}); err != nil || got != (profile.Profile{AvatarID: id1}) {
+		t.Fatalf("set avatar = %+v, %v", got, err)
+	}
+	if got, err := p.SetName(ctx, alice, "น้ำผึ้ง"); err != nil || got != (profile.Profile{Name: "น้ำผึ้ง", AvatarID: id1}) {
+		t.Fatalf("set name = %+v, %v", got, err)
+	}
+	if got, err := p.Get(ctx, alice); err != nil || got != (profile.Profile{Name: "น้ำผึ้ง", AvatarID: id1}) {
+		t.Fatalf("get = %+v, %v", got, err)
+	}
+	if got, _ := p.Get(ctx, bob); got != (profile.Profile{}) {
+		t.Fatalf("bob sees %+v", got)
+	}
+
+	if a, err := p.Avatar(ctx, id1); err != nil || a.ContentType != "image/png" || string(a.Data) != "one" {
+		t.Fatalf("avatar = %+v, %v", a, err)
+	}
+	// รหัสรูปซ้ำกับของคนอื่นไม่ได้
+	if _, err := p.SetAvatar(ctx, bob, id1, profile.Avatar{ContentType: "image/png", Data: []byte("x")}); err == nil {
+		t.Fatal("two accounts share one avatar id")
+	}
+	// ชนิดไฟล์นอกรายการถูกฐานข้อมูลปฏิเสธด้วย
+	if _, err := p.SetAvatar(ctx, bob, id2, profile.Avatar{ContentType: "image/svg+xml", Data: []byte("x")}); err == nil {
+		t.Fatal("database accepted an svg avatar")
+	}
+
+	if got, err := p.SetAvatar(ctx, alice, id2, profile.Avatar{ContentType: "image/jpeg", Data: []byte("two")}); err != nil || got.AvatarID != id2 {
+		t.Fatalf("replace avatar = %+v, %v", got, err)
+	}
+	if _, err := p.Avatar(ctx, id1); !errors.Is(err, profile.ErrNotFound) {
+		t.Fatalf("old avatar: %v", err)
+	}
+	if got, err := p.DeleteAvatar(ctx, alice); err != nil || got != (profile.Profile{Name: "น้ำผึ้ง"}) {
+		t.Fatalf("delete avatar = %+v, %v", got, err)
+	}
+	if _, err := p.Avatar(ctx, id2); !errors.Is(err, profile.ErrNotFound) {
+		t.Fatalf("deleted avatar: %v", err)
 	}
 }

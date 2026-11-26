@@ -2,6 +2,7 @@
 package hub
 
 import (
+	"context"
 	"crypto/rand"
 	"errors"
 	"log/slog"
@@ -25,6 +26,9 @@ type Config struct {
 	AbandonGrace time.Duration
 	// Store คือที่เก็บข้อมูลถาวร ถ้าเป็น nil ทุกอย่างอยู่ใน memory อย่างเดียว
 	Store Store
+	// Profiles หาชื่อและรูปของผู้ใช้ตอนเชื่อมต่อ ถ้าเป็น nil ทุกคนไม่มีชื่อ
+	// ถูกเรียกจาก goroutine ของ connection (ไม่ใช่ของห้อง) จึงรอฐานข้อมูลได้
+	Profiles func(ctx context.Context, userID string) PlayerProfile
 	// CoinFlip ใช้สุ่มสี คืน true เพื่อสลับให้คนที่เข้าทีหลังเป็นขาว (test กำหนดเองได้)
 	CoinFlip func() bool
 	Logger   *slog.Logger

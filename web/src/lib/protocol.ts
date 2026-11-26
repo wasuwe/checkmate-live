@@ -9,6 +9,11 @@ export interface PlayerInfo {
   connected: boolean
   /** วินาทีที่ผู้เล่นซึ่งหลุดอยู่ยังกลับเข้ามาได้ก่อนถูกปรับแพ้ (มีเฉพาะตอนหลุด) */
   graceLeft?: number
+  /** ชื่อและรหัสรูปจากโปรไฟล์ (ไม่มีถ้าไม่ได้ตั้ง) */
+  name?: string
+  avatar?: string
+  /** ผู้เล่นที่ไม่ได้ login */
+  guest?: boolean
 }
 
 export interface StateMsg {

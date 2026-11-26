@@ -76,7 +76,7 @@ docker-compose.yml
 {"type":"auth_ok","userId":"..."}
 {"type":"state","room":"<roomId>","status":"playing","fen":"...","turn":"b","ply":13,
  "lastMove":{"from":"e2","to":"e4"},
- "players":{"w":{"connected":true},"b":{"connected":true}},
+ "players":{"w":{"connected":true,"name":"น้ำผึ้ง","avatar":"<รหัสรูป>"},"b":{"connected":true,"guest":true}},
  "you":{"role":"player","color":"w"},
  "tc":"5+3","clock":{"w":295000,"b":300000,"running":"b"}}
 {"type":"chat","id":7,"from":"w","text":"gg","at":1795650000000,"mine":false}
@@ -90,6 +90,7 @@ docker-compose.yml
 - `you.role` เป็น `player` หรือ `spectator` (แต่ละคนได้ค่าของตัวเอง)
 - `ply` ใน `move` ต้องเท่ากับ `ply` ล่าสุดใน `state` ไม่งั้นได้ `stale_move`
 - ผู้เล่นที่หลุดระหว่างเกมจะมี `"connected":false,"graceLeft":<วินาที>` ใน `players` ถ้าไม่กลับมาทันจะแพ้ด้วย `abandon` ผู้เล่นที่ยังมีแท็บอื่นเปิดอยู่ถือว่ายังอยู่
+- `players` มี `name` และ `avatar` (รหัสรูป เปิดดูที่ `/api/avatars/<รหัส>`) ถ้าผู้เล่นตั้งโปรไฟล์ไว้ และ `guest: true` ถ้าไม่ได้ login ไม่มีการส่ง user ID หรืออีเมลของคู่แข่ง ค่าเหล่านี้อ่าน ณ ตอนที่ผู้เล่นเชื่อมต่อ
 - `resign` ไม่มี field อื่น ผู้แพ้คือเจ้าของ connection เสมอ
 - หน้าเว็บปิด socket เองเมื่อออกจากหน้า (`pagehide`) เพราะเบราว์เซอร์อาจเก็บหน้าไว้ใน back/forward cache โดย socket ยังเปิดอยู่
 - `clock` เป็นมิลลิวินาทีที่เหลือ ณ ตอนส่ง และ `running` คือฝั่งที่นาฬิกากำลังเดิน (`""` = หยุด) หน้าเว็บนับต่อเองเพื่อแสดงผลเท่านั้น
@@ -103,6 +104,11 @@ docker-compose.yml
 |---|---|---|
 | `POST` | `/api/guest` | ออกตัวตนชั่วคราว คืน `{userId, token}` (ใช้จนกว่าจะมี Supabase Auth) |
 | `POST` | `/api/rooms` | สร้างห้อง ต้องส่ง `Authorization: Bearer <token>` body `{"timeControl":"5+3"}` (ไม่บังคับ ค่าเริ่มต้น `10+0`; รับ 1–60 นาที + 0–60 วินาที) คืน `{roomId}` |
+| `GET` | `/api/profile` | โปรไฟล์ของผู้เรียก คืน `{name, avatar}` ต้องเป็นบัญชีที่ login (guest ได้ 403 `account_required`) |
+| `PUT` | `/api/profile` | ตั้งชื่อที่แสดง body `{"name":"..."}` ชื่อว่าง = ลบชื่อ |
+| `PUT` | `/api/profile/avatar` | อัปโหลดรูป body เป็นไฟล์ JPEG หรือ PNG ไม่เกิน 256 KB และ 512×512 พิกเซล |
+| `DELETE` | `/api/profile/avatar` | ลบรูป |
+| `GET` | `/api/avatars/{id}` | ไฟล์รูป ไม่ต้อง login |
 | `GET` | `/ws` | WebSocket |
 | `GET` | `/healthz` | health check |
 
@@ -129,6 +135,15 @@ docker-compose.yml
 - แชทไม่ถูกบันทึก หายเมื่อรีสตาร์ต
 - ตรวจการเชื่อมต่อและดูข้อมูล: `go run ./cmd/dbcheck` และ `go run ./cmd/dbcheck -summary` (ในโฟลเดอร์ `server`)
 
+### โปรไฟล์ (ชื่อและรูป)
+- ตาราง `profiles`: `user_id` (uuid ของบัญชี Supabase), `display_name`, `avatar_id`, `avatar` (bytea), `avatar_type` ใช้แทนตาราง `users` ในตารางด้านบน ยังไม่มี rating
+- เฉพาะผู้ใช้ที่ login ตั้งได้ เจ้าของโปรไฟล์มาจาก token เท่านั้น
+- ชื่อ: 3–20 ตัวอักษร รับเฉพาะตัวอักษร ตัวเลข ช่องว่าง และ `_ - .` ไม่บังคับให้ไม่ซ้ำกัน
+- รูป: หน้าเว็บตัดเป็นสี่เหลี่ยมจัตุรัสตรงกลางและย่อเป็น JPEG 256 พิกเซลก่อนส่ง เซิร์ฟเวอร์ตรวจชนิดจากเนื้อไฟล์ ตรวจขนาดจาก header แล้วถอดรหัสและเข้ารหัสใหม่ จึงไม่มี EXIF หรือข้อมูลแฝงเหลือ
+- รูปเก็บในฐานข้อมูล (ไม่ใช้ Supabase Storage) เสิร์ฟผ่าน Go พร้อม `nosniff` และ CSP แบบ sandbox รหัสรูปเป็นเลขสุ่มที่เปลี่ยนทุกครั้งที่อัปโหลด จึง cache ได้ถาวรและไม่เปิดเผย user ID
+- `profiles.user_id` ไม่ผูก foreign key กับ `auth.users` ถ้าลบบัญชีใน Supabase แถวโปรไฟล์จะค้างอยู่
+- ถ้าไม่ตั้ง `DATABASE_URL` โปรไฟล์เก็บใน memory และหายเมื่อรีสตาร์ต
+
 ### ข้อควรระวัง
 - **Connection:** Go server ทำงานต่อเนื่อง ให้ใช้ **Session pooler (port 5432)** ถ้าใช้ Transaction pooler (6543) ต้องปิด prepared statements โดยตั้ง `default_query_exec_mode=simple_protocol` ใน pgx
 - **Free plan:** จะถูก pause ถ้าใช้งานน้อยใน 7 วัน ถ้าเปิดให้คนเล่นจริงควรใช้ Pro
@@ -145,6 +160,8 @@ docker-compose.yml
 - แชทในห้อง
 - หลุดแล้วกลับเข้าเกมเดิมได้ ถ้าไม่กลับมาภายใน 60 วินาทีนับว่าแพ้ (`abandon`)
 - **ปุ่มยอมแพ้**
+- ชื่อที่แสดงและรูปโปรไฟล์สำหรับผู้ใช้ที่ login (ผู้เล่นที่ไม่ได้ login แสดงเป็น "ผู้เล่นรับเชิญ")
+- ชุดตัวหมากเลือกได้ (คลาสสิก สัญลักษณ์ ตัวอักษร) เก็บในเบราว์เซอร์ของแต่ละคน เพิ่มชุดจากไฟล์รูปได้ที่ `web/src/lib/pieceSets.tsx`
 - (ภายหลัง) ปุ่มขอเสมอ ประวัติเกม และ rating
 
 ### ปุ่มยอมแพ้
