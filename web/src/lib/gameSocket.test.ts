@@ -426,3 +426,26 @@ test('too many connections stops reconnecting', async () => {
   await vi.advanceTimersByTimeAsync(60_000)
   expect(sockets).toHaveLength(1) // ไม่เปิด socket ใหม่มาเพิ่มภาระ
 })
+
+test('a dropped connection changes the session, so a move sent on it is not shown as made', async () => {
+  const { socket, sockets, snapshots } = setup()
+  socket.start()
+  await flush()
+  sockets[0].open()
+  sockets[0].receive({ type: 'auth_ok' })
+  sockets[0].receive(stateMsg())
+  const before = snapshots.at(-1)!.session
+  expect(socket.sendMove('e2', 'e4', '')).toBe(true)
+
+  // เซิร์ฟเวอร์ดับก่อนตอบ: socket ปิด แล้วเชื่อมต่อใหม่ได้ state เดิม (ยังไม่มีตาเดินนั้น)
+  sockets[0].close()
+  expect(snapshots.at(-1)!.session).toBe(before + 1)
+  await vi.advanceTimersByTimeAsync(1000)
+  sockets[1].open()
+  sockets[1].receive({ type: 'auth_ok' })
+  sockets[1].receive(stateMsg())
+  const after = snapshots.at(-1)!
+  expect(after.session).toBe(before + 1)
+  expect(after.state?.ply).toBe(0)
+  socket.stop()
+})

@@ -11,6 +11,7 @@ const INITIAL: Snapshot = {
   fatal: null,
   moveError: null,
   errorSeq: 0,
+  session: 0,
   chat: [],
   chatLimitedSeq: 0,
   reported: [],
