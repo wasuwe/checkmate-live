@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { ArrowIcon } from '../components/ArrowIcon'
 import {
   applyOp,
   initCredits,
@@ -446,10 +447,10 @@ function ItemCard<T>({
         {d.dirty && <span className="pill unsaved">ยังไม่ได้บันทึก</span>}
         <div className="admin-row-move">
           <button type="button" className="btn mini" aria-label={`ย้าย ${label} ขึ้น`} disabled={row.busy || row.index === 0} onClick={() => row.onMove(-1)}>
-            ↑
+            <ArrowIcon direction="up" size={18} />
           </button>
           <button type="button" className="btn mini" aria-label={`ย้าย ${label} ลง`} disabled={row.busy || row.index === row.count - 1} onClick={() => row.onMove(1)}>
-            ↓
+            <ArrowIcon direction="down" size={18} />
           </button>
           <button type="button" className="btn mini butter admin-row-toggle" aria-label={open ? `ปิด ${label}` : `แก้ไข ${label}`} disabled={pinned} onClick={() => setWantOpen(!open)}>
             {open ? 'ปิด' : 'แก้ไข'}
