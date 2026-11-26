@@ -2953,10 +2953,56 @@ a.link-card:hover {
   display: block;
 }
 
-/* กระดานใหญ่ที่สุดเท่าที่ยังเห็นแถบห้อง กระดาน และแถบผู้เล่นสองฝั่งในจอเดียว (แชทอยู่ถัดลงไป) */
+/*
+ * หน้าเล่นเกมเหลือส่วนประกอบน้อยที่สุด (เจ้าของโปรเจกต์กำหนด): ซ่อนแถบบนของเว็บ เหลือแถบห้องหนึ่งแถว
+ * กับแถบผู้เล่นแบบบางสองแถว กระดานจึงกว้างที่สุดเท่าที่ทั้งหมดยังอยู่ในจอเดียว
+ * --game-chrome คือความสูงรวมของทุกอย่างที่ไม่ใช่กระดาน
+ */
+body:has(.game.stack) .topbar {
+  display: none;
+}
+
+.app:has(.game.stack) {
+  min-height: 100dvh;
+  padding: 10px clamp(8px, 2vw, 16px);
+}
+
 .board-col {
-  width: min(100%, max(300px, calc(100dvh - 302px)));
+  --game-chrome: 186px;
+  width: min(100%, max(300px, calc(100dvh - var(--game-chrome))));
   margin-inline: auto;
+  gap: 8px;
+}
+
+.game.stack .clock-row {
+  padding: 1px 10px 1px 6px;
+  border-radius: 16px;
+}
+
+.game.stack .clock-time {
+  padding: 0 10px;
+}
+
+@media (max-width: 560px) {
+  /* จอแคบ: แถบห้องต้องอยู่แถวเดียว ฝั่งที่เล่นดูได้จากแถบผู้เล่นอยู่แล้ว */
+  .room-bar .game-status .seat {
+    display: none;
+  }
+
+  .board-col .room-bar {
+    flex-wrap: nowrap;
+  }
+
+  .board-col .room-bar .game-status {
+    flex: 1 1 0;
+  }
+
+  .room-bar .status {
+    font-size: 17px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 /* แถบห้อง: รหัสห้อง (กดเพื่อเปิดตัวเลือก) สถานะเกม และปุ่มยอมแพ้ ในแถวเดียว */
