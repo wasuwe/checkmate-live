@@ -1,4 +1,4 @@
-// หน้าจัดการรูปแบบตัวหมาก: เรียก API ของผู้จัดการรูปแบบหมาก (บทบาทแยกจาก admin กำหนดด้วย PIECE_EDITOR_EMAILS)
+// หน้าจัดการรูปแบบตัวหมาก: เรียก API ที่ต้องเป็นผู้ดูแล (ADMIN_EMAILS)
 // เซิร์ฟเวอร์ตรวจบทบาททุกคำขอ ฝั่งนี้แค่ส่งคำขอและแปลผล
 
 import { resizeOcImage } from './admin'
@@ -16,7 +16,7 @@ export type PieceResult =
 
 const ERRORS: Record<string, string> = {
   unauthorized: 'ต้องเข้าสู่ระบบก่อน',
-  forbidden: 'บัญชีนี้ไม่มีสิทธิ์จัดการรูปแบบหมาก',
+  forbidden: 'บัญชีนี้ไม่ใช่ผู้ดูแล',
   bad_image: 'ไฟล์นี้ใช้ไม่ได้ ใช้ได้เฉพาะรูป PNG หรือ JPEG',
   image_too_large: 'รูปใหญ่เกินไป',
   bad_style: 'ชื่อรูปแบบต้องยาว 1–30 ตัวอักษร',

@@ -1,4 +1,4 @@
-import { useRoles } from '../lib/admin'
+import { useIsAdmin } from '../lib/admin'
 import { useState, type ClipboardEvent, type FormEvent } from 'react'
 import { AccountPanel } from '../components/AccountPanel'
 import { VS } from '../lib/pieceSets'
@@ -20,8 +20,7 @@ function cleanCode(value: string): string {
 }
 
 export function HomePage({ navigate }: Props) {
-  const roles = useRoles()
-  const isAdmin = roles?.admin === true
+  const isAdmin = useIsAdmin()
   const [joinOpen, setJoinOpen] = useState(false)
   const [code, setCode] = useState('')
   const ready = isRoomId(code)
@@ -138,8 +137,7 @@ export function HomePage({ navigate }: Props) {
             จัดการข้อมูล
           </button>
         )}
-        {/* บทบาทผู้จัดการรูปแบบหมาก แยกจาก admin */}
-        {roles?.pieces && (
+        {isAdmin && (
           <button type="button" className="link" onClick={() => navigate(PIECE_STUDIO_PATH)}>
             จัดการรูปแบบหมาก
           </button>

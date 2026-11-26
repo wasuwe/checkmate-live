@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useRoles } from '../lib/admin'
+import { useIsAdmin } from '../lib/admin'
 import {
   createStyle,
   deleteStyle,
@@ -26,15 +26,15 @@ const COLORS = [
 ] as const
 
 /**
- * หน้าจัดการรูปแบบตัวหมาก สำหรับบทบาท "ผู้จัดการรูปแบบหมาก" (แยกจาก admin กำหนดด้วย PIECE_EDITOR_EMAILS)
+ * หน้าจัดการรูปแบบตัวหมาก สำหรับผู้ดูแล (ADMIN_EMAILS สิทธิ์เดียวกับหน้าจัดการข้อมูล)
  * เพิ่มรูปแบบใหม่นอกเหนือจากรูปแบบเริ่มต้นของระบบ แล้วใส่รูปของหมากทีละตัว (6 ชนิด × 2 สี)
  * ทุกการกระทำมีผลทันทีและแก้ทีละรายการ ถ้ามีคนอื่นแก้รูปแบบเดียวกันไปก่อน เซิร์ฟเวอร์จะปฏิเสธและส่งข้อมูลล่าสุดกลับมา
- * เซิร์ฟเวอร์ตรวจบทบาทและตรวจไฟล์ทุกครั้ง หน้านี้ซ่อนไว้จากคนอื่นเพื่อความสะดวกเท่านั้น
+ * เซิร์ฟเวอร์ตรวจสิทธิ์และตรวจไฟล์ทุกครั้ง หน้านี้ซ่อนไว้จากคนอื่นเพื่อความสะดวกเท่านั้น
  */
 export function PieceStudioPage({ navigate }: Props) {
-  const roles = useRoles()
+  const isAdmin = useIsAdmin()
 
-  if (roles === null) {
+  if (isAdmin === null) {
     return (
       <main className="screen">
         <p className="card center" role="status">
@@ -43,12 +43,12 @@ export function PieceStudioPage({ navigate }: Props) {
       </main>
     )
   }
-  if (!roles.pieces) {
+  if (!isAdmin) {
     return (
       <main className="screen">
         <h1 className="title">จัดการรูปแบบหมาก</h1>
         <section className="card">
-          <p className="pretty">หน้านี้สำหรับผู้จัดการรูปแบบหมากเท่านั้น ถ้าคุณมีบทบาทนี้ ให้เข้าสู่ระบบด้วยบัญชีที่ได้รับสิทธิ์</p>
+          <p className="pretty">หน้านี้สำหรับผู้ดูแลเท่านั้น ถ้าคุณเป็นผู้ดูแล ให้เข้าสู่ระบบด้วยบัญชีที่ได้รับสิทธิ์</p>
           <div className="row wrap">
             {loginAvailable && (
               <button type="button" className="btn butter" onClick={() => navigate('/login')}>

@@ -6,39 +6,14 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
-	"github.com/wasuwe/checkmate-live/server/internal/auth"
 	"github.com/wasuwe/checkmate-live/server/internal/content"
 )
 
 // หน้าจัดการรูปแบบตัวหมาก
 //
-// บทบาท "ผู้จัดการรูปแบบหมาก" แยกจาก admin: กำหนดด้วยรายการอีเมลใน Config.PieceEditors
-// (มาจาก PIECE_EDITOR_EMAILS ใน .env) คนหนึ่งจะมีบทบาทเดียวหรือทั้งสองก็ได้ โดยใส่อีเมลในรายการที่ต้องการ
-// admin ที่ไม่อยู่ในรายการนี้แก้รูปแบบหมากไม่ได้ และผู้จัดการรูปแบบหมากแก้หน้าเครดิตไม่ได้
-
-// isPieceEditor บอกว่าตัวตนนี้มีบทบาทผู้จัดการรูปแบบหมากหรือไม่
-func (a *api) isPieceEditor(id auth.Identity) bool {
-	if id.Email == "" || auth.IsGuest(id.UserID) {
-		return false
-	}
-	_, ok := a.pieceEditors[strings.ToLower(id.Email)]
-	return ok
-}
-
-// pieceEditor ตรวจ token และบทบาท ไม่ใช่ผู้จัดการรูปแบบหมาก = 403
-func (a *api) pieceEditor(w http.ResponseWriter, r *http.Request) (auth.Identity, bool) {
-	id, ok := a.identity(w, r)
-	if !ok {
-		return auth.Identity{}, false
-	}
-	if !a.isPieceEditor(id) {
-		writeError(w, http.StatusForbidden, "forbidden")
-		return auth.Identity{}, false
-	}
-	return id, true
-}
+// ใช้สิทธิ์เดียวกับหน้าจัดการข้อมูล: คนที่อยู่ใน ADMIN_EMAILS แก้ได้ทั้งเครดิตและรูปแบบหมาก
+// (เจ้าของโปรเจกต์ให้รวมเป็นสิทธิ์เดียว 2026-11-26) การตรวจสิทธิ์ทำที่นี่ทุกคำขอผ่าน admin และ adminWrite
 
 // getPieceStyles คืนรูปแบบตัวหมากที่เพิ่มไว้ทั้งหมด ไม่ต้อง login
 func (a *api) getPieceStyles(w http.ResponseWriter, r *http.Request) {
@@ -85,19 +60,6 @@ func stylesOf(p *content.PieceStyles) []content.PieceStyle {
 	return p.Styles
 }
 
-// pieceWrite ตรวจบทบาทและโควตาการแก้ไข
-func (a *api) pieceWrite(w http.ResponseWriter, r *http.Request) (auth.Identity, bool) {
-	id, ok := a.pieceEditor(w, r)
-	if !ok {
-		return auth.Identity{}, false
-	}
-	if !a.limits.admin.Allow(id.UserID) {
-		tooMany(w)
-		return auth.Identity{}, false
-	}
-	return id, true
-}
-
 // pieceName อ่านชื่อรูปแบบจาก body {"name": "..."}
 func pieceName(w http.ResponseWriter, r *http.Request) (string, bool) {
 	var body struct {
@@ -128,7 +90,7 @@ func (a *api) updatePieces(w http.ResponseWriter, r *http.Request, by, what stri
 
 // postPieceStyle เพิ่มรูปแบบใหม่ (ยังไม่มีรูป)
 func (a *api) postPieceStyle(w http.ResponseWriter, r *http.Request) {
-	id, ok := a.pieceWrite(w, r)
+	id, ok := a.adminWrite(w, r)
 	if !ok {
 		return
 	}
@@ -141,7 +103,7 @@ func (a *api) postPieceStyle(w http.ResponseWriter, r *http.Request) {
 
 // putPieceStyle เปลี่ยนชื่อรูปแบบ
 func (a *api) putPieceStyle(w http.ResponseWriter, r *http.Request) {
-	id, ok := a.pieceWrite(w, r)
+	id, ok := a.adminWrite(w, r)
 	if !ok {
 		return
 	}
@@ -160,7 +122,7 @@ func (a *api) putPieceStyle(w http.ResponseWriter, r *http.Request) {
 
 // deletePieceStyle ลบรูปแบบ พร้อมรูปทั้งหมดของรูปแบบนั้น
 func (a *api) deletePieceStyle(w http.ResponseWriter, r *http.Request) {
-	id, ok := a.pieceWrite(w, r)
+	id, ok := a.adminWrite(w, r)
 	if !ok {
 		return
 	}
@@ -176,7 +138,7 @@ func (a *api) deletePieceStyle(w http.ResponseWriter, r *http.Request) {
 // putPieceImage รับไฟล์รูป (PNG หรือ JPEG) เป็น body แล้วตั้งเป็นรูปของหมากหนึ่งตัวในรูปแบบ
 // รูปเดิมของตัวนั้นถูกลบจากที่เก็บในขั้นตอนเดียวกัน
 func (a *api) putPieceImage(w http.ResponseWriter, r *http.Request) {
-	id, ok := a.pieceEditor(w, r)
+	id, ok := a.admin(w, r)
 	if !ok {
 		return
 	}
@@ -232,7 +194,7 @@ func (a *api) putPieceImage(w http.ResponseWriter, r *http.Request) {
 
 // deletePieceImage เอารูปของหมากหนึ่งตัวออก และลบรูปนั้นจากที่เก็บ
 func (a *api) deletePieceImage(w http.ResponseWriter, r *http.Request) {
-	id, ok := a.pieceWrite(w, r)
+	id, ok := a.adminWrite(w, r)
 	if !ok {
 		return
 	}
