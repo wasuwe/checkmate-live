@@ -1,5 +1,6 @@
 import { TopBar } from './components/TopBar'
 import { parseRoute, usePathname } from './lib/router'
+import { CreditsPage } from './pages/CreditsPage'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { PlayPage } from './pages/PlayPage'
@@ -36,6 +37,8 @@ function App() {
         return <RulesPage navigate={navigate} />
       case 'profile':
         return <ProfilePage navigate={navigate} />
+      case 'credits':
+        return <CreditsPage />
       case 'room':
         // key ทำให้เปลี่ยนห้องแล้วได้ state ใหม่ทั้งหมด
         return <RoomPage key={route.roomId} roomId={route.roomId} navigate={navigate} />
