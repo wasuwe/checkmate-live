@@ -73,10 +73,30 @@ docker-compose.yml
 {"type":"chat","text":"gg"}
 
 // Server → Client
-{"type":"state","fen":"...","turn":"b","ply":13,"clock":{"w":295,"b":300}}
+{"type":"auth_ok","userId":"..."}
+{"type":"state","room":"<roomId>","status":"playing","fen":"...","turn":"b","ply":13,
+ "lastMove":{"from":"e2","to":"e4"},
+ "players":{"w":{"connected":true},"b":{"connected":true}},
+ "you":{"role":"player","color":"w"},
+ "clock":{"w":295,"b":300}}
 {"type":"game_over","result":"0-1","reason":"resign"}
 {"type":"error","code":"not_your_turn"}
 ```
+
+- `state` คือภาพรวมทั้งห้อง ส่งทุกครั้งที่มีอะไรเปลี่ยน client ที่เพิ่งเข้าหรือ reconnect ใช้ข้อความเดียววาดหน้าจอได้ครบ
+- `status` เป็น `waiting` / `playing` / `finished` เมื่อจบเกม `state` จะมี `result` และ `reason` ด้วย
+- `you.role` เป็น `player` หรือ `spectator` (แต่ละคนได้ค่าของตัวเอง)
+- `ply` ใน `move` ต้องเท่ากับ `ply` ล่าสุดใน `state` ไม่งั้นได้ `stale_move`
+- `clock` จะมาในเฟส 6
+
+### HTTP API
+
+| Method | Path | หน้าที่ |
+|---|---|---|
+| `POST` | `/api/guest` | ออกตัวตนชั่วคราว คืน `{userId, token}` (ใช้จนกว่าจะมี Supabase Auth) |
+| `POST` | `/api/rooms` | สร้างห้อง ต้องส่ง `Authorization: Bearer <token>` คืน `{roomId}` |
+| `GET` | `/ws` | WebSocket |
+| `GET` | `/healthz` | health check |
 
 ---
 

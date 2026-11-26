@@ -1,0 +1,34 @@
+package hub
+
+import "sync"
+
+// sendBuffer คือจำนวนข้อความขาออกที่ค้างได้ต่อ connection
+// ถ้าเต็มแปลว่า client รับไม่ทัน จะถูกตัดการเชื่อมต่อแทนที่จะทำให้ห้องค้าง
+const sendBuffer = 32
+
+// Client คือ connection หนึ่งเส้นของผู้ใช้ ผู้ใช้คนเดียวมีได้หลาย Client (หลายแท็บ)
+type Client struct {
+	UserID string
+
+	send     chan []byte
+	kick     func()
+	kickOnce sync.Once
+}
+
+func newClient(userID string, kick func()) *Client {
+	return &Client{UserID: userID, send: make(chan []byte, sendBuffer), kick: kick}
+}
+
+// Send ใส่ข้อความเข้าคิวขาออกโดยไม่ block
+func (c *Client) Send(b []byte) {
+	select {
+	case c.send <- b:
+	default:
+		c.Kick()
+	}
+}
+
+// Kick ตัดการเชื่อมต่อของ client นี้
+func (c *Client) Kick() {
+	c.kickOnce.Do(c.kick)
+}
