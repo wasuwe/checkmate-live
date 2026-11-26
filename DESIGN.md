@@ -87,6 +87,9 @@ docker-compose.yml
 - `status` เป็น `waiting` / `playing` / `finished` เมื่อจบเกม `state` จะมี `result` และ `reason` ด้วย
 - `you.role` เป็น `player` หรือ `spectator` (แต่ละคนได้ค่าของตัวเอง)
 - `ply` ใน `move` ต้องเท่ากับ `ply` ล่าสุดใน `state` ไม่งั้นได้ `stale_move`
+- ผู้เล่นที่หลุดระหว่างเกมจะมี `"connected":false,"graceLeft":<วินาที>` ใน `players` ถ้าไม่กลับมาทันจะแพ้ด้วย `abandon` ผู้เล่นที่ยังมีแท็บอื่นเปิดอยู่ถือว่ายังอยู่
+- `resign` ไม่มี field อื่น ผู้แพ้คือเจ้าของ connection เสมอ
+- หน้าเว็บปิด socket เองเมื่อออกจากหน้า (`pagehide`) เพราะเบราว์เซอร์อาจเก็บหน้าไว้ใน back/forward cache โดย socket ยังเปิดอยู่
 - `clock` จะมาในเฟส 6
 
 ### HTTP API
@@ -231,6 +234,8 @@ DATABASE_URL=postgresql://postgres.[ref]:[password]@[pooler-host]:5432/postgres
 SUPABASE_JWKS_URL=https://[ref].supabase.co/auth/v1/.well-known/jwks.json
 ALLOWED_ORIGINS=https://chess.example.com
 STATIC_DIR=/app/web
+GUEST_SECRET=<สุ่มยาว ๆ>   # ถ้าไม่ตั้ง token ของ guest จะใช้ไม่ได้หลังรีสตาร์ต
+ABANDON_GRACE=60s          # ไม่บังคับ ค่าเริ่มต้น 60s
 ```
 
 **การย้อนเวอร์ชัน:** แก้ image tag ใน compose เป็น `sha-xxxxxxx` ที่ต้องการ แล้วรัน `docker compose up -d`

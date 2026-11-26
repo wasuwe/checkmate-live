@@ -2,6 +2,7 @@ package hub
 
 import (
 	"errors"
+	"math"
 	"time"
 
 	"github.com/wasuwe/checkmate-live/server/internal/game"
@@ -13,6 +14,7 @@ const (
 	evJoin eventKind = iota
 	evLeave
 	evMove
+	evResign
 )
 
 // event คือสิ่งที่ส่งเข้า goroutine ของห้อง
@@ -39,6 +41,8 @@ type Room struct {
 	players    map[game.Color]string // สี → user ID (หลังเริ่มเกม)
 	clients    map[*Client]struct{}
 	emptySince time.Time // เวลาที่ห้องเริ่มว่าง (zero = มีคนอยู่)
+	// abandonAt คือเส้นตายของผู้เล่นที่หลุดระหว่างเกม ถ้าไม่กลับมาทันจะแพ้ด้วยเหตุ abandon
+	abandonAt map[game.Color]time.Time
 }
 
 func newRoom(id string, cfg Config, onClose func(string)) *Room {
@@ -53,6 +57,7 @@ func newRoom(id string, cfg Config, onClose func(string)) *Room {
 		players:    map[game.Color]string{},
 		clients:    map[*Client]struct{}{},
 		emptySince: time.Now(),
+		abandonAt:  map[game.Color]time.Time{},
 	}
 }
 
@@ -113,6 +118,10 @@ func (r *Room) shutdown() {
 
 // nextDeadline คืนเวลาที่ห้องต้องตื่นมาทำงานครั้งถัดไป
 func (r *Room) nextDeadline() (time.Time, bool) {
+	// ระหว่างเล่น: ตื่นเมื่อผู้เล่นที่หลุดครบเวลาผ่อนผัน
+	if color, ok := r.firstAbandon(); ok {
+		return r.abandonAt[color], true
+	}
 	// ห้องที่ไม่มีใครอยู่และไม่ได้กำลังเล่น จะถูกลบเมื่อว่างครบ IdleTTL
 	if len(r.clients) == 0 && r.status != StatusPlaying {
 		return r.emptySince.Add(r.cfg.IdleTTL), true
@@ -120,8 +129,27 @@ func (r *Room) nextDeadline() (time.Time, bool) {
 	return time.Time{}, false
 }
 
+// firstAbandon คืนสีของผู้เล่นที่หลุดและเส้นตายมาถึงก่อน
+func (r *Room) firstAbandon() (game.Color, bool) {
+	var first game.Color
+	found := false
+	for _, color := range []game.Color{game.White, game.Black} {
+		at, ok := r.abandonAt[color]
+		if ok && (!found || at.Before(r.abandonAt[first])) {
+			first, found = color, true
+		}
+	}
+	return first, found
+}
+
 // onTimer คืน true ถ้าห้องควรปิด
 func (r *Room) onTimer(now time.Time) bool {
+	// ถ้าหลุดทั้งคู่ คนที่หลุดก่อนเป็นฝ่ายแพ้
+	if color, ok := r.firstAbandon(); ok && !now.Before(r.abandonAt[color]) {
+		r.game.Forfeit(color, game.ReasonAbandon)
+		r.finish()
+		return false
+	}
 	if len(r.clients) == 0 && r.status != StatusPlaying && !now.Before(r.emptySince.Add(r.cfg.IdleTTL)) {
 		return true
 	}
@@ -136,6 +164,8 @@ func (r *Room) handle(ev event) {
 		r.handleLeave(ev.client)
 	case evMove:
 		r.handleMove(ev.client, ev.ply, ev.move)
+	case evResign:
+		r.handleResign(ev.client)
 	}
 }
 
@@ -152,6 +182,9 @@ func (r *Room) handleJoin(c *Client) {
 	}
 	// ที่นั่งผูกกับ user ID ไม่ใช่ connection: คนเดิมเข้ามาใหม่ได้ที่นั่งเดิม
 	// ส่วนคนที่ 3 เป็นต้นไปเป็นคนดู
+	if color, ok := r.colorOf(c.UserID); ok {
+		delete(r.abandonAt, color) // กลับมาทันเวลา ยกเลิกการนับถอยหลัง
+	}
 	r.broadcastState()
 }
 
@@ -171,10 +204,26 @@ func (r *Room) handleLeave(c *Client) {
 		return
 	}
 	delete(r.clients, c)
+	now := time.Now()
 	if len(r.clients) == 0 {
-		r.emptySince = time.Now()
+		r.emptySince = now
+	}
+	// ผู้เล่นปิดทุกแท็บระหว่างเกม: เริ่มนับถอยหลัง ถ้ายังมีแท็บอื่นเปิดอยู่ถือว่ายังอยู่
+	if color, ok := r.colorOf(c.UserID); ok && r.status == StatusPlaying && !r.connected(c.UserID) {
+		r.abandonAt[color] = now.Add(r.cfg.AbandonGrace)
 	}
 	r.broadcastState()
+}
+
+// handleResign ให้ผู้ส่งยอมแพ้ ผู้แพ้ตัดสินจากตัวตนของ connection เท่านั้น
+// ถ้าไม่ใช่ผู้เล่นหรือเกมไม่ได้กำลังเล่น (เช่น กดซ้ำ) จะไม่ทำอะไร
+func (r *Room) handleResign(c *Client) {
+	color, ok := r.colorOf(c.UserID)
+	if !ok || r.status != StatusPlaying {
+		return
+	}
+	r.game.Resign(color)
+	r.finish()
 }
 
 func (r *Room) handleMove(c *Client, ply int, m game.Move) {
@@ -215,6 +264,7 @@ func (r *Room) handleMove(c *Client, ply int, m game.Move) {
 // finish ปิดเกมและแจ้งผลทั้งห้อง เรียกหลังจาก r.game จบแล้วเท่านั้น
 func (r *Room) finish() {
 	r.status = StatusFinished
+	clear(r.abandonAt)
 	result, reason := r.game.Result()
 	over := mustJSON(gameOverMsg{Type: "game_over", Result: result, Reason: reason})
 	for c := range r.clients {
@@ -265,7 +315,12 @@ func (r *Room) broadcastState() {
 	if r.status != StatusWaiting {
 		base.Players = map[game.Color]*playerInfo{}
 		for color, id := range r.players {
-			base.Players[color] = &playerInfo{Connected: r.connected(id)}
+			info := &playerInfo{Connected: r.connected(id)}
+			if at, ok := r.abandonAt[color]; ok {
+				// ปัดขึ้น เพื่อไม่ให้ client เห็น 0 ทั้งที่ยังเหลือเวลา
+				info.GraceLeft = max(1, int(math.Ceil(time.Until(at).Seconds())))
+			}
+			base.Players[color] = info
 		}
 	}
 	base.Result, base.Reason = r.game.Result()

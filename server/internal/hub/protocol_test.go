@@ -12,6 +12,7 @@ func TestDecodeInboundValid(t *testing.T) {
 		`{"type":"move","ply":0,"from":"e2","to":"e4"}`,
 		`{"type":"move","ply":12,"from":"e7","to":"e8","promo":"q"}`,
 		`{"type":"move","ply":12,"from":"e2","to":"e4","promo":""}`,
+		`{"type":"resign"}`,
 	}
 	for _, s := range valid {
 		if _, err := decodeInbound([]byte(s)); err != nil {
@@ -28,6 +29,8 @@ func TestDecodeInboundRejects(t *testing.T) {
 		"missing type":       `{"room":"abcdefghjkmn"}`,
 		"unknown field":      `{"type":"move","ply":0,"from":"e2","to":"e4","winner":"w"}`,
 		"color from client":  `{"type":"move","ply":0,"from":"e2","to":"e4","color":"b"}`,
+		"resign with winner": `{"type":"resign","winner":"w"}`,
+		"resign with color":  `{"type":"resign","color":"b"}`,
 		"trailing data":      `{"type":"auth","token":"abc"}{"type":"auth","token":"abc"}`,
 		"empty token":        `{"type":"auth","token":""}`,
 		"room too short":     `{"type":"join","room":"abc"}`,

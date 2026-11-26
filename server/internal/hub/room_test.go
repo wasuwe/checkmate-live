@@ -3,6 +3,7 @@ package hub
 import (
 	"encoding/json"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/wasuwe/checkmate-live/server/internal/auth"
@@ -424,4 +425,238 @@ func waitFor(t *testing.T, what string, cond func() bool) {
 		}
 		time.Sleep(5 * time.Millisecond)
 	}
+}
+
+// ---------- เฟส 3: ยอมแพ้ และหลุดจากเกม ----------
+
+func (f *fakeClient) resign(r *Room) {
+	r.post(event{kind: evResign, client: f.Client})
+}
+
+// drain อ่านข้อความที่ค้างอยู่ทั้งหมดโดยไม่รอ
+func (f *fakeClient) drain() []serverMsg {
+	f.t.Helper()
+	var out []serverMsg
+	for {
+		select {
+		case b := <-f.send:
+			var m serverMsg
+			if err := json.Unmarshal(b, &m); err != nil {
+				f.t.Fatalf("bad server message %s: %v", b, err)
+			}
+			out = append(out, m)
+		default:
+			return out
+		}
+	}
+}
+
+func isGameOver(m serverMsg) bool { return m.Type == "game_over" }
+
+func TestResign(t *testing.T) {
+	h := newTestHub(t, Config{})
+	r, alice, bob := startGame(t, h)
+	alice.move(r, 0, "e2e4")
+	bob.untilState("ply 1", atPly(1))
+
+	bob.resign(r)
+	for _, c := range []*fakeClient{alice, bob} {
+		over := c.until("game_over", isGameOver)
+		if over.Result != "1-0" || over.Reason != game.ReasonResign {
+			t.Fatalf("%s game_over = %+v, want 1-0 by resign", c.UserID, over)
+		}
+		st := c.untilState("finished", isStatus(StatusFinished))
+		if st.Result != "1-0" || st.Reason != game.ReasonResign {
+			t.Fatalf("%s final state = %+v", c.UserID, st)
+		}
+	}
+}
+
+func TestResignWhenNotOnTurn(t *testing.T) {
+	h := newTestHub(t, Config{})
+	r, alice, bob := startGame(t, h)
+
+	bob.resign(r) // ตาของขาว แต่ดำยอมแพ้ได้
+	over := alice.until("game_over", isGameOver)
+	if over.Result != "1-0" || over.Reason != game.ReasonResign {
+		t.Fatalf("game_over = %+v, want 1-0 by resign", over)
+	}
+}
+
+func TestResignIgnoredCases(t *testing.T) {
+	h := newTestHub(t, Config{})
+
+	t.Run("before the game starts", func(t *testing.T) {
+		r := newTestRoom(t, h)
+		alice := newFakeClient(t, "alice")
+		alice.join(r)
+		alice.next()
+		alice.resign(r)
+
+		bob := newFakeClient(t, "bob")
+		bob.join(r)
+		st := bob.untilState("playing", isStatus(StatusPlaying))
+		if st.Result != "" {
+			t.Fatalf("game should start normally, got %+v", st)
+		}
+	})
+
+	t.Run("spectator", func(t *testing.T) {
+		r, alice, _ := startGame(t, h)
+		carol := newFakeClient(t, "carol")
+		carol.join(r)
+		carol.resign(r)
+
+		alice.move(r, 0, "e2e4")
+		st := alice.untilState("ply 1", atPly(1))
+		if st.Status != StatusPlaying {
+			t.Fatalf("spectator resign ended the game: %+v", st)
+		}
+	})
+
+	t.Run("twice", func(t *testing.T) {
+		r, alice, bob := startGame(t, h)
+		alice.resign(r)
+		bob.until("game_over", isGameOver)
+		alice.until("game_over", isGameOver)
+
+		alice.resign(r)
+		bob.resign(r) // ผลต้องไม่พลิกกลับ
+		alice.move(r, 0, "e2e4")
+		alice.expectError(errCodeGameNotActive)
+		for _, m := range append(alice.drain(), bob.drain()...) {
+			if m.Type == "game_over" || (m.Type == "state" && m.Result != "0-1") {
+				t.Fatalf("result changed after repeated resign: %+v", m)
+			}
+		}
+	})
+}
+
+func TestAbandonAfterGrace(t *testing.T) {
+	h := newTestHub(t, Config{AbandonGrace: 60 * time.Millisecond})
+	r, alice, bob := startGame(t, h)
+
+	bob.leave(r)
+	st := alice.untilState("bob offline", func(m serverMsg) bool { return !m.Players[game.Black].Connected })
+	if st.Players[game.Black].GraceLeft < 1 {
+		t.Fatalf("graceLeft = %d, want at least 1", st.Players[game.Black].GraceLeft)
+	}
+	if st.Players[game.White].GraceLeft != 0 {
+		t.Fatalf("connected player has graceLeft %d", st.Players[game.White].GraceLeft)
+	}
+
+	over := alice.until("game_over", isGameOver)
+	if over.Result != "1-0" || over.Reason != game.ReasonAbandon {
+		t.Fatalf("game_over = %+v, want 1-0 by abandon", over)
+	}
+	final := alice.untilState("finished", isStatus(StatusFinished))
+	if final.Players[game.Black].GraceLeft != 0 {
+		t.Fatalf("graceLeft still set after the game ended: %+v", final.Players[game.Black])
+	}
+}
+
+func TestReconnectWithinGraceCancelsAbandon(t *testing.T) {
+	h := newTestHub(t, Config{AbandonGrace: 150 * time.Millisecond})
+	r, alice, bob := startGame(t, h)
+
+	bob.leave(r)
+	alice.untilState("bob offline", func(m serverMsg) bool { return !m.Players[game.Black].Connected })
+
+	bob2 := newFakeClient(t, "bob")
+	bob2.join(r)
+	back := alice.untilState("bob online", func(m serverMsg) bool { return m.Players[game.Black].Connected })
+	if back.Players[game.Black].GraceLeft != 0 {
+		t.Fatalf("graceLeft = %d after reconnect", back.Players[game.Black].GraceLeft)
+	}
+
+	time.Sleep(300 * time.Millisecond) // เลยเวลาผ่อนผันเดิมไปแล้ว
+	for _, m := range alice.drain() {
+		if m.Type == "game_over" || m.Status == StatusFinished {
+			t.Fatalf("game ended although the player came back: %+v", m)
+		}
+	}
+	alice.move(r, 0, "e2e4")
+	bob2.untilState("ply 1", atPly(1))
+}
+
+func TestSecondTabKeepsPlayerConnected(t *testing.T) {
+	h := newTestHub(t, Config{AbandonGrace: 50 * time.Millisecond})
+	r, alice, bob := startGame(t, h)
+	bobTab2 := newFakeClient(t, "bob")
+	bobTab2.join(r)
+	bobTab2.next()
+
+	bob.leave(r)
+	time.Sleep(200 * time.Millisecond)
+	for _, m := range alice.drain() {
+		if m.Type == "game_over" || (m.Type == "state" && !m.Players[game.Black].Connected) {
+			t.Fatalf("player with an open tab was treated as gone: %+v", m)
+		}
+	}
+}
+
+func TestBothLeaveFirstLeaverLoses(t *testing.T) {
+	h := newTestHub(t, Config{AbandonGrace: 80 * time.Millisecond, IdleTTL: time.Minute})
+	r, alice, bob := startGame(t, h)
+	carol := newFakeClient(t, "carol") // คนดูอยู่เป็นพยาน
+	carol.join(r)
+
+	bob.leave(r)
+	time.Sleep(20 * time.Millisecond)
+	alice.leave(r)
+
+	over := carol.until("game_over", isGameOver)
+	if over.Result != "1-0" || over.Reason != game.ReasonAbandon {
+		t.Fatalf("game_over = %+v, want black (first to leave) to lose by abandon", over)
+	}
+}
+
+func TestLeaveWhileWaitingDoesNotForfeit(t *testing.T) {
+	h := newTestHub(t, Config{AbandonGrace: 30 * time.Millisecond})
+	r := newTestRoom(t, h)
+	alice := newFakeClient(t, "alice")
+	alice.join(r)
+	alice.next()
+	alice.leave(r)
+	time.Sleep(100 * time.Millisecond)
+
+	alice2 := newFakeClient(t, "alice")
+	alice2.join(r)
+	st := alice2.next()
+	if st.Status != StatusWaiting || st.You.Role != rolePlayer {
+		t.Fatalf("state after returning to a waiting room = %+v", st)
+	}
+}
+
+// TestAbandonDefaultIsSixtySeconds ใช้นาฬิกาจำลองตรวจค่าเริ่มต้นจริง: 59 วินาทียังไม่แพ้ ครบ 60 แพ้
+func TestAbandonDefaultIsSixtySeconds(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		h := newTestHub(t, Config{})
+		r := newTestRoom(t, h)
+		alice, bob := newFakeClient(t, "alice"), newFakeClient(t, "bob")
+		alice.join(r)
+		bob.join(r)
+		synctest.Wait()
+		alice.drain()
+
+		bob.leave(r)
+		synctest.Wait()
+		msgs := alice.drain()
+		if len(msgs) == 0 || msgs[len(msgs)-1].Players[game.Black].GraceLeft != 60 {
+			t.Fatalf("expected graceLeft 60 right after disconnect, got %+v", msgs)
+		}
+
+		time.Sleep(59 * time.Second)
+		synctest.Wait()
+		if msgs := alice.drain(); len(msgs) != 0 {
+			t.Fatalf("game changed before the grace period ended: %+v", msgs)
+		}
+
+		time.Sleep(time.Second)
+		synctest.Wait()
+		msgs = alice.drain()
+		if len(msgs) != 2 || msgs[0].Type != "game_over" || msgs[0].Reason != game.ReasonAbandon || msgs[0].Result != "1-0" {
+			t.Fatalf("after 60s want game_over 1-0 by abandon, got %+v", msgs)
+		}
+	})
 }

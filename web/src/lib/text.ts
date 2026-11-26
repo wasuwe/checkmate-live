@@ -7,7 +7,7 @@ const REASONS: Record<string, string> = {
   resign: 'ยอมแพ้',
   timeout: 'หมดเวลา',
   stalemate: 'อับ (stalemate)',
-  abandon: 'ออกจากเกม',
+  abandon: 'หลุดจากเกมเกินเวลา',
   draw: 'เสมอตามกติกา',
 }
 

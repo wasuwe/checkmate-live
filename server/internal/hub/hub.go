@@ -21,6 +21,8 @@ type Config struct {
 	AuthTimeout time.Duration
 	// IdleTTL คือเวลาที่ห้องว่าง (ไม่มีใครอยู่และไม่ได้กำลังเล่น) อยู่ได้ก่อนถูกลบ
 	IdleTTL time.Duration
+	// AbandonGrace คือเวลาที่ผู้เล่นซึ่งหลุดระหว่างเกมกลับเข้ามาได้ก่อนถูกปรับแพ้
+	AbandonGrace time.Duration
 	// CoinFlip ใช้สุ่มสี คืน true เพื่อสลับให้คนที่เข้าทีหลังเป็นขาว (test กำหนดเองได้)
 	CoinFlip func() bool
 	Logger   *slog.Logger
@@ -32,6 +34,9 @@ func (c Config) withDefaults() Config {
 	}
 	if c.IdleTTL == 0 {
 		c.IdleTTL = 10 * time.Minute
+	}
+	if c.AbandonGrace == 0 {
+		c.AbandonGrace = 60 * time.Second
 	}
 	if c.CoinFlip == nil {
 		c.CoinFlip = func() bool { return mrand.IntN(2) == 0 }

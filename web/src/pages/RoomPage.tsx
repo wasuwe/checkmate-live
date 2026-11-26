@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { GameBoard } from '../components/GameBoard'
+import { ResignButton } from '../components/ResignButton'
 import { useGameSocket } from '../hooks/useGameSocket'
+import { absences } from '../lib/presence'
 import type { StateMsg } from '../lib/protocol'
 import { colorName, errorText, statusText } from '../lib/text'
 
@@ -60,6 +62,7 @@ export function RoomPage({ roomId, navigate }: Props) {
       <p className="seat">{seatText(state)}</p>
 
       {state.status === 'waiting' && <InvitePanel />}
+      <AbsenceNotice state={state} stateAt={game.stateAt} />
 
       <GameBoard
         state={state}
@@ -69,6 +72,10 @@ export function RoomPage({ roomId, navigate }: Props) {
       />
 
       <MoveErrorToast code={game.moveError} seq={game.errorSeq} />
+
+      {state.status === 'playing' && state.you.role === 'player' && (
+        <ResignButton disabled={game.connection !== 'open'} onResign={game.sendResign} />
+      )}
 
       {state.status === 'finished' && (
         <button type="button" className="primary" onClick={() => navigate('/')}>
@@ -83,6 +90,36 @@ function seatText(state: StateMsg): string {
   if (state.you.role === 'spectator') return 'คุณกำลังดูเกมนี้ในฐานะผู้ชม'
   if (state.you.color === '') return 'สีจะถูกสุ่มเมื่อคู่แข่งเข้าห้อง'
   return `คุณเล่นฝ่าย${colorName(state.you.color)}`
+}
+
+/** แจ้งเมื่อมีผู้เล่นหลุดจากเกม พร้อมเวลานับถอยหลังก่อนถูกปรับแพ้ */
+function AbsenceNotice({ state, stateAt }: { state: StateMsg; stateAt: number }) {
+  const [now, setNow] = useState(() => Date.now())
+  const anyoneAway =
+    state.status === 'playing' && Object.values(state.players ?? {}).some((p) => !p.connected)
+
+  useEffect(() => {
+    if (!anyoneAway) return
+    const timer = setInterval(() => setNow(Date.now()), 500)
+    return () => clearInterval(timer)
+  }, [anyoneAway])
+
+  // state ใหม่อาจมาถึงก่อน interval รอบถัดไป จึงใช้เวลาที่มากกว่าเสมอ
+  const away = absences(state, stateAt, Math.max(now, stateAt))
+  if (away.length === 0) return null
+
+  return (
+    <div className="banner" role="status">
+      {away.map(({ color, secondsLeft }) => {
+        const who = state.you.color === '' ? `ฝ่าย${colorName(color)}` : 'คู่แข่ง'
+        return (
+          <p key={color}>
+            {who}หลุดจากเกม ถ้าไม่กลับมาใน {secondsLeft} วินาทีจะถูกปรับแพ้
+          </p>
+        )
+      })}
+    </div>
+  )
 }
 
 /** ลิงก์เชิญเพื่อน แสดงระหว่างรอคู่แข่ง */

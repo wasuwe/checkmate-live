@@ -5,6 +5,12 @@ export type RoomStatus = 'waiting' | 'playing' | 'finished'
 export type Role = 'player' | 'spectator'
 export type Promo = '' | 'q' | 'r' | 'b' | 'n'
 
+export interface PlayerInfo {
+  connected: boolean
+  /** วินาทีที่ผู้เล่นซึ่งหลุดอยู่ยังกลับเข้ามาได้ก่อนถูกปรับแพ้ (มีเฉพาะตอนหลุด) */
+  graceLeft?: number
+}
+
 export interface StateMsg {
   type: 'state'
   room: string
@@ -14,7 +20,7 @@ export interface StateMsg {
   /** จำนวนตาเดิน (ครึ่งตา) ที่เล่นไปแล้ว ต้องส่งกลับไปกับ move เพื่อกันตาเดินเก่า */
   ply: number
   lastMove?: { from: string; to: string }
-  players?: Partial<Record<Color, { connected: boolean }>>
+  players?: Partial<Record<Color, PlayerInfo>>
   you: { role: Role; color: Color | '' }
   result?: string
   reason?: string
@@ -42,6 +48,7 @@ export type ClientMsg =
   | { type: 'auth'; token: string }
   | { type: 'join'; room: string }
   | { type: 'move'; ply: number; from: string; to: string; promo: Promo }
+  | { type: 'resign' }
 
 const SERVER_TYPES = new Set(['state', 'auth_ok', 'game_over', 'error'])
 

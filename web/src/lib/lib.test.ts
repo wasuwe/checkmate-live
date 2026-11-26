@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { applyMove, checkedKingSquare, isPromotion, legalTargets, pieceColor } from './moves'
+import { absences } from './presence'
 import { extractRoomId, isRoomId, parseServerMsg, type StateMsg } from './protocol'
 import { parseRoute, roomPath } from './router'
 import { errorText, resultText, statusText } from './text'
@@ -88,6 +89,37 @@ describe('router', () => {
   })
 })
 
+describe('presence', () => {
+  const playing: StateMsg = {
+    type: 'state',
+    room: 'abcdefghjkmn',
+    status: 'playing',
+    fen: START,
+    turn: 'w',
+    ply: 0,
+    you: { role: 'player', color: 'w' },
+    players: { w: { connected: true }, b: { connected: false, graceLeft: 60 } },
+  }
+
+  test('lists disconnected players and counts down from the server value', () => {
+    expect(absences(playing, 1000, 1000)).toEqual([{ color: 'b', secondsLeft: 60 }])
+    expect(absences(playing, 1000, 1999)).toEqual([{ color: 'b', secondsLeft: 60 }])
+    expect(absences(playing, 1000, 11_000)).toEqual([{ color: 'b', secondsLeft: 50 }])
+  })
+
+  test('never goes below zero or back in time', () => {
+    expect(absences(playing, 1000, 999_000)).toEqual([{ color: 'b', secondsLeft: 0 }])
+    expect(absences(playing, 5000, 1000)).toEqual([{ color: 'b', secondsLeft: 60 }])
+  })
+
+  test('is empty when everyone is connected or the game is not running', () => {
+    const allHere: StateMsg = { ...playing, players: { w: { connected: true }, b: { connected: true } } }
+    expect(absences(allHere, 0, 0)).toEqual([])
+    expect(absences({ ...playing, status: 'finished' }, 0, 0)).toEqual([])
+    expect(absences({ ...playing, status: 'waiting', players: undefined }, 0, 0)).toEqual([])
+  })
+})
+
 describe('text', () => {
   const base: StateMsg = {
     type: 'state',
@@ -113,6 +145,8 @@ describe('text', () => {
     expect(resultText({ ...over, you: { role: 'spectator', color: '' } })).toBe('ดำชนะ — รุกจน')
     expect(resultText({ ...over, result: '1/2-1/2', reason: 'stalemate' })).toBe('เสมอ — อับ (stalemate)')
     expect(statusText(over)).toBe('คุณแพ้ — รุกจน')
+    expect(resultText({ ...over, result: '1-0', reason: 'resign' })).toBe('คุณชนะ — ยอมแพ้')
+    expect(resultText({ ...over, result: '1-0', reason: 'abandon' })).toBe('คุณชนะ — หลุดจากเกมเกินเวลา')
   })
 
   test('errorText falls back for unknown codes', () => {

@@ -248,6 +248,71 @@ func TestFullGameOverWebSocket(t *testing.T) {
 	white.expectError("game_not_active")
 }
 
+// TestResignAndReconnectOverWebSocket คือเกณฑ์ของเฟส 3 ผ่าน connection จริง:
+// หลุดแล้วกลับเข้าที่นั่งเดิมได้ และยอมแพ้แล้วอีกฝ่ายชนะ
+func TestResignAndReconnectOverWebSocket(t *testing.T) {
+	s := newTestServer(t, hub.Config{})
+	_, whiteToken := s.newGuest()
+	_, blackToken := s.newGuest()
+	roomID := s.newRoom(whiteToken)
+	join := map[string]string{"type": "join", "room": roomID}
+	isState := func(m msg) bool { return m.Type == "state" }
+
+	white := s.connect(whiteToken)
+	white.send(join)
+	white.until("waiting", isState)
+	black := s.connect(blackToken)
+	black.send(join)
+	black.until("playing", func(m msg) bool { return m.Type == "state" && m.Status == "playing" })
+
+	white.move(0, "e2", "e4")
+	black.until("ply 1", func(m msg) bool { return m.Type == "state" && m.Ply == 1 })
+
+	// ดำหลุด แล้วเปิด connection ใหม่ด้วย token เดิม
+	_ = black.conn.CloseNow()
+	black2 := s.connect(blackToken)
+	black2.send(join)
+	st := black2.until("state after reconnect", isState)
+	if st.You.Role != "player" || st.You.Color != "b" || st.Ply != 1 || st.Status != "playing" {
+		t.Fatalf("state after reconnect = %+v, want black player at ply 1", st)
+	}
+	black2.move(1, "e7", "e5")
+	white.until("ply 2", func(m msg) bool { return m.Type == "state" && m.Ply == 2 })
+
+	// ข้อความ resign ที่พยายามระบุผู้ชนะเองต้องถูกปฏิเสธ
+	black2.sendRaw(`{"type":"resign","winner":"b"}`)
+	black2.expectError("bad_message")
+
+	black2.send(map[string]string{"type": "resign"})
+	for _, c := range []*wsClient{white, black2} {
+		over := c.until("game_over", func(m msg) bool { return m.Type == "game_over" })
+		if over.Result != "1-0" || over.Reason != "resign" {
+			t.Fatalf("game_over = %+v, want 1-0 by resign", over)
+		}
+	}
+}
+
+func TestAbandonOverWebSocket(t *testing.T) {
+	s := newTestServer(t, hub.Config{AbandonGrace: 100 * time.Millisecond})
+	_, whiteToken := s.newGuest()
+	_, blackToken := s.newGuest()
+	roomID := s.newRoom(whiteToken)
+	join := map[string]string{"type": "join", "room": roomID}
+
+	white := s.connect(whiteToken)
+	white.send(join)
+	white.until("waiting", func(m msg) bool { return m.Type == "state" })
+	black := s.connect(blackToken)
+	black.send(join)
+	white.until("playing", func(m msg) bool { return m.Type == "state" && m.Status == "playing" })
+
+	_ = black.conn.CloseNow() // ปิดแท็บโดยไม่บอกลา
+	over := white.until("game_over", func(m msg) bool { return m.Type == "game_over" })
+	if over.Result != "1-0" || over.Reason != "abandon" {
+		t.Fatalf("game_over = %+v, want 1-0 by abandon", over)
+	}
+}
+
 func TestSpectatorCannotMove(t *testing.T) {
 	s := newTestServer(t, hub.Config{})
 	_, t1 := s.newGuest()
