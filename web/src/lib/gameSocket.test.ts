@@ -300,6 +300,7 @@ test('pause cancels a pending reconnect and resume is a no-op when not paused', 
 
 const chatItem = (id: number, text: string, mine = false) => ({
   id,
+  sender: 'u1',
   from: 'w' as const,
   text,
   at: 1000 + id,
@@ -391,4 +392,37 @@ test('ignores malformed and unknown server messages', async () => {
 
   expect(socket.getSnapshot().state).toBeNull()
   expect(socket.getSnapshot().errorSeq).toBe(0)
+})
+
+test('reports a chat message by id and records the acknowledgement', async () => {
+  const { socket, ws } = await joined()
+  expect(socket.sendReport(7)).toBe(true)
+  expect(ws.sent.at(-1)).toEqual({ type: 'report', id: 7 }) // ไม่ส่งเนื้อความหรือผู้ส่ง เซิร์ฟเวอร์หาเอง
+  expect(socket.getSnapshot().reported).toEqual([]) // ยังไม่นับจนกว่าเซิร์ฟเวอร์ตอบ
+
+  ws.receive({ type: 'report_ok', id: 7 })
+  ws.receive({ type: 'report_ok', id: 7 })
+  expect(socket.getSnapshot().reported).toEqual([7])
+})
+
+test('cannot report before joining a room', async () => {
+  const { socket, sockets } = setup()
+  socket.start()
+  await flush()
+  sockets[0].open()
+  expect(socket.sendReport(1)).toBe(false)
+  expect(sockets[0].sent).toEqual([{ type: 'auth', token: 'token-old' }])
+})
+
+test('too many connections stops reconnecting', async () => {
+  const { socket, sockets } = setup()
+  socket.start()
+  await flush()
+  sockets[0].open()
+  sockets[0].receive({ type: 'error', code: 'too_many_connections' })
+
+  expect(socket.getSnapshot().fatal).toBe('too_many_connections')
+  expect(sockets[0].closed).toBe(true)
+  await vi.advanceTimersByTimeAsync(60_000)
+  expect(sockets).toHaveLength(1) // ไม่เปิด socket ใหม่มาเพิ่มภาระ
 })

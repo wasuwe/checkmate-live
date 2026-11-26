@@ -71,6 +71,7 @@ docker-compose.yml
 {"type":"move","ply":12,"from":"e2","to":"e4","promo":""}
 {"type":"resign"}
 {"type":"chat","text":"gg"}
+{"type":"report","id":7}
 
 // Server → Client
 {"type":"auth_ok","userId":"..."}
@@ -79,7 +80,8 @@ docker-compose.yml
  "players":{"w":{"connected":true,"name":"น้ำผึ้ง","avatar":"<รหัสรูป>"},"b":{"connected":true,"guest":true}},
  "you":{"role":"player","color":"w"},
  "tc":"5+3","clock":{"w":295000,"b":300000,"running":"b"}}
-{"type":"chat","id":7,"from":"w","text":"gg","at":1795650000000,"mine":false}
+{"type":"chat","id":7,"sender":"u1","from":"w","text":"gg","at":1795650000000,"mine":false}
+{"type":"report_ok","id":7}
 {"type":"chat_history","messages":[ ...ข้อความแชทล่าสุดไม่เกิน 50 ข้อความ... ]}
 {"type":"game_over","result":"0-1","reason":"resign"}
 {"type":"error","code":"not_your_turn"}
@@ -96,6 +98,9 @@ docker-compose.yml
 - `clock` เป็นมิลลิวินาทีที่เหลือ ณ ตอนส่ง และ `running` คือฝั่งที่นาฬิกากำลังเดิน (`""` = หยุด) หน้าเว็บนับต่อเองเพื่อแสดงผลเท่านั้น
 - นาฬิกาเริ่มเดินเมื่อผู้เล่นครบสองคน หักเวลาเมื่อเดินตาที่ถูกกติกา แล้วบวก increment หมดเวลาแพ้ด้วย `timeout`
 - แชท: ข้อความ 1–200 ตัวอักษร ห้ามอักขระควบคุม ส่งได้ทั้งผู้เล่นและผู้ชม (`from` เป็น `""` ถ้าเป็นผู้ชม) จำกัดคนละ 5 ข้อความรัว จากนั้น 1 ข้อความต่อ 2 วินาที เกินได้ error `chat_rate_limited`
+- `sender` ในแชทคือเลขประจำตัวในห้องของผู้ส่ง (ไม่ใช่ user ID) หน้าเว็บใช้ซ่อนข้อความทั้งหมดของคนเดียวกัน การซ่อนมีผลเฉพาะจอของคนที่กด
+- `report` รายงานข้อความแชทด้วย `id` เซิร์ฟเวอร์หาผู้ส่งและเนื้อความเองจากประวัติของห้อง รายงานข้อความของตัวเองหรือข้อความที่ไม่มีจะไม่เกิดอะไร คนละ 3 ครั้งรัว จากนั้น 1 ครั้งต่อ 20 วินาที
+- เกินโควตาข้อความของ connection ได้ error `rate_limited` และข้อความนั้นถูกทิ้ง ผู้ใช้ที่เปิด connection เกินจำนวนได้ `too_many_connections` แล้วถูกตัด
 - ทุกชนิดข้อความขาเข้ารับเฉพาะ field ของชนิดนั้น field ของชนิดอื่นที่ปนมาถูกปฏิเสธ
 
 ### HTTP API
@@ -111,6 +116,8 @@ docker-compose.yml
 | `GET` | `/api/avatars/{id}` | ไฟล์รูป ไม่ต้อง login |
 | `GET` | `/ws` | WebSocket |
 | `GET` | `/healthz` | health check |
+
+คำขอที่เกินโควตาได้ `429` พร้อม `{"error":"rate_limited"}` สร้างห้องขณะมีห้องที่ยังไม่จบครบจำนวนได้ `429 too_many_rooms` และเมื่อห้องเต็มทั้งเซิร์ฟเวอร์ได้ `503 server_full`
 
 ---
 
@@ -230,9 +237,34 @@ case "resign":
 - ใช้ ping/pong ตัด connection ที่ค้าง และลบห้องที่ว่างนาน
 - decode JSON แบบเข้มงวด (`DisallowUnknownFields`) และตรวจรูปแบบช่องหมาก `^[a-h][1-8]$`
 
+**ที่ทำจริง (เฟส 7):** โควตาทั้งหมดอยู่ใน memory ของเซิร์ฟเวอร์ (ระบบมี instance เดียว) ค่าอยู่ที่ `hub.Config` และ `httpapi.DefaultLimits`
+
+| เรื่อง | โควตา | นับต่อ |
+|---|---|---|
+| WebSocket ที่เปิดพร้อมกัน | 40 | IP (นับตั้งแต่ก่อน auth) |
+| WebSocket ที่เปิดพร้อมกัน | 8 | ผู้ใช้ |
+| ข้อความใน WebSocket | รัว 20 จากนั้น 10 ต่อวินาที ส่งเกินซ้ำ 30 ครั้งถูกตัด | connection |
+| ห้องที่ยังไม่จบ | 5 | ผู้สร้าง |
+| ห้องทั้งหมด | 1000 | เซิร์ฟเวอร์ |
+| สร้างห้อง | รัว 5 จากนั้น 1 ต่อ 10 วินาที | ผู้ใช้ |
+| ขอตัวตน guest | รัว 10 จากนั้น 1 ต่อ 6 วินาที | IP |
+| คำขอเขียนใต้ `/api` (นับก่อนตรวจ token) | รัว 30 จากนั้น 1 ต่อวินาที | IP |
+| คำขออ่านใต้ `/api` | รัว 120 จากนั้น 4 ต่อวินาที | IP |
+| แก้ชื่อหรือลบรูป | รัว 5 จากนั้น 1 ต่อ 10 วินาที | ผู้ใช้ |
+| อัปโหลดรูป | รัว 3 จากนั้น 1 ต่อนาที | ผู้ใช้ |
+
+- IP ของผู้ใช้มาจากที่อยู่ของ connection เว้นแต่ตั้ง `CLIENT_IP_HEADER` (บน Fly.io ต้องตั้งเป็น `Fly-Client-IP` ไม่งั้นทุกคนถูกนับเป็น IP เดียวกันของ proxy) ห้ามตั้งถ้าเซิร์ฟเวอร์รับคำขอตรงจากอินเทอร์เน็ต เพราะผู้ใช้ปลอม header ได้
+- IPv6 นับรวมเป็นช่วง /64
+- โควตาต่อ IP เผื่อไว้สำหรับหลายคนที่ใช้อินเทอร์เน็ตเดียวกัน ถ้ามีกลุ่มใหญ่กว่า 40 คนหลัง IP เดียวต้องเพิ่ม `MaxConnsPerIP`
+
 ### แชท
 - ห้ามใช้ `dangerouslySetInnerHTML`
 - จำกัดความยาวและความถี่ของข้อความ และมีระบบ report หรือ mute
+
+**ที่ทำจริง (เฟส 7):**
+- ปุ่ม "ซ่อน" ซ่อนทุกข้อความของผู้ส่งคนนั้นบนจอของคนที่กด จนกว่าจะออกจากห้องหรือกด "แสดงทั้งหมด"
+- ปุ่ม "รายงาน" บันทึกลงตาราง `chat_reports` (ห้อง ข้อความ ผู้ส่ง ผู้รายงาน เวลา) และลง log ของเซิร์ฟเวอร์โดยไม่มีเนื้อความ ดูรายการล่าสุดด้วย `go run ./cmd/dbcheck -reports`
+- ยังไม่มีการลงโทษอัตโนมัติและยังไม่มีระบบ ban ผู้ดูแลต้องอ่านรายงานเอง
 
 ### Database
 - รหัสผ่าน DB และ service role key อยู่ใน env ของ Go เท่านั้น
@@ -243,6 +275,8 @@ case "resign":
 - ใช้ HTTPS/WSS เท่านั้น ผ่าน Caddy
 - ตั้ง CORS เฉพาะโดเมนของเรา และใส่ security headers (CSP, HSTS)
 - ตั้ง timeout ให้ `http.Server` (`ReadHeaderTimeout`, `IdleTimeout`)
+
+**ที่ทำจริง (เฟส 7):** ทุก response มี `Content-Security-Policy` (`default-src 'self'`, `script-src 'self'`, `frame-ancestors 'none'`, `connect-src` เฉพาะเซิร์ฟเวอร์เองกับ origin ของ Supabase), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Strict-Transport-Security`, `Cross-Origin-Opener-Policy` และ `Permissions-Policy` ส่วน `style-src` ต้องยอม `'unsafe-inline'` เพราะกระดานหมากรุกกำหนด style ในตัว element
 - รัน `govulncheck` และ `npm audit` ใน CI
 - ห้ามเก็บ token หรือรหัสผ่านลง log
 
@@ -276,6 +310,7 @@ STATIC_DIR=/app/web
 GUEST_SECRET=<สุ่มยาว ๆ>   # ถ้าไม่ตั้ง token ของ guest จะใช้ไม่ได้หลังรีสตาร์ต
 GUEST_ENABLED=true         # ไม่บังคับ ตั้ง false เพื่อบังคับ login ก่อนเล่น
 ABANDON_GRACE=60s          # ไม่บังคับ ค่าเริ่มต้น 60s
+CLIENT_IP_HEADER=Fly-Client-IP  # ตั้งเมื่ออยู่หลัง proxy ที่ใส่ IP จริงของผู้ใช้มาใน header นี้ (ดูหัวข้อ Security)
 ```
 
 **การย้อนเวอร์ชัน:** แก้ image tag ใน compose เป็น `sha-xxxxxxx` ที่ต้องการ แล้วรัน `docker compose up -d`

@@ -8,10 +8,12 @@ import (
 	"log/slog"
 	"math/big"
 	mrand "math/rand/v2"
+	"net/http"
 	"sync"
 	"time"
 
 	"github.com/wasuwe/checkmate-live/server/internal/auth"
+	"github.com/wasuwe/checkmate-live/server/internal/ratelimit"
 )
 
 // Config คือค่าตั้งของ Hub ค่าที่เว้นว่างจะใช้ค่าเริ่มต้น
@@ -29,6 +31,20 @@ type Config struct {
 	// Profiles หาชื่อและรูปของผู้ใช้ตอนเชื่อมต่อ ถ้าเป็น nil ทุกคนไม่มีชื่อ
 	// ถูกเรียกจาก goroutine ของ connection (ไม่ใช่ของห้อง) จึงรอฐานข้อมูลได้
 	Profiles func(ctx context.Context, userID string) PlayerProfile
+	// ClientIP คืนตัวระบุเครื่องของผู้ส่งคำขอ ใช้จำกัดจำนวน connection ต่อ IP
+	// ถ้าเป็น nil ใช้ที่อยู่ของ connection
+	ClientIP func(*http.Request) string
+	// MaxConnsPerIP และ MaxConnsPerUser คือจำนวน WebSocket ที่เปิดพร้อมกันได้
+	MaxConnsPerIP   int
+	MaxConnsPerUser int
+	// MessageRate คือความถี่ของข้อความที่รับต่อ connection
+	MessageRate ratelimit.Rule
+	// MaxRooms คือจำนวนห้องทั้งหมดที่เซิร์ฟเวอร์เก็บได้
+	MaxRooms int
+	// MaxOpenRoomsPerUser คือจำนวนห้องที่ยังไม่จบซึ่งผู้ใช้หนึ่งคนสร้างค้างไว้ได้
+	MaxOpenRoomsPerUser int
+	// OnReport ถูกเรียกเมื่อมีคนรายงานข้อความแชท เรียกจาก goroutine ของห้อง จึงต้องคืนทันที
+	OnReport func(ChatReport)
 	// CoinFlip ใช้สุ่มสี คืน true เพื่อสลับให้คนที่เข้าทีหลังเป็นขาว (test กำหนดเองได้)
 	CoinFlip func() bool
 	Logger   *slog.Logger
@@ -44,6 +60,24 @@ func (c Config) withDefaults() Config {
 	if c.AbandonGrace == 0 {
 		c.AbandonGrace = 60 * time.Second
 	}
+	if c.ClientIP == nil {
+		c.ClientIP = func(r *http.Request) string { return ratelimit.ClientIP(r, "") }
+	}
+	if c.MaxConnsPerIP == 0 {
+		c.MaxConnsPerIP = 40 // เผื่อหลายคนใช้อินเทอร์เน็ตเดียวกัน เช่น ในโรงเรียน
+	}
+	if c.MaxConnsPerUser == 0 {
+		c.MaxConnsPerUser = 8
+	}
+	if c.MessageRate.Every == 0 {
+		c.MessageRate = ratelimit.Rule{Every: 100 * time.Millisecond, Burst: 20}
+	}
+	if c.MaxRooms == 0 {
+		c.MaxRooms = 1000
+	}
+	if c.MaxOpenRoomsPerUser == 0 {
+		c.MaxOpenRoomsPerUser = 5
+	}
 	if c.CoinFlip == nil {
 		c.CoinFlip = func() bool { return mrand.IntN(2) == 0 }
 	}
@@ -53,16 +87,28 @@ func (c Config) withDefaults() Config {
 	return c
 }
 
-// ErrClosed คือ Hub ถูกปิดแล้ว
-var ErrClosed = errors.New("hub closed")
+var (
+	// ErrClosed คือ Hub ถูกปิดแล้ว
+	ErrClosed = errors.New("hub closed")
+	// ErrServerFull คือจำนวนห้องทั้งเซิร์ฟเวอร์เต็มแล้ว
+	ErrServerFull = errors.New("server is full")
+	// ErrTooManyRooms คือผู้ใช้คนนี้มีห้องที่ยังไม่จบค้างอยู่ครบจำนวนแล้ว
+	ErrTooManyRooms = errors.New("too many open rooms")
+)
 
 // Hub เก็บห้องทั้งหมดและส่งต่อ connection ไปยังห้องที่ถูกต้อง
 type Hub struct {
 	cfg  Config
 	auth auth.Authenticator
 
-	mu     sync.Mutex
-	rooms  map[string]*Room
+	ipConns   *ratelimit.Counter
+	userConns *ratelimit.Counter
+
+	mu    sync.Mutex
+	rooms map[string]*Room
+	// open คือห้องที่ยังไม่จบ (รหัสห้อง → ผู้สร้าง) และ openBy คือจำนวนต่อผู้สร้าง
+	open   map[string]string
+	openBy map[string]int
 	closed bool
 	stop   chan struct{}
 	wg     sync.WaitGroup
@@ -70,11 +116,16 @@ type Hub struct {
 
 // New สร้าง Hub
 func New(cfg Config, authn auth.Authenticator) *Hub {
+	cfg = cfg.withDefaults()
 	return &Hub{
-		cfg:   cfg.withDefaults(),
-		auth:  authn,
-		rooms: map[string]*Room{},
-		stop:  make(chan struct{}),
+		cfg:       cfg,
+		auth:      authn,
+		ipConns:   ratelimit.NewCounter(cfg.MaxConnsPerIP),
+		userConns: ratelimit.NewCounter(cfg.MaxConnsPerUser),
+		rooms:     map[string]*Room{},
+		open:      map[string]string{},
+		openBy:    map[string]int{},
+		stop:      make(chan struct{}),
 	}
 }
 
@@ -90,6 +141,12 @@ func (h *Hub) CreateRoomBy(tc TimeControl, createdBy string) (string, error) {
 	if h.closed {
 		return "", ErrClosed
 	}
+	if len(h.rooms) >= h.cfg.MaxRooms {
+		return "", ErrServerFull
+	}
+	if createdBy != "" && h.openBy[createdBy] >= h.cfg.MaxOpenRoomsPerUser {
+		return "", ErrTooManyRooms
+	}
 
 	var id string
 	for {
@@ -103,7 +160,9 @@ func (h *Hub) CreateRoomBy(tc TimeControl, createdBy string) (string, error) {
 	}
 
 	room := newRoom(id, h.cfg, tc, createdBy, h.removeRoom)
+	room.onFinish = h.roomFinished
 	h.rooms[id] = room
+	h.trackOpen(id, createdBy)
 	room.persist() // ยังไม่มี goroutine ของห้อง จึงเรียกจากตรงนี้ได้
 	h.wg.Go(func() { room.run(h.stop) })
 	return id, nil
@@ -126,6 +185,36 @@ func (h *Hub) removeRoom(id string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	delete(h.rooms, id)
+	h.untrackOpen(id)
+}
+
+// roomFinished ถูกเรียกเมื่อเกมในห้องจบ ห้องนั้นไม่นับเป็นห้องค้างของผู้สร้างอีก
+func (h *Hub) roomFinished(id string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.untrackOpen(id)
+}
+
+// trackOpen และ untrackOpen ต้องเรียกขณะถือ h.mu
+func (h *Hub) trackOpen(id, createdBy string) {
+	if createdBy == "" {
+		return
+	}
+	h.open[id] = createdBy
+	h.openBy[createdBy]++
+}
+
+func (h *Hub) untrackOpen(id string) {
+	createdBy, ok := h.open[id]
+	if !ok {
+		return
+	}
+	delete(h.open, id)
+	if h.openBy[createdBy] <= 1 {
+		delete(h.openBy, createdBy)
+	} else {
+		h.openBy[createdBy]--
+	}
 }
 
 // Close ปิดทุกห้องและรอจนทุก goroutine ของห้องจบ

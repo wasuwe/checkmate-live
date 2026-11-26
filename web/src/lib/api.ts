@@ -23,9 +23,25 @@ export async function createRoom(timeControl: string): Promise<string> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ timeControl }),
   })
-  if (!res.ok) throw new Error(`create room failed: ${res.status}`)
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new CreateRoomError(body.error ?? '')
+  }
   const body = (await res.json()) as { roomId: string }
   return body.roomId
+}
+
+const CREATE_ROOM_ERRORS: Record<string, string> = {
+  too_many_rooms: 'คุณมีห้องที่ยังเล่นไม่จบค้างอยู่หลายห้อง เล่นให้จบหรือรอสักครู่ก่อนสร้างห้องใหม่',
+  rate_limited: 'สร้างห้องถี่เกินไป รอสักครู่แล้วลองใหม่',
+  server_full: 'ตอนนี้ห้องเต็มทั้งระบบ ลองใหม่ภายหลัง',
+}
+
+/** สร้างห้องไม่สำเร็จ message เป็นข้อความที่แสดงให้ผู้ใช้ได้เลย */
+export class CreateRoomError extends Error {
+  constructor(code: string) {
+    super(CREATE_ROOM_ERRORS[code] ?? 'สร้างห้องไม่สำเร็จ ตรวจการเชื่อมต่อแล้วลองใหม่')
+  }
 }
 
 export function socketUrl(): string {

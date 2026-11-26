@@ -12,7 +12,7 @@ import {
 export type Connection = 'connecting' | 'open' | 'reconnecting' | 'closed'
 
 /** สาเหตุที่ทำให้เลิกเชื่อมต่อถาวร */
-export type Fatal = 'room_not_found' | 'unauthorized'
+export type Fatal = 'room_not_found' | 'unauthorized' | 'too_many_connections'
 
 export interface Snapshot {
   connection: Connection
@@ -28,6 +28,8 @@ export interface Snapshot {
   chat: ChatItem[]
   /** เพิ่มทุกครั้งที่เซิร์ฟเวอร์ปฏิเสธแชทเพราะส่งถี่เกินไป (แยกจาก errorSeq ที่ใช้กับตาเดิน) */
   chatLimitedSeq: number
+  /** id ของข้อความแชทที่เซิร์ฟเวอร์รับการรายงานแล้ว */
+  reported: number[]
 }
 
 /** จำนวนข้อความแชทสูงสุดที่เก็บไว้ในหน้าเว็บ */
@@ -73,6 +75,7 @@ export class GameSocket {
     errorSeq: 0,
     chat: [],
     chatLimitedSeq: 0,
+    reported: [],
   }
 
   constructor(opts: GameSocketOptions) {
@@ -145,6 +148,13 @@ export class GameSocket {
     return true
   }
 
+  /** รายงานข้อความแชท เซิร์ฟเวอร์เป็นผู้ระบุผู้ส่งและเนื้อความเองจาก id */
+  sendReport(id: number): boolean {
+    if (!this.snapshot.state || !this.ws || this.ws.readyState !== OPEN) return false
+    this.send(this.ws, { type: 'report', id })
+    return true
+  }
+
   private update(patch: Partial<Snapshot>): void {
     this.snapshot = { ...this.snapshot, ...patch }
     this.opts.onChange(this.snapshot)
@@ -210,6 +220,12 @@ export class GameSocket {
         this.update({ chat: msg.messages.slice(-CHAT_KEEP) })
         break
 
+      case 'report_ok':
+        if (!this.snapshot.reported.includes(msg.id)) {
+          this.update({ reported: [...this.snapshot.reported, msg.id] })
+        }
+        break
+
       case 'error':
         this.onError(msg.code)
         break
@@ -229,6 +245,10 @@ export class GameSocket {
         } else {
           this.refreshToken = true // เซิร์ฟเวอร์จะปิด socket เอง แล้ว onclose จะลองใหม่
         }
+        break
+      case 'too_many_connections':
+        // เปิดห้องไว้หลายแท็บเกินจำนวน ลองใหม่เองไม่ช่วย ต้องให้ผู้ใช้ปิดแท็บอื่นก่อน
+        this.fail('too_many_connections')
         break
       case 'chat_rate_limited':
         this.update({ chatLimitedSeq: this.snapshot.chatLimitedSeq + 1 })

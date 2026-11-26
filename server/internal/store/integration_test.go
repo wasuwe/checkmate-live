@@ -345,3 +345,30 @@ func TestIntegrationProfiles(t *testing.T) {
 		t.Fatalf("deleted avatar: %v", err)
 	}
 }
+
+func TestIntegrationChatReports(t *testing.T) {
+	s, _ := openTestStore(t)
+	ctx := context.Background()
+	now := time.Now().UTC().Truncate(time.Millisecond)
+	report := hub.ChatReport{
+		RoomID: "abcdefghjkmn", MessageID: 7, Text: "ข้อความหยาบ", SenderID: "guest_aaa",
+		ReporterID: "11111111-1111-4111-8111-111111111111", SentAt: now.Add(-time.Minute), ReportedAt: now,
+	}
+
+	sink := NewReportSink(s, nil)
+	sink.Report(report)
+	sink.Report(report) // คนเดิมรายงานข้อความเดิมซ้ำ
+	other := report
+	other.ReporterID = "guest_bbb"
+	sink.Report(other)
+	sink.Close() // รอจนเขียนครบ
+
+	var n int
+	var message, sender string
+	if err := s.pool.QueryRow(ctx, "select count(*), min(message), min(sender_id) from chat_reports").Scan(&n, &message, &sender); err != nil {
+		t.Fatal(err)
+	}
+	if n != 2 || message != "ข้อความหยาบ" || sender != "guest_aaa" {
+		t.Fatalf("chat_reports: %d rows, message %q, sender %q; want 2 rows", n, message, sender)
+	}
+}

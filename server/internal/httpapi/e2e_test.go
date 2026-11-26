@@ -21,6 +21,8 @@ const e2eTimeout = 5 * time.Second
 // msg คือข้อความจากเซิร์ฟเวอร์เท่าที่ test ต้องใช้
 type msg struct {
 	Type    string `json:"type"`
+	ID      int    `json:"id"`
+	Sender  string `json:"sender"`
 	Code    string `json:"code"`
 	UserID  string `json:"userId"`
 	Status  string `json:"status"`

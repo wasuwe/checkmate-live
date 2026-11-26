@@ -58,6 +58,10 @@ func (a *api) putProfile(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if !a.limits.profile.Allow(userID) {
+		tooMany(w)
+		return
+	}
 	var body struct {
 		Name *string `json:"name"`
 	}
@@ -80,6 +84,10 @@ func (a *api) putProfile(w http.ResponseWriter, r *http.Request) {
 func (a *api) putAvatar(w http.ResponseWriter, r *http.Request) {
 	userID, ok := a.account(w, r)
 	if !ok {
+		return
+	}
+	if !a.limits.avatar.Allow(userID) {
+		tooMany(w)
 		return
 	}
 	data, err := io.ReadAll(http.MaxBytesReader(w, r.Body, profile.MaxAvatarBytes))
@@ -109,6 +117,10 @@ func (a *api) putAvatar(w http.ResponseWriter, r *http.Request) {
 func (a *api) deleteAvatar(w http.ResponseWriter, r *http.Request) {
 	userID, ok := a.account(w, r)
 	if !ok {
+		return
+	}
+	if !a.limits.profile.Allow(userID) {
+		tooMany(w)
 		return
 	}
 	p, err := a.cfg.Profiles.DeleteAvatar(r.Context(), userID)

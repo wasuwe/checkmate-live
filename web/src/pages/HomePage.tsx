@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { AccountPanel } from '../components/AccountPanel'
 import { PiecePicker } from '../components/PiecePicker'
-import { createRoom } from '../lib/api'
+import { createRoom, CreateRoomError } from '../lib/api'
 import { APP_NAME } from '../lib/appInfo'
 import { DEFAULT_TIME_CONTROL, TIME_CONTROLS } from '../lib/clock'
 import { extractRoomId } from '../lib/protocol'
@@ -14,17 +14,19 @@ interface Props {
 export function HomePage({ navigate }: Props) {
   const [creating, setCreating] = useState(false)
   const [timeControl, setTimeControl] = useState(DEFAULT_TIME_CONTROL)
-  const [createError, setCreateError] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
   const [code, setCode] = useState('')
   const [codeError, setCodeError] = useState(false)
 
   async function onCreate() {
     setCreating(true)
-    setCreateError(false)
+    setCreateError(null)
     try {
       navigate(roomPath(await createRoom(timeControl)))
-    } catch {
-      setCreateError(true)
+    } catch (err) {
+      setCreateError(
+        err instanceof CreateRoomError ? err.message : 'สร้างห้องไม่สำเร็จ ตรวจการเชื่อมต่อแล้วลองใหม่',
+      )
       setCreating(false)
     }
   }
@@ -68,7 +70,7 @@ export function HomePage({ navigate }: Props) {
         </button>
         {createError && (
           <p className="error" role="alert">
-            สร้างห้องไม่สำเร็จ ตรวจการเชื่อมต่อแล้วลองใหม่
+            {createError}
           </p>
         )}
       </section>

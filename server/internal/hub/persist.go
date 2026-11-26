@@ -129,7 +129,9 @@ func (h *Hub) RestoreRoom(snap RoomSnapshot) error {
 	if _, exists := h.rooms[snap.ID]; exists {
 		return fmt.Errorf("%w: room %s already exists", ErrBadSnapshot, snap.ID)
 	}
+	room.onFinish = h.roomFinished
 	h.rooms[snap.ID] = room
+	h.trackOpen(snap.ID, snap.CreatedBy)
 	h.wg.Go(func() { room.run(h.stop) })
 	return nil
 }

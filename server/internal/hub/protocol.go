@@ -19,6 +19,7 @@ const (
 	msgMove   = "move"
 	msgResign = "resign"
 	msgChat   = "chat"
+	msgReport = "report"
 )
 
 // inbound คือข้อความขาเข้าทุกชนิดรวมกัน field ที่ไม่รู้จักจะถูกปฏิเสธ
@@ -31,6 +32,7 @@ type inbound struct {
 	To    string `json:"to,omitempty"`
 	Promo string `json:"promo,omitempty"`
 	Text  string `json:"text,omitempty"`
+	ID    *int   `json:"id,omitempty"`
 }
 
 var (
@@ -65,6 +67,8 @@ func decodeInbound(data []byte) (inbound, error) {
 		allowed.Ply, allowed.From, allowed.To, allowed.Promo = m.Ply, m.From, m.To, m.Promo
 	case msgChat:
 		allowed.Text = m.Text
+	case msgReport:
+		allowed.ID = m.ID
 	}
 	if m != allowed {
 		return inbound{}, errBadMessage
@@ -92,6 +96,10 @@ func decodeInbound(data []byte) (inbound, error) {
 			return inbound{}, errBadMessage
 		}
 		m.Text = text
+	case msgReport:
+		if m.ID == nil || *m.ID < 1 {
+			return inbound{}, errBadMessage
+		}
 	default:
 		return inbound{}, errBadMessage
 	}
@@ -114,6 +122,10 @@ const (
 	errCodeIllegalMove   = "illegal_move"
 
 	errCodeChatRateLimited = "chat_rate_limited"
+	// errCodeRateLimited คือส่งข้อความถี่เกินโควตาของ connection ข้อความนั้นถูกทิ้ง
+	errCodeRateLimited = "rate_limited"
+	// errCodeTooManyConnections คือผู้ใช้คนนี้เปิด connection พร้อมกันครบจำนวนแล้ว
+	errCodeTooManyConnections = "too_many_connections"
 )
 
 // Status คือสถานะของห้อง

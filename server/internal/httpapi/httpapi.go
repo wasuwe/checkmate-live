@@ -14,6 +14,7 @@ import (
 	"github.com/wasuwe/checkmate-live/server/internal/auth"
 	"github.com/wasuwe/checkmate-live/server/internal/hub"
 	"github.com/wasuwe/checkmate-live/server/internal/profile"
+	"github.com/wasuwe/checkmate-live/server/internal/ratelimit"
 )
 
 // Config คือค่าที่ต้องใช้สร้าง handler
@@ -29,10 +30,18 @@ type Config struct {
 	Guest *auth.Guest
 	// Profiles เก็บชื่อและรูปของผู้ใช้ที่ login ถ้าเป็น nil จะไม่เปิด route ของโปรไฟล์
 	Profiles profile.Store
+
+	// Limits คือโควตาของ API ถ้าเป็น nil จะไม่จำกัด (ใช้ใน test) ตัวจริงใช้ &DefaultLimits
+	Limits *Limits
+	// ClientIP คืนตัวระบุเครื่องของผู้ส่งคำขอ ถ้าเป็น nil ใช้ที่อยู่ของ connection
+	ClientIP func(*http.Request) string
+	// ConnectSrc คือ origin ภายนอกที่หน้าเว็บเรียกได้ (เช่น URL ของ Supabase) ใส่ใน CSP
+	ConnectSrc []string
 }
 
 type api struct {
-	cfg Config
+	cfg    Config
+	limits limiters
 }
 
 // New สร้าง http.Handler หลักของเซิร์ฟเวอร์
@@ -40,7 +49,10 @@ func New(cfg Config) http.Handler {
 	if cfg.Logger == nil {
 		cfg.Logger = slog.New(slog.DiscardHandler)
 	}
-	a := &api{cfg: cfg}
+	if cfg.ClientIP == nil {
+		cfg.ClientIP = func(r *http.Request) string { return ratelimit.ClientIP(r, "") }
+	}
+	a := &api{cfg: cfg, limits: newLimiters(cfg.Limits)}
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -69,11 +81,15 @@ func New(cfg Config) http.Handler {
 		mux.Handle("/", spaHandler(cfg.StaticDir))
 	}
 
-	return mux
+	return a.securityHeaders(a.limitByIP(mux))
 }
 
 // createGuest ออกตัวตนชั่วคราวให้ผู้เล่นที่ไม่ได้ login
-func (a *api) createGuest(w http.ResponseWriter, _ *http.Request) {
+func (a *api) createGuest(w http.ResponseWriter, r *http.Request) {
+	if !a.limits.guest.Allow(a.cfg.ClientIP(r)) {
+		tooMany(w)
+		return
+	}
 	userID, token, err := a.cfg.Guest.Issue()
 	if err != nil {
 		a.cfg.Logger.Error("issue guest", "err", err)
@@ -96,6 +112,11 @@ func (a *api) createRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !a.limits.createRoom.Allow(userID) {
+		tooMany(w)
+		return
+	}
+
 	tc, ok := readTimeControl(w, r)
 	if !ok {
 		writeError(w, http.StatusBadRequest, "bad_time_control")
@@ -103,7 +124,15 @@ func (a *api) createRoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	roomID, err := a.cfg.Hub.CreateRoomBy(tc, userID)
-	if err != nil {
+	switch {
+	case errors.Is(err, hub.ErrTooManyRooms):
+		// ผู้ใช้มีห้องที่ยังไม่จบค้างอยู่ครบจำนวนแล้ว
+		writeError(w, http.StatusTooManyRequests, "too_many_rooms")
+		return
+	case errors.Is(err, hub.ErrServerFull):
+		writeError(w, http.StatusServiceUnavailable, "server_full")
+		return
+	case err != nil:
 		a.cfg.Logger.Error("create room", "err", err)
 		writeError(w, http.StatusServiceUnavailable, "unavailable")
 		return

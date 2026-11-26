@@ -53,6 +53,8 @@ export interface ErrorMsg {
 
 export interface ChatItem {
   id: number
+  /** เลขประจำตัวในห้องของผู้ส่ง ข้อความจากคนเดียวกันได้ค่าเดียวกัน (ไม่ใช่ user ID) */
+  sender: string
   /** สีของผู้ส่ง หรือ '' ถ้าเป็นผู้ชม */
   from: Color | ''
   text: string
@@ -70,7 +72,20 @@ export interface ChatHistoryMsg {
   messages: ChatItem[]
 }
 
-export type ServerMsg = StateMsg | AuthOkMsg | GameOverMsg | ErrorMsg | ChatMsg | ChatHistoryMsg
+/** เซิร์ฟเวอร์รับการรายงานข้อความแชทแล้ว */
+export interface ReportOkMsg {
+  type: 'report_ok'
+  id: number
+}
+
+export type ServerMsg =
+  | StateMsg
+  | AuthOkMsg
+  | GameOverMsg
+  | ErrorMsg
+  | ChatMsg
+  | ChatHistoryMsg
+  | ReportOkMsg
 
 export type ClientMsg =
   | { type: 'auth'; token: string }
@@ -78,8 +93,9 @@ export type ClientMsg =
   | { type: 'move'; ply: number; from: string; to: string; promo: Promo }
   | { type: 'resign' }
   | { type: 'chat'; text: string }
+  | { type: 'report'; id: number }
 
-const SERVER_TYPES = new Set(['state', 'auth_ok', 'game_over', 'error', 'chat', 'chat_history'])
+const SERVER_TYPES = new Set(['state', 'auth_ok', 'game_over', 'error', 'chat', 'chat_history', 'report_ok'])
 
 /** แปลงข้อความจากเซิร์ฟเวอร์ คืน null ถ้าไม่ใช่รูปแบบที่รู้จัก */
 export function parseServerMsg(data: string): ServerMsg | null {

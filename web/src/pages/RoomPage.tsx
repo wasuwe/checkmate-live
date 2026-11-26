@@ -23,11 +23,7 @@ export function RoomPage({ roomId, navigate }: Props) {
     return (
       <main className="page">
         <h1>{game.fatal === 'room_not_found' ? 'ไม่พบห้องนี้' : 'เข้าห้องไม่ได้'}</h1>
-        <p className="lead">
-          {game.fatal === 'room_not_found'
-            ? 'ห้องอาจถูกปิดไปแล้ว หรือรหัสห้องไม่ถูกต้อง'
-            : 'ยืนยันตัวตนไม่สำเร็จ ลองโหลดหน้านี้ใหม่'}
-        </p>
+        <p className="lead">{FATAL_TEXT[game.fatal]}</p>
         <button type="button" className="primary" onClick={() => navigate('/')}>
           กลับหน้าแรก
         </button>
@@ -97,6 +93,8 @@ export function RoomPage({ roomId, navigate }: Props) {
         online={game.connection === 'open'}
         rateLimitedSeq={game.chatLimitedSeq}
         sendChat={game.sendChat}
+        reported={game.reported}
+        sendReport={game.sendReport}
       />
 
       <details className="card display-options">
@@ -105,6 +103,12 @@ export function RoomPage({ roomId, navigate }: Props) {
       </details>
     </main>
   )
+}
+
+const FATAL_TEXT: Record<NonNullable<ReturnType<typeof useGameSocket>['fatal']>, string> = {
+  room_not_found: 'ห้องอาจถูกปิดไปแล้ว หรือรหัสห้องไม่ถูกต้อง',
+  unauthorized: 'ยืนยันตัวตนไม่สำเร็จ ลองโหลดหน้านี้ใหม่',
+  too_many_connections: 'คุณเปิดเกมไว้หลายแท็บเกินไป ปิดแท็บอื่นแล้วโหลดหน้านี้ใหม่',
 }
 
 function seatText(state: StateMsg): string {

@@ -19,6 +19,7 @@ const (
 	evMove
 	evResign
 	evChat
+	evReport
 )
 
 // event คือสิ่งที่ส่งเข้า goroutine ของห้อง
@@ -28,6 +29,7 @@ type event struct {
 	ply    int
 	move   game.Move
 	text   string
+	id     int // รหัสข้อความแชท (evReport)
 }
 
 // Room คือห้องเกมหนึ่งห้อง state ทั้งหมดถูกแตะจาก goroutine เดียว (run)
@@ -39,6 +41,8 @@ type Room struct {
 	inbox     chan event
 	done      chan struct{}
 	onClose   func(id string)
+	// onFinish ถูกเรียกครั้งเดียวเมื่อเกมจบ (อาจเป็น nil)
+	onFinish func(id string)
 
 	// ---- ด้านล่างนี้เป็นของ goroutine run เท่านั้น ----
 	game    *game.Game
@@ -57,6 +61,11 @@ type Room struct {
 	chat         []chatEntry
 	chatSeq      int
 	chatLimiters map[string]*rate.Limiter // ต่อ user ID ไม่ใช่ต่อ connection เปิดหลายแท็บก็ไม่ได้โควตาเพิ่ม
+	// chatSenders ให้เลขประจำตัวในห้องแก่ผู้ส่งแชท (user ID → เลข) เพื่อให้ฝั่งเว็บซ่อนข้อความของคนเดียวกันได้
+	// โดยไม่ต้องรู้ user ID จริง
+	chatSenders    map[string]int
+	reportLimiters map[string]*rate.Limiter
+	reported       map[reportKey]struct{}
 }
 
 func newRoom(id string, cfg Config, tc TimeControl, createdBy string, onClose func(string)) *Room {
@@ -79,7 +88,10 @@ func newRoom(id string, cfg Config, tc TimeControl, createdBy string, onClose fu
 		abandonAt:  map[game.Color]time.Time{},
 		clock:      newClock(tc),
 
-		chatLimiters: map[string]*rate.Limiter{},
+		chatLimiters:   map[string]*rate.Limiter{},
+		chatSenders:    map[string]int{},
+		reportLimiters: map[string]*rate.Limiter{},
+		reported:       map[reportKey]struct{}{},
 	}
 }
 
@@ -225,6 +237,8 @@ func (r *Room) handle(ev event) {
 		r.handleResign(ev.client)
 	case evChat:
 		r.handleChat(ev.client, ev.text)
+	case evReport:
+		r.handleReport(ev.client, ev.id)
 	}
 }
 
@@ -340,6 +354,9 @@ func (r *Room) finish() {
 	clear(r.abandonAt)
 	r.persistGame(now)
 	r.persist()
+	if r.onFinish != nil {
+		r.onFinish(r.id)
+	}
 	result, reason := r.game.Result()
 	over := mustJSON(gameOverMsg{Type: "game_over", Result: result, Reason: reason})
 	for c := range r.clients {
