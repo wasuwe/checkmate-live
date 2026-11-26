@@ -18,8 +18,8 @@ export const FX_TYPES: { id: FxType; name: string; icon: string; color: string }
 
 export const FX_EVENTS: { id: FxEventKind; label: string; desc: string }[] = [
   { id: 'capture', label: 'เมื่อกินหมาก', desc: 'เล่นตรงช่องที่กินได้' },
-  { id: 'check', label: 'เมื่อรุก', desc: 'เล่นที่คิงของฝ่ายที่ถูกรุก พร้อมป้าย "รุก!"' },
-  { id: 'mate', label: 'เมื่อรุกฆาต', desc: 'เล่นเต็มกระดาน พร้อมป้าย "รุกฆาต!"' },
+  { id: 'check', label: 'เมื่อรุก', desc: 'เล่นที่คิงหรือขุนของฝ่ายที่ถูกรุก พร้อมป้าย "รุก!" (หมากรุกสากลและหมากรุกไทย)' },
+  { id: 'mate', label: 'เมื่อชนะบนกระดาน', desc: 'รุกฆาต รุกจน หรือกินหมด เล่นเต็มกระดานพร้อมป้าย' },
 ]
 
 export type FxPrefs = Record<FxEventKind, FxType>
@@ -38,6 +38,9 @@ export function pieceCount(fen: string): number {
   return (fen.split(' ')[0].match(/[a-z]/gi) ?? []).length
 }
 
+/** เกมจบด้วยการชนะบนกระดาน: รุกจน (หมากรุก) กินหมดหรือปิดจนเดินไม่ได้ (หมากฮอส หมากหนีบ) */
+const BOARD_WINS = new Set(['checkmate', 'wipeout', 'blocked'])
+
 export interface FxEvent {
   kind: FxEventKind
   /** ช่องที่เล่นเอฟเฟกต์ หรือ null = เต็มกระดาน */
@@ -51,7 +54,7 @@ export interface FxEvent {
  */
 export function fxEventFor(prev: StateMsg | null, next: StateMsg, checkedSquare: string | null): FxEvent | null {
   if (!prev || next.ply !== prev.ply + 1) return null
-  if (next.status === 'finished' && next.reason === 'checkmate') return { kind: 'mate', square: null }
+  if (next.status === 'finished' && BOARD_WINS.has(next.reason ?? '')) return { kind: 'mate', square: null }
   if (checkedSquare) return { kind: 'check', square: checkedSquare }
   if (pieceCount(next.fen) < pieceCount(prev.fen) && next.lastMove) {
     return { kind: 'capture', square: next.lastMove.to }

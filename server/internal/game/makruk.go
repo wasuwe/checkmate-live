@@ -25,6 +25,10 @@ const (
 	countPieces = "pieces"
 	// นับศักดิ์กระดาน: 64 ตา
 	boardCountLimit = 64
+	// makrukQuietLimit: ระหว่างที่ยังมีเบี้ยคว่ำ (ยังนับศักดิ์ไม่ได้) ถ้าเดินครบจำนวนนี้ (ครึ่งตา)
+	// โดยไม่มีการกินและไม่มีการเดินเบี้ย เกมเสมอ (ฝ่ายละ 50 ตา เหมือนหมากรุกสากล)
+	// กันเกมที่เบี้ยคว่ำยันกันจนเดินไม่ได้ ซึ่งการนับศักดิ์ไม่มีวันเริ่มและเกมไม่มีวันจบ
+	makrukQuietLimit = 100
 )
 
 // Makruk คือเกมหมากรุกไทยหนึ่งเกม
@@ -37,6 +41,7 @@ type Makruk struct {
 
 	count      *Count
 	boardPlies int // จำนวนครึ่งตาที่เดินไปแล้วตั้งแต่เริ่มนับศักดิ์กระดาน
+	quiet      int // จำนวนครึ่งตาที่เดินติดกันโดยไม่มีการกินและไม่มีการเดินเบี้ย
 
 	result string
 	reason string
@@ -299,6 +304,11 @@ func (g *Makruk) Move(m Move) error {
 		return ErrIllegalMove
 	}
 	mover := g.turn
+	if g.board[to] != 0 || kindOf(g.board[from]) == 'P' {
+		g.quiet = 0
+	} else {
+		g.quiet++
+	}
 	g.apply(from, to)
 	g.turn = mover.Other()
 	g.moves = append(g.moves, Move{From: m.From, To: m.To})
@@ -327,7 +337,7 @@ func (g *Makruk) settle(mover Color) {
 		g.result, g.reason = "1/2-1/2", ReasonCount
 		return
 	}
-	if g.seen[g.key()] >= 3 {
+	if g.seen[g.key()] >= 3 || (g.count == nil && g.quiet >= makrukQuietLimit) {
 		g.result, g.reason = "1/2-1/2", ReasonDraw
 	}
 }

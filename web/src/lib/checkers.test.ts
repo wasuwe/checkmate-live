@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { checkersApply, checkersPosition, CHECKERS_START } from './checkers'
-import { gameName, GAMES, isGameId, PLAYABLE } from './games'
+import { fxEventFor } from './fx'
+import { checkWords, gameName, GAMES, isGameId, PLAYABLE } from './games'
 import { boardPosition, chainSquare, checkSquareFor, needsPromotion, previewFor, targetsFor } from './moves'
 import { CHECKERS_KINDS, piecesFor, SETS } from './pieceSets'
 import type { StateMsg } from './protocol'
@@ -127,5 +128,21 @@ describe('checkers in the games list, rules and text', () => {
     const done = (reason: string) => resultParts(state({ status: 'finished', result: '1-0', reason })).reason
     expect(done('wipeout')).toBe('กินหมากหมดกระดาน')
     expect(done('blocked')).toBe('ไม่มีตาเดินเหลือ')
+  })
+})
+
+describe('end of game effect', () => {
+  test('winning on the board plays the full-board effect in every game', () => {
+    const before = state({ ply: 4 })
+    for (const reason of ['wipeout', 'blocked', 'checkmate']) {
+      const after = state({ ply: 5, status: 'finished', result: '1-0', reason })
+      expect(fxEventFor(before, after, null)).toEqual({ kind: 'mate', square: null })
+    }
+    for (const reason of ['resign', 'timeout', 'draw', 'abandon']) {
+      const after = state({ ply: 5, status: 'finished', result: '1-0', reason })
+      expect(fxEventFor(before, after, null)).toBeNull()
+    }
+    expect(checkWords('checkers').mate).toBe('จบเกม!')
+    expect(checkWords('neeb').mate).toBe('จบเกม!')
   })
 })

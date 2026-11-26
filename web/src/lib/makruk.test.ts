@@ -152,3 +152,12 @@ describe('makruk text', () => {
     expect(parts).toMatchObject({ headline: 'เสมอ', reason: 'นับศักดิ์ครบ', outcome: 'draw' })
   })
 })
+
+describe('makruk wording', () => {
+  test('a makruk checkmate is called by its Thai name, a chess one keeps its own', () => {
+    const done = (game: 'makruk' | 'chess') =>
+      resultParts(state({ game, status: 'finished', result: '1-0', reason: 'checkmate' })).reason
+    expect(done('makruk')).toBe('รุกจน')
+    expect(done('chess')).toBe('รุกฆาต')
+  })
+})
