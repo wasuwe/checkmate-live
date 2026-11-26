@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/wasuwe/checkmate-live/server/internal/auth"
+	"github.com/wasuwe/checkmate-live/server/internal/game"
 	"github.com/wasuwe/checkmate-live/server/internal/ratelimit"
 )
 
@@ -136,6 +137,11 @@ func (h *Hub) CreateRoom(tc TimeControl) (string, error) {
 
 // CreateRoomBy เหมือน CreateRoom แต่บันทึก user ID ของผู้สร้างห้องไว้ด้วย
 func (h *Hub) CreateRoomBy(tc TimeControl, createdBy string) (string, error) {
+	return h.CreateGameRoom(game.VariantChess, tc, createdBy)
+}
+
+// CreateGameRoom สร้างห้องของเกมชนิดที่กำหนด
+func (h *Hub) CreateGameRoom(variant game.Variant, tc TimeControl, createdBy string) (string, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if h.closed {
@@ -159,7 +165,7 @@ func (h *Hub) CreateRoomBy(tc TimeControl, createdBy string) (string, error) {
 		}
 	}
 
-	room := newRoom(id, h.cfg, tc, createdBy, h.removeRoom)
+	room := newRoom(id, h.cfg, variant, tc, createdBy, h.removeRoom)
 	room.onFinish = h.roomFinished
 	h.rooms[id] = room
 	h.trackOpen(id, createdBy)

@@ -13,7 +13,8 @@ import {
   withSlot,
 } from './pieceSets'
 
-const ALL = ['wK', 'wQ', 'wR', 'wB', 'wN', 'wP', 'bK', 'bQ', 'bR', 'bB', 'bN', 'bP']
+// หมากรุกสากล 6 ชนิด และเม็ด โคน เบี้ยหงาย ของหมากรุกไทย
+const ALL = ['w', 'b'].flatMap((c) => ['K', 'Q', 'R', 'B', 'N', 'P', 'M', 'S', 'F'].map((k) => c + k))
 
 describe('board sets', () => {
   test('there are twelve sets with unique ids and valid colours', () => {

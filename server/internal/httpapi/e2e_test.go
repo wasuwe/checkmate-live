@@ -20,16 +20,19 @@ const e2eTimeout = 5 * time.Second
 
 // msg คือข้อความจากเซิร์ฟเวอร์เท่าที่ test ต้องใช้
 type msg struct {
-	Type    string `json:"type"`
-	ID      int    `json:"id"`
-	Sender  string `json:"sender"`
-	Code    string `json:"code"`
-	UserID  string `json:"userId"`
-	Status  string `json:"status"`
-	Turn    string `json:"turn"`
-	Ply     int    `json:"ply"`
-	Result  string `json:"result"`
-	Reason  string `json:"reason"`
+	Type    string              `json:"type"`
+	ID      int                 `json:"id"`
+	Sender  string              `json:"sender"`
+	Code    string              `json:"code"`
+	UserID  string              `json:"userId"`
+	Status  string              `json:"status"`
+	Turn    string              `json:"turn"`
+	Ply     int                 `json:"ply"`
+	Result  string              `json:"result"`
+	Game    string              `json:"game"`
+	TC      string              `json:"tc"`
+	Legal   map[string][]string `json:"legal"`
+	Reason  string              `json:"reason"`
 	Players map[string]struct {
 		Name   string `json:"name"`
 		Avatar string `json:"avatar"`
@@ -66,7 +69,13 @@ func newTestServer(t *testing.T, cfg hub.Config) *testServer {
 
 func (s *testServer) postJSON(path, token string) (int, map[string]string) {
 	s.t.Helper()
-	req, err := http.NewRequest(http.MethodPost, s.URL+path, nil)
+	return s.postBody(path, token, "")
+}
+
+// postBody เหมือน postJSON แต่ส่ง body เป็น JSON ไปด้วย
+func (s *testServer) postBody(path, token, body string) (int, map[string]string) {
+	s.t.Helper()
+	req, err := http.NewRequest(http.MethodPost, s.URL+path, strings.NewReader(body))
 	if err != nil {
 		s.t.Fatal(err)
 	}
@@ -78,9 +87,9 @@ func (s *testServer) postJSON(path, token string) (int, map[string]string) {
 		s.t.Fatal(err)
 	}
 	defer resp.Body.Close()
-	body := map[string]string{}
-	_ = json.NewDecoder(resp.Body).Decode(&body)
-	return resp.StatusCode, body
+	out := map[string]string{}
+	_ = json.NewDecoder(resp.Body).Decode(&out)
+	return resp.StatusCode, out
 }
 
 func (s *testServer) newGuest() (userID, token string) {
@@ -553,5 +562,40 @@ func TestUnknownAPIPathIs404(t *testing.T) {
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404", resp.StatusCode)
+	}
+}
+
+// TestMakrukGameOverWebSocket: สร้างห้องหมากรุกไทยผ่าน API แล้วเล่นผ่าน connection จริง
+func TestMakrukGameOverWebSocket(t *testing.T) {
+	s := newTestServer(t, hub.Config{})
+	_, whiteToken := s.newGuest()
+	_, blackToken := s.newGuest()
+
+	if status, body := s.postBody("/api/rooms", whiteToken, `{"game":"go"}`); status != http.StatusBadRequest || body["error"] != "bad_game" {
+		t.Fatalf("unknown game: %d %v", status, body)
+	}
+	status, body := s.postBody("/api/rooms", whiteToken, `{"game":"makruk","timeControl":"5+3"}`)
+	if status != http.StatusCreated {
+		t.Fatalf("create makruk room: %d %v", status, body)
+	}
+	roomID := body["roomId"]
+
+	white := s.connect(whiteToken)
+	white.send(map[string]string{"type": "join", "room": roomID})
+	white.until("waiting", func(m msg) bool { return m.Type == "state" && m.Status == "waiting" })
+	black := s.connect(blackToken)
+	black.send(map[string]string{"type": "join", "room": roomID})
+	start := white.until("playing", func(m msg) bool { return m.Type == "state" && m.Status == "playing" })
+	black.until("playing", func(m msg) bool { return m.Type == "state" && m.Status == "playing" })
+	if start.Game != "makruk" || start.TC != "5+3" || len(start.Legal["e3"]) != 1 {
+		t.Fatalf("start state = %+v", start)
+	}
+
+	white.move(0, "e3", "e5") // เบี้ยหมากรุกไทยเดินได้ทีละช่อง
+	white.expectError("illegal_move")
+	white.move(0, "e3", "e4")
+	st := black.until("ply 1", func(m msg) bool { return m.Type == "state" && m.Ply == 1 })
+	if st.Turn != "b" || len(st.Legal["e6"]) != 1 {
+		t.Fatalf("state after the first move = %+v", st)
 	}
 }

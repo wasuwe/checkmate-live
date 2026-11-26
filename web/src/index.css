@@ -1305,6 +1305,18 @@ input::placeholder {
   margin-top: -8px;
 }
 
+/* การนับศักดิ์ของหมากรุกไทย */
+.count-chip {
+  align-self: flex-start;
+  padding: 4px 12px;
+  border: 2.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--butter);
+  font-family: var(--font-head);
+  font-weight: 500;
+  font-size: 15px;
+}
+
 .clock-row {
   display: flex;
   align-items: center;

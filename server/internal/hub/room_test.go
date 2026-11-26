@@ -27,6 +27,10 @@ type serverMsg struct {
 	Reason   string                     `json:"reason"`
 	TC       string                     `json:"tc"`
 	Clock    clockInfo                  `json:"clock"`
+	Game     game.Variant               `json:"game"`
+	Legal    map[string][]string        `json:"legal"`
+	Check    string                     `json:"check"`
+	Count    *game.Count                `json:"count"`
 	// แชท
 	ID       int        `json:"id"`
 	From     game.Color `json:"from"`

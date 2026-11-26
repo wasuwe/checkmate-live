@@ -2,7 +2,9 @@
 // เซิร์ฟเวอร์เป็นผู้ตัดสินกติกาจริง ผลจากไฟล์นี้ไม่ถูกเชื่อถือ
 
 import { Chess, type Square } from 'chess.js'
-import type { Color, Promo } from './protocol'
+import { gameOf } from './games'
+import { makrukApply, makrukPosition, type BoardPosition } from './makruk'
+import type { Color, GameId, Promo, StateMsg } from './protocol'
 
 function load(fen: string): Chess | null {
   try {
@@ -66,4 +68,40 @@ export function checkedKingSquare(fen: string): string | null {
 export function pieceColor(pieceType: string): Color | null {
   const c = pieceType[0]
   return c === 'w' || c === 'b' ? c : null
+}
+
+// ---------- ตัวช่วยที่เลือกวิธีตามชนิดของเกม ----------
+// หมากรุกสากล: คำนวณในหน้าเว็บด้วย chess.js
+// หมากรุกไทย: ใช้ตาเดินที่ถูกกติกาและช่องที่ถูกรุกซึ่งเซิร์ฟเวอร์ส่งมากับ state
+
+/** ช่องที่หมากบน `square` เดินไปได้ */
+export function targetsFor(state: StateMsg, square: string): string[] {
+  if (gameOf(state) === 'chess') return legalTargets(state.fen, square)
+  return state.legal?.[square] ?? []
+}
+
+/** ต้องถามผู้เล่นว่าจะเลื่อนขั้นเป็นอะไรหรือไม่ (หมากรุกไทยเบี้ยหงายเองโดยไม่ต้องเลือก) */
+export function needsPromotion(state: StateMsg, from: string, to: string): boolean {
+  return gameOf(state) === 'chess' && isPromotion(state.fen, from, to)
+}
+
+/** ตำแหน่งหลังเดิน สำหรับแสดงผลล่วงหน้า หรือ null ถ้าเดินแบบนี้ไม่ได้ */
+export function previewFor(state: StateMsg, from: string, to: string, promo: Promo): string | null {
+  if (gameOf(state) === 'chess') return applyMove(state.fen, from, to, promo)
+  if (!targetsFor(state, from).includes(to)) return null
+  return makrukApply(state.fen, from, to)
+}
+
+/**
+ * ช่องของขุน/คิงที่ถูกรุกในตำแหน่ง `fen`
+ * หมากรุกไทยรู้เฉพาะตำแหน่งที่เซิร์ฟเวอร์ยืนยันแล้ว ตำแหน่งที่แสดงล่วงหน้าจึงยังไม่แสดงการรุก
+ */
+export function checkSquareFor(state: StateMsg, fen: string): string | null {
+  if (gameOf(state) === 'chess') return checkedKingSquare(fen)
+  return fen === state.fen ? (state.check ?? null) : null
+}
+
+/** ตำแหน่งในรูปที่ react-chessboard รับ */
+export function boardPosition(game: GameId, fen: string): string | BoardPosition {
+  return game === 'chess' ? fen : makrukPosition(fen)
 }

@@ -22,17 +22,19 @@ type Store interface {
 
 // RoomSnapshot คือสถานะของห้องเท่าที่ต้องใช้สร้างห้องกลับมาใหม่
 type RoomSnapshot struct {
-	ID          string    `json:"-"`
-	Status      Status    `json:"-"`
-	CreatedBy   string    `json:"-"`
-	TimeControl string    `json:"-"`
-	Pending     string    `json:"pending,omitempty"`
-	White       string    `json:"white,omitempty"`
-	Black       string    `json:"black,omitempty"`
-	Moves       []string  `json:"moves,omitempty"` // เช่น "e2e4", "e7e8q"
-	ClockWhite  int64     `json:"clockWhiteMs"`
-	ClockBlack  int64     `json:"clockBlackMs"`
-	StartedAt   time.Time `json:"startedAt,omitzero"`
+	ID          string `json:"-"`
+	Status      Status `json:"-"`
+	CreatedBy   string `json:"-"`
+	TimeControl string `json:"-"`
+	// Variant คือชนิดของเกม ว่าง = หมากรุกสากล (ห้องที่บันทึกก่อนมีหลายเกม)
+	Variant    string    `json:"variant,omitempty"`
+	Pending    string    `json:"pending,omitempty"`
+	White      string    `json:"white,omitempty"`
+	Black      string    `json:"black,omitempty"`
+	Moves      []string  `json:"moves,omitempty"` // เช่น "e2e4", "e7e8q"
+	ClockWhite int64     `json:"clockWhiteMs"`
+	ClockBlack int64     `json:"clockBlackMs"`
+	StartedAt  time.Time `json:"startedAt,omitzero"`
 }
 
 // GameRecord คือเกมที่จบแล้ว ตรงกับตาราง games
@@ -44,6 +46,7 @@ type GameRecord struct {
 	Result      string // "1-0", "0-1", "1/2-1/2"
 	Reason      string
 	TimeControl string
+	Variant     string // "chess", "makruk"
 	StartedAt   time.Time
 	EndedAt     time.Time
 }
@@ -69,6 +72,7 @@ func (r *Room) snapshot(now time.Time) RoomSnapshot {
 		Status:      r.status,
 		CreatedBy:   r.createdBy,
 		TimeControl: r.clock.tc.String(),
+		Variant:     string(r.game.Variant()),
 		Pending:     r.pending,
 		White:       r.players[game.White],
 		Black:       r.players[game.Black],
@@ -104,6 +108,7 @@ func (r *Room) persistGame(now time.Time) {
 		Result:      result,
 		Reason:      reason,
 		TimeControl: r.clock.tc.String(),
+		Variant:     string(r.game.Variant()),
 		StartedAt:   r.startedAt,
 		EndedAt:     now,
 	})
@@ -145,18 +150,23 @@ func (h *Hub) roomFromSnapshot(snap RoomSnapshot) (*Room, error) {
 		return nil, fmt.Errorf("%w: time control %q", ErrBadSnapshot, snap.TimeControl)
 	}
 
+	variant, ok := game.ParseVariant(snap.Variant)
+	if !ok {
+		return nil, fmt.Errorf("%w: game %q", ErrBadSnapshot, snap.Variant)
+	}
+
 	moves := make([]game.Move, len(snap.Moves))
 	for i, s := range snap.Moves {
 		if moves[i], err = decodeMove(s); err != nil {
 			return nil, fmt.Errorf("%w: %v", ErrBadSnapshot, err)
 		}
 	}
-	g, err := game.Replay(moves)
+	g, err := game.ReplayVariant(variant, moves)
 	if err != nil {
 		return nil, fmt.Errorf("%w: replay: %v", ErrBadSnapshot, err)
 	}
 
-	room := newRoom(snap.ID, h.cfg, tc, snap.CreatedBy, h.removeRoom)
+	room := newRoom(snap.ID, h.cfg, variant, tc, snap.CreatedBy, h.removeRoom)
 	room.game = g
 	now := time.Now()
 

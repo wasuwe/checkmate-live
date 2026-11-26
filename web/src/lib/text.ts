@@ -9,6 +9,7 @@ const REASONS: Record<string, string> = {
   stalemate: 'อับ (stalemate)',
   abandon: 'หลุดจากเกมเกินเวลา',
   draw: 'เสมอตามกติกา',
+  count: 'นับศักดิ์ครบ',
 }
 
 const ERRORS: Record<string, string> = {
@@ -54,6 +55,15 @@ export function resultText(state: StateMsg): string {
   const headline =
     you === '' ? `${colorName(winner)}ชนะ` : you === winner ? 'คุณชนะ' : 'คุณแพ้'
   return reason ? `${headline} — ${reason}` : headline
+}
+
+/** ข้อความการนับศักดิ์ของหมากรุกไทย เช่น "นับศักดิ์หมาก 6/16" หรือ '' ถ้าไม่ได้นับอยู่ */
+export function countText(state: StateMsg): string {
+  const count = state.count
+  if (!count || state.status !== 'playing') return ''
+  if (count.kind === 'board') return `นับศักดิ์กระดาน ${count.n}/${count.limit}`
+  const who = count.side ? ` (ฝ่าย${colorName(count.side)}นับ)` : ''
+  return `นับศักดิ์หมาก ${count.n}/${count.limit}${who}`
 }
 
 /** ข้อความสถานะหลักเหนือกระดาน */
