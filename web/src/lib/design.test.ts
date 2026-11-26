@@ -2,7 +2,7 @@
 import { describe, expect, test } from 'vitest'
 import { cleanFx, DEFAULT_FX, fxEventFor, pieceCount, seeded, squarePosition } from './fx'
 import type { StateMsg } from './protocol'
-import { validateRegistration } from './registration'
+import { emailError, passwordChecks, passwordError, validateField, validateRegistration } from './registration'
 import { parseRoute } from './router'
 import { reach } from './rules'
 import { TERMS } from './terms'
@@ -119,7 +119,7 @@ describe('rule diagrams', () => {
 })
 
 describe('registration form', () => {
-  const ok = { name: 'ม้าน้อย', email: 'a@example.com', password: 'longenough', confirm: 'longenough' }
+  const ok = { name: 'ม้าน้อย', email: 'a@example.com', password: 'longenough1', confirm: 'longenough1' }
 
   test('valid input has no errors, and the name is optional', () => {
     expect(validateRegistration(ok)).toEqual({})
@@ -189,5 +189,32 @@ describe('result popup', () => {
 
   test('room codes are shown as two groups of three', () => {
     expect(formatRoomCode('482915')).toBe('482 915')
+  })
+})
+
+describe('email and password rules', () => {
+  test('emails must have a real shape', () => {
+    for (const good of ['you@example.com', 'a.b+c@mail.co.th', 'x_y-z@sub.domain.org']) expect(emailError(good)).toBeUndefined()
+    for (const bad of ['', 'plain', 'a@b', 'a@b.c', 'a b@c.com', '.a@b.com', 'a..b@c.com', 'a@-b.com', 'a@b..com', 'a@b.com.', '@b.com', 'a@b.c0m', 'x'.repeat(250) + '@b.com']) {
+      expect(emailError(bad), bad).toBeTypeOf('string')
+    }
+    expect(emailError('  you@example.com  ')).toBeUndefined()
+  })
+
+  test('passwords need length, a letter and a digit', () => {
+    expect(passwordError('abcdefg1')).toBeUndefined()
+    expect(passwordError('รหัสผ่านไทย9')).toBeUndefined()
+    for (const bad of ['', 'abc1', 'abcdefgh', '12345678', ' abcdefg1', 'abcdefg1 ', 'a1'.repeat(40)]) {
+      expect(passwordError(bad), bad).toBeTypeOf('string')
+    }
+    expect(passwordChecks('abcdefgh').map((c) => c.ok)).toEqual([true, true, false])
+    expect(passwordChecks('1234').map((c) => c.ok)).toEqual([false, false, true])
+  })
+
+  test('the confirm field is checked against the password', () => {
+    const v = { name: '', email: 'you@example.com', password: 'abcdefg1', confirm: 'abcdefg1' }
+    expect(validateField('confirm', v)).toBeUndefined()
+    expect(validateField('confirm', { ...v, confirm: 'abcdefg2' })).toBeTypeOf('string')
+    expect(validateField('confirm', { ...v, confirm: '' })).toBeTypeOf('string')
   })
 })

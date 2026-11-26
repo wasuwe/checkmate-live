@@ -3,7 +3,7 @@ import { PasswordInput } from '../components/PasswordInput'
 import { setPendingName, useMe } from '../lib/me'
 import { VS } from '../lib/pieceSets'
 import { NAME_MAX } from '../lib/profile'
-import { PASSWORD_MIN, validateRegistration, type RegisterField } from '../lib/registration'
+import { PASSWORD_MIN, passwordChecks, validateField, validateRegistration, type RegisterField } from '../lib/registration'
 import { loginAvailable, signUp, type AuthResult } from '../lib/session'
 import { termsAccepted, setTermsAccepted } from '../lib/terms'
 
@@ -39,6 +39,15 @@ export function RegisterPage({ navigate }: Props) {
     draft = { ...draft, [field]: value }
     setValues(draft)
     setErrors((e) => ({ ...e, [field]: undefined }))
+  }
+
+  /** ตรวจช่องเดียวเมื่อผู้ใช้ออกจากช่อง (ช่องที่ยังว่างไม่ฟ้อง จนกว่าจะกดส่ง) */
+  function blur(field: Field) {
+    if (values[field] === '') return
+    const message = validateField(field, values)
+    // แก้รหัสผ่านแล้ว ช่องยืนยันที่กรอกไว้ต้องถูกตรวจใหม่ด้วย
+    const confirm = field === 'password' && values.confirm !== '' ? validateField('confirm', values) : errors.confirm
+    setErrors((e) => ({ ...e, [field]: message, ...(field === 'password' ? { confirm } : {}) }))
   }
 
   async function onSubmit(e: FormEvent) {
@@ -86,6 +95,7 @@ export function RegisterPage({ navigate }: Props) {
           type={props.type ?? 'text'}
           value={values[field]}
           onChange={(e) => change(field, e.target.value)}
+          onBlur={() => blur(field)}
           placeholder={props.placeholder}
           autoComplete={props.autoComplete}
           maxLength={field === 'name' ? NAME_MAX : undefined}
@@ -110,11 +120,22 @@ export function RegisterPage({ navigate }: Props) {
           id={id}
           value={values[field]}
           onChange={(v) => change(field, v)}
+          onBlur={() => blur(field)}
           placeholder={placeholder}
           autoComplete="new-password"
           invalid={!!errors[field]}
           describedBy={errors[field] ? `${id}-error` : undefined}
         />
+        {field === 'password' && (
+          <span className="pw-checks" aria-label="เงื่อนไขของรหัสผ่าน">
+            {passwordChecks(values.password).map((c) => (
+              <span key={c.id} className={`pw-check${c.ok ? ' ok' : ''}`}>
+                <span aria-hidden="true">{c.ok ? '✓' : '○'}</span> {c.label}
+                <span className="sr-only">{c.ok ? ' (ผ่าน)' : ' (ยังไม่ผ่าน)'}</span>
+              </span>
+            ))}
+          </span>
+        )}
         {errors[field] && (
           <span className="error" id={`${id}-error`} role="alert">
             {errors[field]}
