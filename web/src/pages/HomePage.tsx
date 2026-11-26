@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { AccountPanel } from '../components/AccountPanel'
+import { PiecePicker } from '../components/PiecePicker'
 import { createRoom } from '../lib/api'
 import { APP_NAME } from '../lib/appInfo'
 import { DEFAULT_TIME_CONTROL, TIME_CONTROLS } from '../lib/clock'
@@ -98,6 +99,11 @@ export function HomePage({ navigate }: Props) {
             </p>
           )}
         </form>
+      </section>
+
+      <section className="card">
+        <h2>การแสดงผล</h2>
+        <PiecePicker />
       </section>
 
       <AccountPanel />

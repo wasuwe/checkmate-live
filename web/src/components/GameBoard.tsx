@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react'
 import { Chessboard } from 'react-chessboard'
+import { usePieceSet } from '../lib/pieceSets'
 import { applyMove, checkedKingSquare, isPromotion, legalTargets, pieceColor } from '../lib/moves'
 import type { Promo, StateMsg } from '../lib/protocol'
 import { PromotionDialog } from './PromotionDialog'
@@ -32,6 +33,7 @@ const TARGET: CSSProperties = {
 }
 
 export function GameBoard({ state, online, errorSeq, sendMove }: Props) {
+  const pieceSet = usePieceSet()
   const [pending, setPending] = useState<Pending | null>(null)
   const [selected, setSelected] = useState<{ square: string; ply: number } | null>(null)
   const [promotion, setPromotion] = useState<{ from: string; to: string; ply: number } | null>(null)
@@ -104,6 +106,7 @@ export function GameBoard({ state, online, errorSeq, sendMove }: Props) {
         options={{
           id: 'game',
           position: fen,
+          pieces: pieceSet.pieces,
           boardOrientation: myColor === 'b' ? 'black' : 'white',
           allowDragging: canMove,
           allowDrawingArrows: false,
@@ -120,6 +123,7 @@ export function GameBoard({ state, online, errorSeq, sendMove }: Props) {
       {activePromotion && myColor !== '' && (
         <PromotionDialog
           color={myColor}
+          pieces={pieceSet.pieces}
           onPick={(promo) => {
             commit(activePromotion.from, activePromotion.to, promo)
             setPromotion(null)
