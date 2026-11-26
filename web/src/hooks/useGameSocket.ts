@@ -11,11 +11,14 @@ const INITIAL: Snapshot = {
   fatal: null,
   moveError: null,
   errorSeq: 0,
+  chat: [],
+  chatLimitedSeq: 0,
 }
 
 export interface GameConnection extends Snapshot {
   sendMove: (from: string, to: string, promo: Promo) => boolean
   sendResign: () => boolean
+  sendChat: (text: string) => boolean
 }
 
 /**
@@ -55,5 +58,6 @@ export function useGameSocket(roomId: string): GameConnection {
     ...snapshot,
     sendMove: (from, to, promo) => socketRef.current?.sendMove(from, to, promo) ?? false,
     sendResign: () => socketRef.current?.sendResign() ?? false,
+    sendChat: (text) => socketRef.current?.sendChat(text) ?? false,
   }
 }

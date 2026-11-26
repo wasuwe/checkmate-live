@@ -43,6 +43,8 @@ function stateMsg(patch: Partial<StateMsg> = {}): StateMsg {
     turn: 'w',
     ply: 0,
     you: { role: 'player', color: 'w' },
+    tc: '10+0',
+    clock: { w: 600000, b: 600000, running: 'w' },
     ...patch,
   }
 }
@@ -294,6 +296,88 @@ test('pause cancels a pending reconnect and resume is a no-op when not paused', 
   socket.resume()
   await flush()
   expect(sockets).toHaveLength(2)
+})
+
+const chatItem = (id: number, text: string, mine = false) => ({
+  id,
+  from: 'w' as const,
+  text,
+  at: 1000 + id,
+  mine,
+})
+
+async function joined() {
+  const ctx = setup()
+  ctx.socket.start()
+  await flush()
+  const ws = ctx.sockets[0]
+  ws.open()
+  ws.receive({ type: 'auth_ok', userId: 'guest_1' })
+  ws.receive(stateMsg())
+  return { ...ctx, ws }
+}
+
+test('sendChat sends the text once joined', async () => {
+  const { socket, sockets } = setup()
+  socket.start()
+  await flush()
+  sockets[0].open()
+  expect(socket.sendChat('hi')).toBe(false) // ยังไม่ได้เข้าห้อง
+
+  sockets[0].receive({ type: 'auth_ok', userId: 'guest_1' })
+  sockets[0].receive(stateMsg())
+  expect(socket.sendChat('hi')).toBe(true)
+  expect(sockets[0].sent.at(-1)).toEqual({ type: 'chat', text: 'hi' })
+})
+
+test('collects chat messages in order and drops duplicates', async () => {
+  const { socket, ws } = await joined()
+  ws.receive({ type: 'chat', ...chatItem(1, 'one') })
+  ws.receive({ type: 'chat', ...chatItem(2, 'two', true) })
+  ws.receive({ type: 'chat', ...chatItem(2, 'two', true) }) // ซ้ำ
+  ws.receive({ type: 'chat', ...chatItem(1, 'one') }) // เก่ากว่า
+
+  expect(socket.getSnapshot().chat).toEqual([chatItem(1, 'one'), chatItem(2, 'two', true)])
+})
+
+test('chat history replaces the list, so a reconnect does not duplicate messages', async () => {
+  const { socket, sockets, ws } = await joined()
+  ws.receive({ type: 'chat', ...chatItem(1, 'one') })
+  ws.receive({ type: 'chat', ...chatItem(2, 'two') })
+
+  ws.close()
+  await vi.advanceTimersByTimeAsync(500)
+  sockets[1].open()
+  sockets[1].receive({ type: 'auth_ok', userId: 'guest_1' })
+  sockets[1].receive({
+    type: 'chat_history',
+    messages: [chatItem(1, 'one'), chatItem(2, 'two'), chatItem(3, 'three')],
+  })
+  sockets[1].receive(stateMsg())
+
+  expect(socket.getSnapshot().chat.map((m) => m.id)).toEqual([1, 2, 3])
+  sockets[1].receive({ type: 'chat', ...chatItem(4, 'four') })
+  expect(socket.getSnapshot().chat.map((m) => m.id)).toEqual([1, 2, 3, 4])
+})
+
+test('keeps only the most recent chat messages', async () => {
+  const { socket, ws } = await joined()
+  for (let id = 1; id <= 230; id++) ws.receive({ type: 'chat', ...chatItem(id, `m${id}`) })
+
+  const chat = socket.getSnapshot().chat
+  expect(chat).toHaveLength(200)
+  expect(chat[0].id).toBe(31)
+  expect(chat.at(-1)?.id).toBe(230)
+})
+
+test('chat rate limit does not count as a rejected move', async () => {
+  const { socket, ws } = await joined()
+  ws.receive({ type: 'error', code: 'chat_rate_limited' })
+
+  const snap = socket.getSnapshot()
+  expect(snap.chatLimitedSeq).toBe(1)
+  expect(snap.errorSeq).toBe(0) // ไม่งั้นตาเดินที่รอยืนยันอยู่จะถูกยกเลิกบนจอ
+  expect(snap.moveError).toBeNull()
 })
 
 test('ignores malformed and unknown server messages', async () => {

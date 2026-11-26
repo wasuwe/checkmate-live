@@ -91,6 +91,13 @@ func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 			}
 			room.post(event{kind: evResign, client: client})
 
+		case msgChat:
+			if room == nil {
+				client.Send(encodeError(errCodeNotJoined))
+				continue
+			}
+			room.post(event{kind: evChat, client: client, text: msg.Text})
+
 		default: // auth ซ้ำ หรือชนิดที่ไม่ควรมาตอนนี้
 			client.Send(encodeError(errCodeBadMessage))
 		}

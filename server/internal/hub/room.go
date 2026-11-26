@@ -5,6 +5,8 @@ import (
 	"math"
 	"time"
 
+	"golang.org/x/time/rate"
+
 	"github.com/wasuwe/checkmate-live/server/internal/game"
 )
 
@@ -15,6 +17,7 @@ const (
 	evLeave
 	evMove
 	evResign
+	evChat
 )
 
 // event คือสิ่งที่ส่งเข้า goroutine ของห้อง
@@ -23,6 +26,7 @@ type event struct {
 	client *Client
 	ply    int
 	move   game.Move
+	text   string
 }
 
 // Room คือห้องเกมหนึ่งห้อง state ทั้งหมดถูกแตะจาก goroutine เดียว (run)
@@ -43,9 +47,17 @@ type Room struct {
 	emptySince time.Time // เวลาที่ห้องเริ่มว่าง (zero = มีคนอยู่)
 	// abandonAt คือเส้นตายของผู้เล่นที่หลุดระหว่างเกม ถ้าไม่กลับมาทันจะแพ้ด้วยเหตุ abandon
 	abandonAt map[game.Color]time.Time
+	clock     *clock
+
+	chat         []chatEntry
+	chatSeq      int
+	chatLimiters map[string]*rate.Limiter // ต่อ user ID ไม่ใช่ต่อ connection เปิดหลายแท็บก็ไม่ได้โควตาเพิ่ม
 }
 
-func newRoom(id string, cfg Config, onClose func(string)) *Room {
+func newRoom(id string, cfg Config, tc TimeControl, onClose func(string)) *Room {
+	if tc.Initial <= 0 {
+		tc = DefaultTimeControl
+	}
 	return &Room{
 		id:         id,
 		cfg:        cfg,
@@ -58,6 +70,9 @@ func newRoom(id string, cfg Config, onClose func(string)) *Room {
 		clients:    map[*Client]struct{}{},
 		emptySince: time.Now(),
 		abandonAt:  map[game.Color]time.Time{},
+		clock:      newClock(tc),
+
+		chatLimiters: map[string]*rate.Limiter{},
 	}
 }
 
@@ -118,9 +133,15 @@ func (r *Room) shutdown() {
 
 // nextDeadline คืนเวลาที่ห้องต้องตื่นมาทำงานครั้งถัดไป
 func (r *Room) nextDeadline() (time.Time, bool) {
-	// ระหว่างเล่น: ตื่นเมื่อผู้เล่นที่หลุดครบเวลาผ่อนผัน
+	// ระหว่างเล่น: ตื่นเมื่อมีคนหมดเวลา หรือผู้เล่นที่หลุดครบเวลาผ่อนผัน แล้วแต่อย่างไหนถึงก่อน
+	flag, flagging := r.clock.flagAt()
 	if color, ok := r.firstAbandon(); ok {
-		return r.abandonAt[color], true
+		if at := r.abandonAt[color]; !flagging || at.Before(flag) {
+			return at, true
+		}
+	}
+	if flagging {
+		return flag, true
 	}
 	// ห้องที่ไม่มีใครอยู่และไม่ได้กำลังเล่น จะถูกลบเมื่อว่างครบ IdleTTL
 	if len(r.clients) == 0 && r.status != StatusPlaying {
@@ -144,6 +165,9 @@ func (r *Room) firstAbandon() (game.Color, bool) {
 
 // onTimer คืน true ถ้าห้องควรปิด
 func (r *Room) onTimer(now time.Time) bool {
+	if r.flagIfOutOfTime(now) {
+		return false
+	}
 	// ถ้าหลุดทั้งคู่ คนที่หลุดก่อนเป็นฝ่ายแพ้
 	if color, ok := r.firstAbandon(); ok && !now.Before(r.abandonAt[color]) {
 		r.game.Forfeit(color, game.ReasonAbandon)
@@ -156,6 +180,17 @@ func (r *Room) onTimer(now time.Time) bool {
 	return false
 }
 
+// flagIfOutOfTime ปรับแพ้ฝั่งที่กำลังเดินถ้าเวลาหมดแล้ว คืน true ถ้าเกมจบด้วยเหตุนี้
+func (r *Room) flagIfOutOfTime(now time.Time) bool {
+	flag, ok := r.clock.flagAt()
+	if !ok || now.Before(flag) {
+		return false
+	}
+	r.game.Forfeit(r.clock.running, game.ReasonTimeout)
+	r.finish()
+	return true
+}
+
 func (r *Room) handle(ev event) {
 	switch ev.kind {
 	case evJoin:
@@ -166,6 +201,8 @@ func (r *Room) handle(ev event) {
 		r.handleMove(ev.client, ev.ply, ev.move)
 	case evResign:
 		r.handleResign(ev.client)
+	case evChat:
+		r.handleChat(ev.client, ev.text)
 	}
 }
 
@@ -185,6 +222,7 @@ func (r *Room) handleJoin(c *Client) {
 	if color, ok := r.colorOf(c.UserID); ok {
 		delete(r.abandonAt, color) // กลับมาทันเวลา ยกเลิกการนับถอยหลัง
 	}
+	r.sendChatHistory(c)
 	r.broadcastState()
 }
 
@@ -197,6 +235,7 @@ func (r *Room) start(a, b string) {
 	r.players[game.Black] = b
 	r.pending = ""
 	r.status = StatusPlaying
+	r.clock.start(game.White, time.Now())
 }
 
 func (r *Room) handleLeave(c *Client) {
@@ -245,6 +284,11 @@ func (r *Room) handleMove(c *Client, ply int, m game.Move) {
 		c.Send(encodeError(errCodeStaleMove))
 		return
 	}
+	// ตาเดินที่มาถึงหลังเวลาหมดไม่ถูกนับ แม้ timer ของห้องจะยังไม่ทันทำงาน
+	now := time.Now()
+	if r.flagIfOutOfTime(now) {
+		return
+	}
 	if err := r.game.Move(m); err != nil {
 		code := errCodeIllegalMove
 		if errors.Is(err, game.ErrGameOver) {
@@ -253,6 +297,7 @@ func (r *Room) handleMove(c *Client, ply int, m game.Move) {
 		c.Send(encodeError(code))
 		return
 	}
+	r.clock.press(now)
 
 	if r.game.Over() {
 		r.finish()
@@ -264,6 +309,7 @@ func (r *Room) handleMove(c *Client, ply int, m game.Move) {
 // finish ปิดเกมและแจ้งผลทั้งห้อง เรียกหลังจาก r.game จบแล้วเท่านั้น
 func (r *Room) finish() {
 	r.status = StatusFinished
+	r.clock.stop(time.Now())
 	clear(r.abandonAt)
 	result, reason := r.game.Result()
 	over := mustJSON(gameOverMsg{Type: "game_over", Result: result, Reason: reason})
@@ -301,13 +347,20 @@ func (r *Room) connected(userID string) bool {
 
 // broadcastState ส่ง state ให้ทุกคนในห้อง แต่ละคนได้ field "you" ของตัวเอง
 func (r *Room) broadcastState() {
+	now := time.Now()
 	base := stateMsg{
-		Type:   "state",
-		Room:   r.id,
-		Status: r.status,
-		FEN:    r.game.FEN(),
-		Turn:   r.game.Turn(),
-		Ply:    r.game.Ply(),
+		Type:        "state",
+		Room:        r.id,
+		Status:      r.status,
+		FEN:         r.game.FEN(),
+		Turn:        r.game.Turn(),
+		Ply:         r.game.Ply(),
+		TimeControl: r.clock.tc.String(),
+		Clock: clockInfo{
+			White:   r.clock.left(game.White, now).Milliseconds(),
+			Black:   r.clock.left(game.Black, now).Milliseconds(),
+			Running: r.clock.running,
+		},
 	}
 	if lm := r.game.LastMove(); lm != nil {
 		base.LastMove = &moveInfo{From: lm.From, To: lm.To}
@@ -318,7 +371,7 @@ func (r *Room) broadcastState() {
 			info := &playerInfo{Connected: r.connected(id)}
 			if at, ok := r.abandonAt[color]; ok {
 				// ปัดขึ้น เพื่อไม่ให้ client เห็น 0 ทั้งที่ยังเหลือเวลา
-				info.GraceLeft = max(1, int(math.Ceil(time.Until(at).Seconds())))
+				info.GraceLeft = max(1, int(math.Ceil(at.Sub(now).Seconds())))
 			}
 			base.Players[color] = info
 		}

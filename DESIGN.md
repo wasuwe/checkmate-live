@@ -78,7 +78,9 @@ docker-compose.yml
  "lastMove":{"from":"e2","to":"e4"},
  "players":{"w":{"connected":true},"b":{"connected":true}},
  "you":{"role":"player","color":"w"},
- "clock":{"w":295,"b":300}}
+ "tc":"5+3","clock":{"w":295000,"b":300000,"running":"b"}}
+{"type":"chat","id":7,"from":"w","text":"gg","at":1795650000000,"mine":false}
+{"type":"chat_history","messages":[ ...ข้อความแชทล่าสุดไม่เกิน 50 ข้อความ... ]}
 {"type":"game_over","result":"0-1","reason":"resign"}
 {"type":"error","code":"not_your_turn"}
 ```
@@ -90,14 +92,17 @@ docker-compose.yml
 - ผู้เล่นที่หลุดระหว่างเกมจะมี `"connected":false,"graceLeft":<วินาที>` ใน `players` ถ้าไม่กลับมาทันจะแพ้ด้วย `abandon` ผู้เล่นที่ยังมีแท็บอื่นเปิดอยู่ถือว่ายังอยู่
 - `resign` ไม่มี field อื่น ผู้แพ้คือเจ้าของ connection เสมอ
 - หน้าเว็บปิด socket เองเมื่อออกจากหน้า (`pagehide`) เพราะเบราว์เซอร์อาจเก็บหน้าไว้ใน back/forward cache โดย socket ยังเปิดอยู่
-- `clock` จะมาในเฟส 6
+- `clock` เป็นมิลลิวินาทีที่เหลือ ณ ตอนส่ง และ `running` คือฝั่งที่นาฬิกากำลังเดิน (`""` = หยุด) หน้าเว็บนับต่อเองเพื่อแสดงผลเท่านั้น
+- นาฬิกาเริ่มเดินเมื่อผู้เล่นครบสองคน หักเวลาเมื่อเดินตาที่ถูกกติกา แล้วบวก increment หมดเวลาแพ้ด้วย `timeout`
+- แชท: ข้อความ 1–200 ตัวอักษร ห้ามอักขระควบคุม ส่งได้ทั้งผู้เล่นและผู้ชม (`from` เป็น `""` ถ้าเป็นผู้ชม) จำกัดคนละ 5 ข้อความรัว จากนั้น 1 ข้อความต่อ 2 วินาที เกินได้ error `chat_rate_limited`
+- ทุกชนิดข้อความขาเข้ารับเฉพาะ field ของชนิดนั้น field ของชนิดอื่นที่ปนมาถูกปฏิเสธ
 
 ### HTTP API
 
 | Method | Path | หน้าที่ |
 |---|---|---|
 | `POST` | `/api/guest` | ออกตัวตนชั่วคราว คืน `{userId, token}` (ใช้จนกว่าจะมี Supabase Auth) |
-| `POST` | `/api/rooms` | สร้างห้อง ต้องส่ง `Authorization: Bearer <token>` คืน `{roomId}` |
+| `POST` | `/api/rooms` | สร้างห้อง ต้องส่ง `Authorization: Bearer <token>` body `{"timeControl":"5+3"}` (ไม่บังคับ ค่าเริ่มต้น `10+0`; รับ 1–60 นาที + 0–60 วินาที) คืน `{roomId}` |
 | `GET` | `/ws` | WebSocket |
 | `GET` | `/healthz` | health check |
 

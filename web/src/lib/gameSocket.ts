@@ -1,7 +1,13 @@
 // การเชื่อมต่อ WebSocket ของห้องหนึ่งห้อง: auth → join → รับ state
 // state จากเซิร์ฟเวอร์เป็นความจริงเดียว ไฟล์นี้ไม่คำนวณกติกาเอง
 
-import { parseServerMsg, type ClientMsg, type Promo, type StateMsg } from './protocol'
+import {
+  parseServerMsg,
+  type ChatItem,
+  type ClientMsg,
+  type Promo,
+  type StateMsg,
+} from './protocol'
 
 export type Connection = 'connecting' | 'open' | 'reconnecting' | 'closed'
 
@@ -18,7 +24,14 @@ export interface Snapshot {
   moveError: string | null
   /** เพิ่มทุกครั้งที่มี error เพื่อให้ UI รู้ว่าเป็นเหตุการณ์ใหม่แม้รหัสซ้ำ */
   errorSeq: number
+  /** ข้อความแชทในห้อง เรียงจากเก่าไปใหม่ */
+  chat: ChatItem[]
+  /** เพิ่มทุกครั้งที่เซิร์ฟเวอร์ปฏิเสธแชทเพราะส่งถี่เกินไป (แยกจาก errorSeq ที่ใช้กับตาเดิน) */
+  chatLimitedSeq: number
 }
+
+/** จำนวนข้อความแชทสูงสุดที่เก็บไว้ในหน้าเว็บ */
+const CHAT_KEEP = 200
 
 /** ส่วนของ WebSocket ที่ใช้จริง แยกไว้เพื่อให้ test ใส่ตัวปลอมได้ */
 // พารามิเตอร์ของ handler เป็น never เพื่อให้ทั้ง WebSocket จริงและตัวปลอมใน test ใช้ interface นี้ได้
@@ -58,6 +71,8 @@ export class GameSocket {
     fatal: null,
     moveError: null,
     errorSeq: 0,
+    chat: [],
+    chatLimitedSeq: 0,
   }
 
   constructor(opts: GameSocketOptions) {
@@ -123,6 +138,13 @@ export class GameSocket {
     return true
   }
 
+  /** ส่งข้อความแชท คืน false ถ้ายังไม่ได้เชื่อมต่อ */
+  sendChat(text: string): boolean {
+    if (!this.snapshot.state || !this.ws || this.ws.readyState !== OPEN) return false
+    this.send(this.ws, { type: 'chat', text })
+    return true
+  }
+
   private update(patch: Partial<Snapshot>): void {
     this.snapshot = { ...this.snapshot, ...patch }
     this.opts.onChange(this.snapshot)
@@ -174,6 +196,20 @@ export class GameSocket {
       case 'game_over':
         break // state ที่ตามมามีผลเกมครบแล้ว
 
+      case 'chat': {
+        // หลัง reconnect ข้อความเดิมอาจมาซ้ำ จึงรับเฉพาะ id ที่ใหม่กว่า
+        const lastId = this.snapshot.chat.at(-1)?.id ?? 0
+        if (msg.id <= lastId) break
+        const { type: _type, ...item } = msg
+        this.update({ chat: [...this.snapshot.chat, item].slice(-CHAT_KEEP) })
+        break
+      }
+
+      case 'chat_history':
+        // เซิร์ฟเวอร์ส่งประวัติล่าสุดทุกครั้งที่เข้าห้อง ใช้แทนของเดิมทั้งหมด
+        this.update({ chat: msg.messages.slice(-CHAT_KEEP) })
+        break
+
       case 'error':
         this.onError(msg.code)
         break
@@ -193,6 +229,9 @@ export class GameSocket {
         } else {
           this.refreshToken = true // เซิร์ฟเวอร์จะปิด socket เอง แล้ว onclose จะลองใหม่
         }
+        break
+      case 'chat_rate_limited':
+        this.update({ chatLimitedSeq: this.snapshot.chatLimitedSeq + 1 })
         break
       default:
         this.update({ moveError: code, errorSeq: this.snapshot.errorSeq + 1 })

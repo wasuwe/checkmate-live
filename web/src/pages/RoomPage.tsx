@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
+import { ChatPanel } from '../components/ChatPanel'
+import { ClockRow } from '../components/ClockRow'
 import { GameBoard } from '../components/GameBoard'
 import { ResignButton } from '../components/ResignButton'
 import { useGameSocket } from '../hooks/useGameSocket'
+import { clockAt, describeTimeControl } from '../lib/clock'
 import { absences } from '../lib/presence'
-import type { StateMsg } from '../lib/protocol'
+import type { Color, StateMsg } from '../lib/protocol'
 import { colorName, errorText, statusText } from '../lib/text'
 
 interface Props {
@@ -59,17 +62,21 @@ export function RoomPage({ roomId, navigate }: Props) {
       <p className={`status status-${state.status}`} role="status">
         {statusText(state)}
       </p>
-      <p className="seat">{seatText(state)}</p>
+      <p className="seat">
+        {seatText(state)} · {describeTimeControl(state.tc)}
+      </p>
 
       {state.status === 'waiting' && <InvitePanel />}
       <AbsenceNotice state={state} stateAt={game.stateAt} />
 
-      <GameBoard
-        state={state}
-        online={game.connection === 'open'}
-        errorSeq={game.errorSeq}
-        sendMove={game.sendMove}
-      />
+      <Clocks state={state} stateAt={game.stateAt}>
+        <GameBoard
+          state={state}
+          online={game.connection === 'open'}
+          errorSeq={game.errorSeq}
+          sendMove={game.sendMove}
+        />
+      </Clocks>
 
       <MoveErrorToast code={game.moveError} seq={game.errorSeq} />
 
@@ -82,6 +89,13 @@ export function RoomPage({ roomId, navigate }: Props) {
           เล่นเกมใหม่
         </button>
       )}
+
+      <ChatPanel
+        messages={game.chat}
+        online={game.connection === 'open'}
+        rateLimitedSeq={game.chatLimitedSeq}
+        sendChat={game.sendChat}
+      />
     </main>
   )
 }
@@ -90,6 +104,40 @@ function seatText(state: StateMsg): string {
   if (state.you.role === 'spectator') return 'คุณกำลังดูเกมนี้ในฐานะผู้ชม'
   if (state.you.color === '') return 'สีจะถูกสุ่มเมื่อคู่แข่งเข้าห้อง'
   return `คุณเล่นฝ่าย${colorName(state.you.color)}`
+}
+
+/** นาฬิกาสองฝั่งครอบกระดาน: ฝั่งตรงข้ามอยู่บน ฝั่งของผู้ดูอยู่ล่าง (ตรงกับการหมุนกระดาน) */
+function Clocks({
+  state,
+  stateAt,
+  children,
+}: {
+  state: StateMsg
+  stateAt: number
+  children: React.ReactNode
+}) {
+  const [now, setNow] = useState(() => Date.now())
+  const running = state.clock.running
+
+  useEffect(() => {
+    if (running === '') return
+    const timer = setInterval(() => setNow(Date.now()), 100)
+    return () => clearInterval(timer)
+  }, [running])
+
+  const left = clockAt(state, stateAt, Math.max(now, stateAt))
+  const bottom: Color = state.you.color === 'b' ? 'b' : 'w'
+  const top: Color = bottom === 'w' ? 'b' : 'w'
+  const label = (color: Color) =>
+    state.you.color === color ? `คุณ (${colorName(color)})` : colorName(color)
+
+  return (
+    <div className="board-area">
+      <ClockRow label={label(top)} ms={left[top]} running={running === top} />
+      {children}
+      <ClockRow label={label(bottom)} ms={left[bottom]} running={running === bottom} />
+    </div>
+  )
 }
 
 /** แจ้งเมื่อมีผู้เล่นหลุดจากเกม พร้อมเวลานับถอยหลังก่อนถูกปรับแพ้ */
