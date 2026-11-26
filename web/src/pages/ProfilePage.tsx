@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { FxBurst } from '../components/Fx'
 import { SetPreview } from '../components/PiecePicker'
 import { ProfileEditor } from '../components/ProfileEditor'
-import { FX_EVENTS, FX_TYPES, setFx, useFxPrefs, type FxEventKind, type FxType } from '../lib/fx'
+import { FX_EVENTS, FX_LEVEL, FX_TYPES, setFx, useFxPrefs, type FxEventKind, type FxType } from '../lib/fx'
 import { useMe } from '../lib/me'
 import {
   MAX_SLOTS,
@@ -241,7 +241,7 @@ function Effects() {
                   {t.name}
                 </span>
                 {preview && preview.event === ev.id && preview.type === t.id && (
-                  <FxBurst key={preview.seed} type={t.id} seed={preview.seed} dist={40} />
+                  <FxBurst key={preview.seed} type={t.id} seed={preview.seed} dist={40} level={FX_LEVEL[ev.id].level} />
                 )}
               </button>
             ))}

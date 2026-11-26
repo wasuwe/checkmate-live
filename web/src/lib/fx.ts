@@ -24,6 +24,16 @@ export const FX_EVENTS: { id: FxEventKind; label: string; desc: string }[] = [
 
 export type FxPrefs = Record<FxEventKind, FxType>
 
+/**
+ * ความอลังการของแต่ละเหตุการณ์ ไล่จากน้อยไปมาก (เจ้าของโปรเจกต์กำหนด): กินหมาก < Check < Checkmate
+ * `ms` คือเวลาที่เอฟเฟกต์อยู่บนกระดานก่อนถูกเอาออก
+ */
+export const FX_LEVEL: Record<FxEventKind, { level: 1 | 2 | 3; ms: number }> = {
+  capture: { level: 1, ms: 1700 },
+  check: { level: 2, ms: 2300 },
+  mate: { level: 3, ms: 4200 },
+}
+
 export const DEFAULT_FX: FxPrefs = { capture: 'stars', check: 'ring', mate: 'confetti' }
 
 export function cleanFx(value: unknown): FxPrefs {
