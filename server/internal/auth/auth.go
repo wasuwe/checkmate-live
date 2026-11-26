@@ -21,6 +21,27 @@ type Authenticator interface {
 	Authenticate(ctx context.Context, token string) (userID string, err error)
 }
 
+// Identity คือตัวตนของผู้ใช้เท่าที่ token บอกได้
+type Identity struct {
+	UserID string
+	// Email มีเฉพาะบัญชีที่ login (ว่างสำหรับ guest) ใช้ตัดสินสิทธิ์ admin
+	Email string
+}
+
+// Identifier คือ Authenticator ที่บอกอีเมลของผู้ใช้ได้ด้วย
+type Identifier interface {
+	Identify(ctx context.Context, token string) (Identity, error)
+}
+
+// Identify ตรวจ token แล้วคืนตัวตน ถ้า a บอกอีเมลไม่ได้ Email จะว่าง
+func Identify(ctx context.Context, a Authenticator, token string) (Identity, error) {
+	if id, ok := a.(Identifier); ok {
+		return id.Identify(ctx, token)
+	}
+	userID, err := a.Authenticate(ctx, token)
+	return Identity{UserID: userID}, err
+}
+
 // Guest ออกและตรวจ token ของผู้เล่นที่ไม่ได้ login
 // token = "<userID>.<HMAC-SHA256(secret, userID)>" จึงปลอมเป็นคนอื่นไม่ได้แม้รู้ user ID
 type Guest struct {

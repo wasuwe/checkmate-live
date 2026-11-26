@@ -1,3 +1,4 @@
+import { useIsAdmin } from '../lib/admin'
 import { useState, type ClipboardEvent, type FormEvent } from 'react'
 import { AccountPanel } from '../components/AccountPanel'
 import { VS } from '../lib/pieceSets'
@@ -22,6 +23,7 @@ function cleanCode(value: string): string {
 }
 
 export function HomePage({ navigate }: Props) {
+  const isAdmin = useIsAdmin()
   const [joinOpen, setJoinOpen] = useState(false)
   const [code, setCode] = useState('')
   const ready = isRoomId(code)
@@ -128,6 +130,12 @@ export function HomePage({ navigate }: Props) {
         <button type="button" className="link" onClick={() => navigate('/credits')}>
           เครดิต
         </button>
+        {/* แสดงเฉพาะกับผู้ดูแล (เซิร์ฟเวอร์ตรวจสิทธิ์จริงอีกครั้งในหน้านั้น) */}
+        {isAdmin && (
+          <button type="button" className="link" onClick={() => navigate('/admin')}>
+            จัดการข้อมูล
+          </button>
+        )}
       </nav>
     </main>
   )

@@ -51,16 +51,32 @@ func NewSupabase(ctx context.Context, jwksURL string) (*Supabase, error) {
 	return &Supabase{keys: keys, parser: jwt.NewParser(opts...)}, nil
 }
 
+// supabaseClaims คือ claim ที่ใช้จาก JWT ของ Supabase
+type supabaseClaims struct {
+	jwt.RegisteredClaims
+	Email string `json:"email"`
+}
+
 // Authenticate ตรวจลายเซ็น, exp, aud, iss แล้วคืน user ID (claim sub)
-func (s *Supabase) Authenticate(_ context.Context, token string) (string, error) {
-	claims := jwt.RegisteredClaims{}
+func (s *Supabase) Authenticate(ctx context.Context, token string) (string, error) {
+	id, err := s.Identify(ctx, token)
+	return id.UserID, err
+}
+
+// Identify เหมือน Authenticate แต่คืนอีเมลของบัญชีด้วย (claim email ที่ Supabase ลงลายเซ็นรับรอง)
+func (s *Supabase) Identify(_ context.Context, token string) (Identity, error) {
+	claims := supabaseClaims{}
 	if _, err := s.parser.ParseWithClaims(token, &claims, s.keys.Keyfunc); err != nil {
-		return "", ErrInvalidToken // ไม่ส่งรายละเอียดกลับ และไม่ log token
+		return Identity{}, ErrInvalidToken // ไม่ส่งรายละเอียดกลับ และไม่ log token
 	}
 	if claims.Subject == "" || len(claims.Subject) > 64 || strings.HasPrefix(claims.Subject, guestPrefix) {
-		return "", ErrInvalidToken
+		return Identity{}, ErrInvalidToken
 	}
-	return claims.Subject, nil
+	email := strings.TrimSpace(claims.Email)
+	if len(email) > 254 {
+		email = ""
+	}
+	return Identity{UserID: claims.Subject, Email: email}, nil
 }
 
 // Multi รวมตัวตรวจของ guest กับของผู้ใช้ที่ login
@@ -81,4 +97,16 @@ func (m Multi) Authenticate(ctx context.Context, token string) (string, error) {
 		return "", ErrInvalidToken
 	}
 	return target.Authenticate(ctx, token)
+}
+
+// Identify เลือกตัวตรวจตามรูปแบบ token แล้วคืนตัวตน (guest ไม่มีอีเมล)
+func (m Multi) Identify(ctx context.Context, token string) (Identity, error) {
+	target := m.User
+	if strings.HasPrefix(token, guestPrefix) {
+		target = m.Guest
+	}
+	if target == nil {
+		return Identity{}, ErrInvalidToken
+	}
+	return Identify(ctx, target, token)
 }
