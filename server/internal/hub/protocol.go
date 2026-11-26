@@ -14,9 +14,10 @@ import (
 
 // ชนิดข้อความขาเข้า
 const (
-	msgAuth = "auth"
-	msgJoin = "join"
-	msgMove = "move"
+	msgAuth   = "auth"
+	msgJoin   = "join"
+	msgMove   = "move"
+	msgResign = "resign"
 )
 
 // inbound คือข้อความขาเข้าทุกชนิดรวมกัน field ที่ไม่รู้จักจะถูกปฏิเสธ
@@ -64,6 +65,8 @@ func decodeInbound(data []byte) (inbound, error) {
 			!squareRe.MatchString(m.From) || !squareRe.MatchString(m.To) || !promoRe.MatchString(m.Promo) {
 			return inbound{}, errBadMessage
 		}
+	case msgResign:
+		// ไม่มี field เพิ่ม: ผู้แพ้คือเจ้าของ connection เซิร์ฟเวอร์ไม่รับ winner/color จาก client
 	default:
 		return inbound{}, errBadMessage
 	}
@@ -124,6 +127,8 @@ type moveInfo struct {
 
 type playerInfo struct {
 	Connected bool `json:"connected"`
+	// GraceLeft คือจำนวนวินาทีที่ผู้เล่นซึ่งหลุดอยู่ยังกลับเข้ามาได้ก่อนถูกปรับแพ้ (มีเฉพาะตอนหลุด)
+	GraceLeft int `json:"graceLeft,omitempty"`
 }
 
 type youInfo struct {

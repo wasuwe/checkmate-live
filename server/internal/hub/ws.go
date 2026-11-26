@@ -19,7 +19,7 @@ const (
 )
 
 // ServeWS รับ connection WebSocket หนึ่งเส้น
-// ลำดับ: auth (ข้อความแรก ภายใน AuthTimeout) → join → move ...
+// ลำดับ: auth (ข้อความแรก ภายใน AuthTimeout) → join → move / resign ...
 func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 		OriginPatterns: h.cfg.OriginPatterns,
@@ -83,6 +83,13 @@ func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 				ply:    *msg.Ply,
 				move:   game.Move{From: msg.From, To: msg.To, Promo: msg.Promo},
 			})
+
+		case msgResign:
+			if room == nil {
+				client.Send(encodeError(errCodeNotJoined))
+				continue
+			}
+			room.post(event{kind: evResign, client: client})
 
 		default: // auth ซ้ำ หรือชนิดที่ไม่ควรมาตอนนี้
 			client.Send(encodeError(errCodeBadMessage))

@@ -11,6 +11,8 @@ export type Fatal = 'room_not_found' | 'unauthorized'
 export interface Snapshot {
   connection: Connection
   state: StateMsg | null
+  /** เวลา (ms) ที่ได้รับ state ล่าสุด ใช้นับถอยหลังจากค่าที่เซิร์ฟเวอร์ส่งมา */
+  stateAt: number
   fatal: Fatal | null
   /** รหัส error ล่าสุดของตาเดินที่ถูกปฏิเสธ (เช่น illegal_move) */
   moveError: string | null
@@ -45,12 +47,14 @@ export class GameSocket {
   private ws: SocketLike | null = null
   private timer: ReturnType<typeof setTimeout> | null = null
   private stopped = false
+  private paused = false
   private attempt = 0
   private refreshToken = false
   private unauthorizedInARow = 0
   private snapshot: Snapshot = {
     connection: 'connecting',
     state: null,
+    stateAt: 0,
     fatal: null,
     moveError: null,
     errorSeq: 0,
@@ -79,11 +83,43 @@ export class GameSocket {
     this.update({ connection: 'closed' })
   }
 
+  /**
+   * ปิด socket ชั่วคราวเมื่อผู้ใช้ออกจากหน้า (pagehide)
+   * เบราว์เซอร์อาจเก็บหน้าไว้ใน back/forward cache โดย socket ยังเปิดอยู่
+   * ถ้าไม่ปิดเอง เซิร์ฟเวอร์จะคิดว่าผู้เล่นยังอยู่และไม่เริ่มนับเวลา abandon
+   */
+  pause(): void {
+    if (this.stopped || this.paused) return
+    this.paused = true
+    if (this.timer !== null) clearTimeout(this.timer)
+    this.timer = null
+    const ws = this.ws
+    this.ws = null
+    ws?.close()
+    this.update({ connection: 'reconnecting' })
+  }
+
+  /** เชื่อมต่อใหม่เมื่อผู้ใช้กลับมาที่หน้าเดิม (pageshow) */
+  resume(): void {
+    if (this.stopped || !this.paused) return
+    this.paused = false
+    if (this.snapshot.fatal) return
+    this.attempt = 0
+    void this.open()
+  }
+
   /** ส่งตาเดิน คืน false ถ้ายังส่งไม่ได้ (ยังไม่เชื่อมต่อหรือยังไม่มี state) */
   sendMove(from: string, to: string, promo: Promo): boolean {
     const state = this.snapshot.state
     if (!state || !this.ws || this.ws.readyState !== OPEN) return false
     this.send(this.ws, { type: 'move', ply: state.ply, from, to, promo })
+    return true
+  }
+
+  /** ยอมแพ้ ผู้แพ้คือเจ้าของ connection นี้ เซิร์ฟเวอร์เป็นผู้ตัดสิน */
+  sendResign(): boolean {
+    if (!this.ws || this.ws.readyState !== OPEN) return false
+    this.send(this.ws, { type: 'resign' })
     return true
   }
 
@@ -104,7 +140,7 @@ export class GameSocket {
       this.scheduleReconnect()
       return
     }
-    if (this.stopped) return
+    if (this.stopped || this.paused) return
     this.refreshToken = false
 
     const ws = this.opts.createSocket()
@@ -132,7 +168,7 @@ export class GameSocket {
 
       case 'state':
         this.attempt = 0
-        this.update({ connection: 'open', state: msg })
+        this.update({ connection: 'open', state: msg, stateAt: Date.now() })
         break
 
       case 'game_over':
@@ -171,7 +207,7 @@ export class GameSocket {
   }
 
   private scheduleReconnect(): void {
-    if (this.stopped || this.timer !== null) return
+    if (this.stopped || this.paused || this.timer !== null) return
     const delay = Math.min(BASE_DELAY_MS * 2 ** this.attempt, MAX_DELAY_MS)
     this.attempt += 1
     this.update({ connection: 'reconnecting' })

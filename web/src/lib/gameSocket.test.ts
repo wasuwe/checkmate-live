@@ -120,6 +120,33 @@ test('sendMove attaches the current ply', async () => {
   expect(ws.sent.at(-1)).toEqual({ type: 'move', ply: 6, from: 'e2', to: 'e4', promo: '' })
 })
 
+test('sendResign sends a bare resign message once connected', async () => {
+  const { socket, sockets } = setup()
+  socket.start()
+  await flush()
+  const ws = sockets[0]
+  expect(socket.sendResign()).toBe(false) // socket ยังไม่เปิด
+
+  ws.open()
+  ws.receive({ type: 'auth_ok', userId: 'guest_1' })
+  ws.receive(stateMsg())
+  expect(socket.sendResign()).toBe(true)
+  expect(ws.sent.at(-1)).toEqual({ type: 'resign' }) // ไม่มี winner/color
+
+  ws.close()
+  expect(socket.sendResign()).toBe(false)
+})
+
+test('records when the latest state arrived', async () => {
+  const { socket, sockets } = setup()
+  vi.setSystemTime(50_000)
+  socket.start()
+  await flush()
+  sockets[0].open()
+  sockets[0].receive(stateMsg())
+  expect(socket.getSnapshot().stateAt).toBe(50_000)
+})
+
 test('move errors bump errorSeq even when the code repeats', async () => {
   const { socket, sockets } = setup()
   socket.start()
@@ -227,6 +254,46 @@ test('stop closes the socket and cancels pending reconnects', async () => {
   await vi.advanceTimersByTimeAsync(60_000)
   expect(sockets).toHaveLength(1)
   expect(socket.getSnapshot().connection).toBe('closed')
+})
+
+test('pause closes the socket without reconnecting; resume rejoins', async () => {
+  const { socket, sockets } = setup()
+  socket.start()
+  await flush()
+  sockets[0].open()
+  sockets[0].receive({ type: 'auth_ok', userId: 'guest_1' })
+  sockets[0].receive(stateMsg({ ply: 4 }))
+
+  socket.pause() // ผู้ใช้ออกจากหน้า
+  expect(sockets[0].closed).toBe(true)
+  expect(socket.sendMove('e2', 'e4', '')).toBe(false)
+  await vi.advanceTimersByTimeAsync(60_000)
+  expect(sockets).toHaveLength(1) // ไม่ลองต่อใหม่ระหว่างที่หน้าถูกซ่อน
+
+  socket.resume() // กดย้อนกลับมาที่หน้าเดิม
+  await flush()
+  expect(sockets).toHaveLength(2)
+  sockets[1].open()
+  sockets[1].receive({ type: 'auth_ok', userId: 'guest_1' })
+  expect(sockets[1].sent.at(-1)).toEqual({ type: 'join', room: ROOM })
+  sockets[1].receive(stateMsg({ ply: 4 }))
+  expect(socket.getSnapshot().connection).toBe('open')
+})
+
+test('pause cancels a pending reconnect and resume is a no-op when not paused', async () => {
+  const { socket, sockets } = setup()
+  socket.start()
+  await flush()
+  sockets[0].open()
+  sockets[0].close()
+  socket.pause()
+  await vi.advanceTimersByTimeAsync(60_000)
+  expect(sockets).toHaveLength(1)
+
+  socket.resume()
+  socket.resume()
+  await flush()
+  expect(sockets).toHaveLength(2)
 })
 
 test('ignores malformed and unknown server messages', async () => {

@@ -29,8 +29,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	// ABANDON_GRACE คือเวลาที่ผู้เล่นซึ่งหลุดกลับเข้ามาได้ก่อนถูกปรับแพ้ เช่น "60s" (ค่าเริ่มต้น)
+	var abandonGrace time.Duration
+	if v := os.Getenv("ABANDON_GRACE"); v != "" {
+		if abandonGrace, err = time.ParseDuration(v); err != nil || abandonGrace <= 0 {
+			log.Error("invalid ABANDON_GRACE", "value", v)
+			os.Exit(1)
+		}
+	}
+
 	h := hub.New(hub.Config{
 		OriginPatterns: splitList(os.Getenv("ALLOWED_ORIGINS")),
+		AbandonGrace:   abandonGrace,
 		Logger:         log,
 	}, guest)
 	defer h.Close()
