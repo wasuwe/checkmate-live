@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { AccountPanel } from '../components/AccountPanel'
 import { createRoom } from '../lib/api'
 import { APP_NAME } from '../lib/appInfo'
 import { extractRoomId } from '../lib/protocol'
@@ -80,6 +81,8 @@ export function HomePage({ navigate }: Props) {
           )}
         </form>
       </section>
+
+      <AccountPanel />
     </main>
   )
 }

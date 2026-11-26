@@ -177,6 +177,12 @@ case "resign":
 - ไม่ส่ง token ใน URL ให้ส่งเป็นข้อความแรก ถ้าไม่ผ่านใน 5 วินาทีให้ตัดการเชื่อมต่อ
 - ผูกผู้เล่นกับ `user_id` ไม่ใช่ connection
 
+**ที่ทำจริง (เฟส 4):**
+- โปรเจกต์ Supabase ต้องใช้ signing key แบบ asymmetric (ES256/RS256) เซิร์ฟเวอร์รับเฉพาะสองอัลกอริทึมนี้ และตรวจ `iss` เพิ่มด้วย
+- ผู้เล่นมีสองแบบ: ผู้ใช้ที่ login (user ID = `sub` ใน JWT) และ guest (token ที่ Go server ออกเอง ขึ้นต้นด้วย `guest_`) เล่นด้วยกันได้
+- ถ้าไม่ตั้ง `SUPABASE_JWKS_URL` (server) หรือ `VITE_SUPABASE_URL` (web) ระบบทำงานแบบ guest อย่างเดียว
+- หน้าเว็บ login ด้วยอีเมลและรหัสผ่านผ่าน `supabase-js` รหัสผ่านไม่ผ่าน Go server
+
 ### ตรรกะเกม
 - ตรวจทุกตาเดินว่าผู้ส่งอยู่ในห้องนี้ เป็นสีที่ถึงตาเดิน และตาเดินถูกกติกา
 - นาฬิกานับที่เซิร์ฟเวอร์เท่านั้น
@@ -235,6 +241,7 @@ SUPABASE_JWKS_URL=https://[ref].supabase.co/auth/v1/.well-known/jwks.json
 ALLOWED_ORIGINS=https://chess.example.com
 STATIC_DIR=/app/web
 GUEST_SECRET=<สุ่มยาว ๆ>   # ถ้าไม่ตั้ง token ของ guest จะใช้ไม่ได้หลังรีสตาร์ต
+GUEST_ENABLED=true         # ไม่บังคับ ตั้ง false เพื่อบังคับ login ก่อนเล่น
 ABANDON_GRACE=60s          # ไม่บังคับ ค่าเริ่มต้น 60s
 ```
 

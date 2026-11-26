@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { getToken, socketUrl } from '../lib/api'
+import { socketUrl } from '../lib/api'
 import { GameSocket, type Snapshot } from '../lib/gameSocket'
 import type { Promo } from '../lib/protocol'
+import { getToken } from '../lib/session'
 
 const INITIAL: Snapshot = {
   connection: 'connecting',
