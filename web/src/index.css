@@ -959,6 +959,21 @@ input::placeholder {
 
 /* ---------- เข้าสู่ระบบ / สมัคร ---------- */
 
+/* เงื่อนไขของรหัสผ่าน: ข้อที่ผ่านแล้วเป็นสีเขียวพร้อมเครื่องหมายถูก */
+.pw-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.pw-check.ok {
+  color: #1f7a57;
+}
+
+
 .auth-head {
   display: flex;
   flex-direction: column;
