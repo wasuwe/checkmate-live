@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Chessboard } from 'react-chessboard'
-import { fxEventFor, squarePosition, useFxPrefs, type FxEvent } from '../lib/fx'
+import { FX_LEVEL, fxEventFor, squarePosition, useFxPrefs, type FxEvent } from '../lib/fx'
 import { checkWords, gameOf } from '../lib/games'
 import {
   boardPosition,
@@ -46,7 +46,6 @@ const DOT: CSSProperties = {
 }
 const RING: CSSProperties = { boxShadow: 'inset 0 0 0 0.75cqw #FF5C8D', borderRadius: '28%' }
 
-const FX_DURATION_MS = 1700
 
 export function GameBoard({ state, online, errorSeq, sendMove }: Props) {
   const { set } = useSetPrefs()
@@ -203,7 +202,7 @@ function useBoardFx(state: StateMsg): { event: FxEvent; seq: number } | null {
     if (!event) return
     const seq = state.ply
     setFx({ event, seq })
-    const timer = setTimeout(() => setFx((f) => (f?.seq === seq ? null : f)), FX_DURATION_MS)
+    const timer = setTimeout(() => setFx((f) => (f?.seq === seq ? null : f)), FX_LEVEL[event.kind].ms)
     return () => clearTimeout(timer)
   }, [state])
 
@@ -217,19 +216,50 @@ function BoardFx({ event, flipped, game }: { event: FxEvent; flipped: boolean; g
   const words = checkWords(game)
   const banner = event.kind === 'mate' ? words.mate : event.kind === 'check' ? words.check : undefined
 
+  const level = FX_LEVEL[event.kind].level
+
   return (
-    <div className="fx-layer" aria-hidden="true">
+    <div className={`fx-layer lv${level}`} aria-hidden="true">
+      {/* ขั้น 2 ขึ้นไป: แสงวาบทั้งกระดาน ขั้น 3: แสงหมุนด้านหลัง */}
+      {level >= 2 && <div className="fx-flash" />}
+      {level === 3 && <div className="fx-rays" />}
       {event.square ? (
         <div className="fx-square" style={toPercent(squarePosition(event.square, flipped))}>
-          <FxBurst type={type} seed={seed} dist={70} />
+          <FxBurst type={type} seed={seed} dist={level === 1 ? 78 : 96} level={level} />
         </div>
       ) : (
-        <FxBurst type={type} seed={seed} dist={180} />
+        <>
+          <FxBurst type={type} seed={seed} dist={170} level={3} />
+          {/* พลุสี่ลูกไล่กันรอบกระดาน */}
+          {FIREWORKS.map((f, i) => (
+            <div key={i} className="fx-square" style={{ left: `${f.left}%`, top: `${f.top}%` }}>
+              <FxBurst type={type} seed={seed + (i + 1) * 31} dist={84} level={2} delay={f.at} />
+            </div>
+          ))}
+        </>
       )}
-      {banner && <FxBurst type="none" seed={0} dist={0} banner={banner} bannerSize={event.kind === 'mate' ? 64 : 54} />}
+      {banner && (
+        <FxBurst
+          type="none"
+          seed={0}
+          dist={0}
+          level={level}
+          banner={banner}
+          bannerSize={level === 3 ? 'min(84px, 15cqw)' : 'min(60px, 13cqw)'}
+          bannerSeconds={level === 3 ? 3.6 : 1.9}
+        />
+      )}
     </div>
   )
 }
+
+/** ตำแหน่ง (มุมซ้ายบนของกล่องขนาดหนึ่งช่อง เป็นเปอร์เซ็นต์ของกระดาน) และเวลาเริ่มของพลุตอนชนะ */
+const FIREWORKS = [
+  { left: 12.5, top: 12.5, at: 0.9 },
+  { left: 75, top: 18, at: 1.3 },
+  { left: 18, top: 68, at: 1.7 },
+  { left: 72, top: 70, at: 2.1 },
+]
 
 function toPercent(pos: { left: number; top: number }): CSSProperties {
   return { left: `${pos.left}%`, top: `${pos.top}%` }
