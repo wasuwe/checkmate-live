@@ -37,8 +37,8 @@ export function CreditsPage() {
       <h1 className="title">เครดิต</h1>
 
       <div className="team-grid">
-        {data.team.map((group, i) => (
-          <section key={i} className="card side" aria-label={group.role}>
+        {data.team.map((group) => (
+          <section key={group.id} className="card side" aria-label={group.role}>
             <div>
               <span className="role-pill" style={{ background: safeColor(group.bg) }}>
                 {group.role}

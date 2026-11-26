@@ -2301,7 +2301,29 @@ a.link-card:hover {
 }
 
 .admin-note {
+  max-width: 150px;
+}
+
+/* รายการที่พิมพ์ไว้แต่ยังไม่ได้บันทึก */
+.admin-row.dirty {
+  background: #fff6d6;
+  box-shadow: inset 5px 0 0 var(--butter);
+}
+
+.save-line {
   grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.save-line .btn {
+  min-height: 44px;
+}
+
+.row-tools .btn.danger {
+  white-space: nowrap;
 }
 
 .row-tools {
@@ -2431,6 +2453,12 @@ a.link-card:hover {
 
   .row-tools {
     flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .admin-note {
+    max-width: none;
+    width: 100%;
   }
 
   .oc-image {

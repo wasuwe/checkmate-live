@@ -405,24 +405,47 @@ func TestIntegrationContent(t *testing.T) {
 	s, _ := openTestStore(t)
 	ctx := context.Background()
 	c := s.Content()
+	const imgA, imgB = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 
 	if got, err := c.Credits(ctx); got != nil || err != nil {
 		t.Fatalf("credits before any save: %v %v", got, err)
+	}
+	if _, err := c.UpdateCredits(ctx, "admin-1", func(*content.Credits) error { return nil }); !errors.Is(err, content.ErrNoCredits) {
+		t.Fatalf("update before init: %v", err)
 	}
 	credits := content.Credits{
 		People: []content.Person{{ID: "nok", Name: "Nok", Bg: "#FFB8CC"}},
 		Team:   []content.TeamGroup{{Role: "Developer", Bg: "#A9D6F7", IDs: []string{"nok"}}},
 		Ocs:    []content.Oc{{ID: "kaimuk", Name: "ไข่มุก", Owner: "nok", Artist: "nok", Color: "#FF8FB1", Pale: "#FFE8EF"}},
 	}
-	if err := c.SaveCredits(ctx, credits, "admin-1"); err != nil {
+	if err := credits.Seed(); err != nil {
 		t.Fatal(err)
 	}
-	credits.Ocs[0].Name = "ผึ้ง"
-	if err := c.SaveCredits(ctx, credits, "admin-2"); err != nil { // บันทึกทับ
+	if err := c.InitCredits(ctx, credits, "admin-1"); err != nil {
 		t.Fatal(err)
+	}
+	if err := c.InitCredits(ctx, credits, "admin-2"); !errors.Is(err, content.ErrExists) {
+		t.Fatalf("second init: %v, want ErrExists", err)
+	}
+
+	// แก้หนึ่งรายการ: เลขรุ่นเพิ่ม และจำไว้ว่าใครแก้
+	saveName := func(by string, rev int, name string) error {
+		_, err := c.UpdateCredits(ctx, by, func(cr *content.Credits) error {
+			o := cr.Ocs[0]
+			o.Name = name
+			return cr.Apply(content.Op{Op: content.OpSave, Kind: content.KindOcs, ID: "kaimuk", Rev: rev, Oc: &o})
+		})
+		return err
+	}
+	if err := saveName("admin-2", 1, "ผึ้ง"); err != nil {
+		t.Fatal(err)
+	}
+	// อีกคนที่ยังถือรุ่น 1 บันทึกทับไม่ได้ และข้อมูลไม่เปลี่ยน
+	if err := saveName("admin-3", 1, "ทับ"); !errors.Is(err, content.ErrConflict) {
+		t.Fatalf("stale save: %v, want ErrConflict", err)
 	}
 	got, err := c.Credits(ctx)
-	if err != nil || got == nil || got.Ocs[0].Name != "ผึ้ง" || got.People[0].ID != "nok" {
+	if err != nil || got.Ocs[0].Name != "ผึ้ง" || got.Ocs[0].Rev != 2 {
 		t.Fatalf("stored credits: %+v %v", got, err)
 	}
 	var rows int
@@ -431,25 +454,55 @@ func TestIntegrationContent(t *testing.T) {
 		t.Fatalf("site_content rows=%d by=%q err=%v", rows, by, err)
 	}
 
+	// รูป: ตั้ง เปลี่ยน แล้วลบตัวละคร รูปที่เลิกใช้ต้องหายจากตารางทุกครั้ง
+	countImages := func() (n int) {
+		if err := s.pool.QueryRow(ctx, "select count(*) from content_images").Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		return n
+	}
+	setImage := func(rev int, path string) error {
+		_, err := c.UpdateCredits(ctx, "admin-1", func(cr *content.Credits) error { return cr.SetOcImage("kaimuk", rev, path) })
+		return err
+	}
+	for _, id := range []string{imgA, imgB} {
+		if err := c.SaveImage(ctx, id, content.Image{ContentType: "image/png", Data: []byte{1, 2, 3}}, "admin-1"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := setImage(2, content.ImagePath(imgA)); err != nil {
+		t.Fatal(err)
+	}
+	if err := setImage(3, content.ImagePath(imgB)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.Image(ctx, imgA); !errors.Is(err, content.ErrNotFound) {
+		t.Fatalf("the replaced image is still in the table: %v", err)
+	}
+	if img, err := c.Image(ctx, imgB); err != nil || img.ContentType != "image/png" || len(img.Data) != 3 {
+		t.Fatalf("current image: %+v %v", img, err)
+	}
+	// การแก้ที่ถูกปฏิเสธต้องไม่ลบรูป (อยู่ใน transaction เดียวกัน)
+	if err := setImage(1, ""); !errors.Is(err, content.ErrConflict) || countImages() != 1 {
+		t.Fatalf("refused change: err=%v images=%d", err, countImages())
+	}
+	if _, err := c.UpdateCredits(ctx, "admin-1", func(cr *content.Credits) error {
+		return cr.Apply(content.Op{Op: content.OpDelete, Kind: content.KindOcs, ID: "kaimuk", Rev: 4})
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if n := countImages(); n != 0 {
+		t.Fatalf("%d images left after deleting the character", n)
+	}
+
 	// แถวที่ถูกแก้ด้วยมือจนผิดรูปต้องไม่ถูกส่งออกไป
-	if _, err := s.pool.Exec(ctx, `update site_content set data = '{"people":[{"id":"x","name":"X","bg":"red"}]}' where key = 'credits'`); err != nil {
+	if _, err := s.pool.Exec(ctx, `update site_content set data = '{"people":[{"id":"x","rev":1,"name":"X","bg":"red"}]}' where key = 'credits'`); err != nil {
 		t.Fatal(err)
 	}
 	if got, err := c.Credits(ctx); err == nil {
 		t.Fatalf("tampered credits were returned: %+v", got)
 	}
 
-	id := "0123456789abcdef0123456789abcdef"
-	if _, err := c.Image(ctx, id); !errors.Is(err, content.ErrNotFound) {
-		t.Fatalf("missing image: %v", err)
-	}
-	if err := c.SaveImage(ctx, id, content.Image{ContentType: "image/png", Data: []byte{1, 2, 3}}, "admin-1"); err != nil {
-		t.Fatal(err)
-	}
-	img, err := c.Image(ctx, id)
-	if err != nil || img.ContentType != "image/png" || len(img.Data) != 3 {
-		t.Fatalf("stored image: %+v %v", img, err)
-	}
 	// ฐานข้อมูลปฏิเสธชนิดไฟล์และรหัสที่ไม่อยู่ในรูปแบบ
 	if err := c.SaveImage(ctx, "fedcba9876543210fedcba9876543210", content.Image{ContentType: "image/svg+xml", Data: []byte{1}}, ""); err == nil {
 		t.Fatal("svg content type was accepted")

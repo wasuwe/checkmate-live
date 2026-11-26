@@ -29,6 +29,14 @@ describe('sample credits data', () => {
     for (const group of DATA.team) for (const id of group.ids) expect(people.has(id), id).toBe(true)
   })
 
+  test('every sample item has an id and a revision, as the server requires', () => {
+    for (const item of [...DATA.people, ...DATA.team, ...DATA.ocs]) {
+      expect(item.id).toMatch(/^[a-z0-9_-]{1,24}$/)
+      expect(item.rev).toBe(1)
+    }
+    expect(new Set(DATA.team.map((g) => g.id)).size).toBe(DATA.team.length)
+  })
+
   test('the sample has no links and no images, so nothing fake can be clicked', () => {
     for (const p of DATA.people) expect(p.link).toBe('')
     for (const o of DATA.ocs) expect(o.image).toBe('')
@@ -130,10 +138,11 @@ describe('reading the server response', () => {
 
   test('missing or wrongly typed fields become empty values instead of breaking the page', () => {
     const parsed = parseCredits({ people: [{ id: 'a', name: 5 }, null], team: [{ role: 'Dev', ids: ['a', 7] }], ocs: [{ id: 'o' }] })
-    expect(parsed?.people[0]).toEqual({ id: 'a', name: '', handle: '', link: '', bg: '' })
+    expect(parsed?.people[0]).toEqual({ id: 'a', rev: 0, name: '', handle: '', link: '', bg: '' })
     expect(parsed?.people[1].id).toBe('')
-    expect(parsed?.team[0]).toEqual({ role: 'Dev', bg: '', ids: ['a'] })
-    expect(parsed?.ocs[0]).toMatchObject({ id: 'o', name: '', image: '', owner: '' })
+    expect(parsed?.team[0]).toEqual({ id: '', rev: 0, role: 'Dev', bg: '', ids: ['a'] })
+    expect(parsed?.ocs[0]).toMatchObject({ id: 'o', rev: 0, name: '', image: '', owner: '' })
+    expect(parseCredits({ people: [{ id: 'a', rev: 3 }, { id: 'b', rev: '4' }], team: [], ocs: [] })?.people.map((p) => p.rev)).toEqual([3, 0])
   })
 })
 

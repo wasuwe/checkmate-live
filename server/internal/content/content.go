@@ -52,7 +52,9 @@ var (
 
 // Person คือคนหนึ่งคนในทีม หรือเจ้าของ/ผู้วาดของตัวละคร
 type Person struct {
-	ID     string `json:"id"`
+	ID string `json:"id"`
+	// Rev คือเลขรุ่นของรายการ เพิ่มขึ้นทุกครั้งที่ถูกแก้ ใช้กันการแก้ทับกัน (ดู ops.go)
+	Rev    int    `json:"rev"`
 	Name   string `json:"name"`
 	Handle string `json:"handle"`
 	// Link ว่าง = ไม่เป็นลิงก์
@@ -62,6 +64,8 @@ type Person struct {
 
 // TeamGroup คือกลุ่มของทีมตามบทบาท เช่น Developer
 type TeamGroup struct {
+	ID   string   `json:"id"`
+	Rev  int      `json:"rev"`
 	Role string   `json:"role"`
 	Bg   string   `json:"bg"`
 	IDs  []string `json:"ids"`
@@ -70,6 +74,7 @@ type TeamGroup struct {
 // Oc คือตัวละครหนึ่งตัว
 type Oc struct {
 	ID     string `json:"id"`
+	Rev    int    `json:"rev"`
 	Name   string `json:"name"`
 	Title  string `json:"title"`
 	Owner  string `json:"owner"`
@@ -170,6 +175,9 @@ func (c *Credits) Clean() error {
 		if !idRe.MatchString(p.ID) || people[p.ID] {
 			return bad("people[%d].id", i)
 		}
+		if p.Rev < 1 {
+			return bad("people[%d].rev", i)
+		}
 		people[p.ID] = true
 		if p.Name, ok = cleanText(p.Name, 1, 40, true); !ok {
 			return bad("people[%d].name", i)
@@ -185,9 +193,17 @@ func (c *Credits) Clean() error {
 		}
 	}
 
+	groups := map[string]bool{}
 	for i := range c.Team {
 		g := &c.Team[i]
 		var ok bool
+		if !idRe.MatchString(g.ID) || groups[g.ID] {
+			return bad("team[%d].id", i)
+		}
+		groups[g.ID] = true
+		if g.Rev < 1 {
+			return bad("team[%d].rev", i)
+		}
 		if g.Role, ok = cleanText(g.Role, 1, 30, true); !ok {
 			return bad("team[%d].role", i)
 		}
@@ -214,6 +230,9 @@ func (c *Credits) Clean() error {
 			return bad("ocs[%d].id", i)
 		}
 		ocs[o.ID] = true
+		if o.Rev < 1 {
+			return bad("ocs[%d].rev", i)
+		}
 		if o.Name, ok = cleanText(o.Name, 1, 40, true); !ok {
 			return bad("ocs[%d].name", i)
 		}
@@ -312,8 +331,14 @@ func ValidImageID(s string) bool {
 type Store interface {
 	// Credits คืนข้อมูลเครดิตที่บันทึกไว้ หรือ nil ถ้ายังไม่เคยบันทึก
 	Credits(ctx context.Context) (*Credits, error)
-	SaveCredits(ctx context.Context, c Credits, by string) error
+	// InitCredits ตั้งต้นข้อมูลเครดิต คืน ErrExists ถ้ามีข้อมูลอยู่แล้ว
+	InitCredits(ctx context.Context, c Credits, by string) error
+	// UpdateCredits อ่านข้อมูลล่าสุด เรียก fn ให้แก้ แล้วบันทึก ทั้งหมดเป็นขั้นตอนเดียวที่ไม่มีใครแทรกได้
+	// รูปที่ข้อมูลเลิกใช้หลังแก้จะถูกลบไปพร้อมกัน ถ้า fn คืน error จะไม่มีอะไรถูกบันทึก
+	// คืน ErrNoCredits ถ้ายังไม่เคยตั้งต้น คืนข้อมูลหลังแก้เมื่อสำเร็จ
+	UpdateCredits(ctx context.Context, by string, fn func(c *Credits) error) (*Credits, error)
 	SaveImage(ctx context.Context, id string, img Image, by string) error
+	DeleteImage(ctx context.Context, id string) error
 	Image(ctx context.Context, id string) (Image, error)
 }
 
@@ -332,15 +357,50 @@ func (m *Memory) Credits(context.Context) (*Credits, error) {
 	if m.credits == nil {
 		return nil, nil
 	}
-	c := *m.credits
+	c := m.credits.Clone()
 	return &c, nil
 }
 
-func (m *Memory) SaveCredits(_ context.Context, c Credits, _ string) error {
+func (m *Memory) InitCredits(_ context.Context, c Credits, _ string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.credits != nil {
+		return ErrExists
+	}
 	m.credits = &c
 	return nil
+}
+
+func (m *Memory) UpdateCredits(_ context.Context, _ string, fn func(c *Credits) error) (*Credits, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.credits == nil {
+		return nil, ErrNoCredits
+	}
+	next := m.credits.Clone()
+	if err := fn(&next); err != nil {
+		return nil, err
+	}
+	for _, id := range UnusedImages(m.credits, &next) {
+		delete(m.images, id)
+	}
+	m.credits = &next
+	out := next.Clone()
+	return &out, nil
+}
+
+func (m *Memory) DeleteImage(_ context.Context, id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	delete(m.images, id)
+	return nil
+}
+
+// ImageCount คืนจำนวนรูปที่เก็บอยู่ (ใช้ใน test)
+func (m *Memory) ImageCount() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return len(m.images)
 }
 
 func (m *Memory) SaveImage(_ context.Context, id string, img Image, _ string) error {
