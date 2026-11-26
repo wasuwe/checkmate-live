@@ -1,6 +1,6 @@
 // test ของส่วนที่เพิ่มมากับหน้าตาใหม่: เอฟเฟกต์ กฎการเล่น ฟอร์มสมัคร เส้นทางหน้า และข้อความผลเกม
 import { describe, expect, test } from 'vitest'
-import { cleanFx, DEFAULT_FX, fxEventFor, pieceCount, seeded, squarePosition } from './fx'
+import { capturedSquares, cleanFx, DEFAULT_FX, fxEventFor, pieceCount, seeded, squarePosition } from './fx'
 import type { StateMsg } from './protocol'
 import { emailError, passwordChecks, passwordError, validateField, validateRegistration } from './registration'
 import { parseRoute } from './router'
@@ -50,7 +50,24 @@ describe('board effects', () => {
       fen: 'rnbqkbnr/ppp1pppp/8/3P4/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2',
       lastMove: { from: 'e4', to: 'd5' },
     })
-    expect(fxEventFor(before, after, null)).toEqual({ kind: 'capture', square: 'd5' })
+    expect(fxEventFor(before, after, null)).toEqual({ kind: 'capture', square: 'd5', squares: ['d5'] })
+  })
+
+  test('the effect plays on the captured enemy piece, not on the landing square', () => {
+    // หมากฮอส: ขาว c3 กระโดดข้าม d4 ไปลง e5 ตัวที่ถูกกินอยู่ที่ d4
+    const jumpBefore = state({ ply: 4, turn: 'w', fen: '8/8/8/8/3c4/2C5/8/8 w' })
+    const jumpAfter = state({ ply: 5, turn: 'b', fen: '8/8/8/4C3/8/8/8/8 b', lastMove: { from: 'c3', to: 'e5' } })
+    expect(fxEventFor(jumpBefore, jumpAfter, null)).toEqual({ kind: 'capture', square: 'd4', squares: ['d4'] })
+    // กินผ่าน (en passant): เบี้ยที่ถูกกินอยู่ที่ d5 ไม่ใช่ช่องที่ไปลง d6
+    const epBefore = state({ ply: 4, turn: 'w', fen: '4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 3' })
+    const epAfter = state({ ply: 5, turn: 'b', fen: '4k3/8/3P4/8/8/8/8/4K3 b - - 0 3', lastMove: { from: 'e5', to: 'd6' } })
+    expect(capturedSquares(epBefore, epAfter)).toEqual(['d5'])
+    // หมากหนีบ: กินสองตัวในตาเดียว เล่นที่ทั้งสองตัว
+    const pinchBefore = state({ ply: 4, turn: 'w', fen: '8/8/8/1OooO3/8/5O2/8/8 w' })
+    const pinchAfter = state({ ply: 5, turn: 'b', fen: '8/8/8/1O2O3/8/5O2/8/8 b', lastMove: { from: 'a5', to: 'b5' } })
+    expect(capturedSquares(pinchBefore, pinchAfter)).toEqual(['c5', 'd5'])
+    // การเดินธรรมดาและการเข้าป้อมไม่นับเป็นการกิน
+    expect(capturedSquares(state(), state({ ply: 1, turn: 'b', fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1' }))).toEqual([])
   })
 
   test('check wins over capture, and checkmate wins over both', () => {
@@ -61,8 +78,9 @@ describe('board effects', () => {
       lastMove: { from: 'e4', to: 'd5' },
     })
     expect(fxEventFor(before, after, 'e8')).toEqual({ kind: 'check', square: 'e8' })
-    const mate = { ...after, status: 'finished' as const, result: '1-0', reason: 'checkmate' }
-    expect(fxEventFor(before, mate, 'e8')).toEqual({ kind: 'mate', square: null })
+    // รุกจน: เล่นที่คิงของฝ่ายที่แพ้
+    const mate = { ...after, turn: 'b' as const, status: 'finished' as const, result: '1-0', reason: 'checkmate' }
+    expect(fxEventFor(before, mate, null)).toEqual({ kind: 'mate', square: 'e8' })
   })
 
   test('a game that ends another way plays no checkmate effect', () => {

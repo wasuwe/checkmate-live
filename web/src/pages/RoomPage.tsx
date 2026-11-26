@@ -496,7 +496,7 @@ function GameOverDialog({ state, navigate }: { state: StateMsg; navigate: (to: s
   )
 }
 
-const RESULT_DELAY_MS = 1500
+const RESULT_DELAY_MS = 4200
 
 const MEDALS: Record<'win' | 'loss' | 'draw' | 'watch', { glyph: string; bg: string }> = {
   win: { glyph: '♚', bg: 'var(--butter)' },

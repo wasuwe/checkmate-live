@@ -29,9 +29,9 @@ export type FxPrefs = Record<FxEventKind, FxType>
  * `ms` คือเวลาที่เอฟเฟกต์อยู่บนกระดานก่อนถูกเอาออก
  */
 export const FX_LEVEL: Record<FxEventKind, { level: 1 | 2 | 3; ms: number }> = {
-  capture: { level: 1, ms: 1700 },
-  check: { level: 2, ms: 2300 },
-  mate: { level: 3, ms: 4200 },
+  capture: { level: 1, ms: 1900 },
+  check: { level: 2, ms: 2600 },
+  mate: { level: 3, ms: 5000 },
 }
 
 export const DEFAULT_FX: FxPrefs = { capture: 'stars', check: 'ring', mate: 'confetti' }
@@ -53,22 +53,70 @@ const BOARD_WINS = new Set(['checkmate', 'wipeout', 'blocked'])
 
 export interface FxEvent {
   kind: FxEventKind
-  /** ช่องที่เล่นเอฟเฟกต์ หรือ null = เต็มกระดาน */
+  /** ช่องหลักที่เล่นเอฟเฟกต์ หรือ null = กลางกระดาน */
   square: string | null
+  /** ช่องของหมากฝ่ายตรงข้ามที่ถูกกินทุกตัวในตานี้ (การกินเล่นที่ช่องเหล่านี้) */
+  squares?: string[]
+}
+
+/** หมากบนกระดานจาก FEN: ช่อง → ตัวอักษรของหมาก (ตัวพิมพ์ใหญ่ = ขาว) ใช้ได้กับทุกเกมในระบบ */
+function boardOf(fen: string): Map<string, string> {
+  const out = new Map<string, string>()
+  fen
+    .split(' ')[0]
+    .split('/')
+    .forEach((row, r) => {
+      let file = 0
+      for (const ch of row) {
+        if (ch >= '0' && ch <= '9') file += Number(ch)
+        else out.set(String.fromCharCode(97 + file++) + (8 - r), ch)
+      }
+    })
+  return out
+}
+
+const isWhite = (piece: string) => piece === piece.toUpperCase()
+
+/**
+ * ช่องของหมากที่ถูกกินในตาที่เปลี่ยน prev เป็น next: หมากของฝ่ายที่ไม่ได้เดินซึ่งหายไปจากช่องเดิม
+ * ครอบคลุมการกินแบบทับช่อง (หมากรุก) กินข้าม (หมากฮอส) กินผ่าน และหนีบหลายตัว (หมากหนีบ)
+ */
+export function capturedSquares(prev: StateMsg, next: StateMsg): string[] {
+  const before = boardOf(prev.fen)
+  const after = boardOf(next.fen)
+  const moverIsWhite = prev.turn === 'w'
+  const out: string[] = []
+  for (const [square, piece] of before) {
+    if (isWhite(piece) === moverIsWhite) continue
+    const now = after.get(square)
+    if (now === undefined || isWhite(now) !== isWhite(piece)) out.push(square)
+  }
+  return out
+}
+
+/** ช่องของคิงหรือขุนของฝ่ายที่ถึงตาใน state (ฝ่ายที่ถูกรุกจน) หรือ null ถ้าเกมนั้นไม่มีคิง */
+function kingSquare(state: StateMsg): string | null {
+  const want = state.turn === 'w' ? 'K' : 'k'
+  for (const [square, piece] of boardOf(state.fen)) if (piece === want) return square
+  return null
 }
 
 /**
  * เหตุการณ์ที่ควรเล่นเอฟเฟกต์เมื่อ state เปลี่ยนจาก prev เป็น next
  * คืน null ถ้าไม่มีตาเดินใหม่ (เช่น state แรกหลังเข้าห้อง หรือแค่มีคนหลุด)
  * `checkedSquare` คือช่องของคิงที่ถูกรุกใน next (คำนวณจากภายนอก)
+ * เอฟเฟกต์เกิดที่ตัวของฝ่ายตรงข้ามเสมอ (เจ้าของโปรเจกต์กำหนด): ตัวที่ถูกกิน คิงที่ถูกรุก หรือคิงที่ถูกรุกจน
  */
 export function fxEventFor(prev: StateMsg | null, next: StateMsg, checkedSquare: string | null): FxEvent | null {
   if (!prev || next.ply !== prev.ply + 1) return null
-  if (next.status === 'finished' && BOARD_WINS.has(next.reason ?? '')) return { kind: 'mate', square: null }
-  if (checkedSquare) return { kind: 'check', square: checkedSquare }
-  if (pieceCount(next.fen) < pieceCount(prev.fen) && next.lastMove) {
-    return { kind: 'capture', square: next.lastMove.to }
+  const taken = capturedSquares(prev, next)
+  if (next.status === 'finished' && BOARD_WINS.has(next.reason ?? '')) {
+    // รุกจน: ที่คิงของผู้แพ้ เกมที่ไม่มีคิง: ที่ตัวสุดท้ายที่ถูกกิน (ถ้าชนะเพราะปิดทางเดิน = กลางกระดาน)
+    const square = next.reason === 'checkmate' ? kingSquare(next) : (taken[0] ?? null)
+    return { kind: 'mate', square }
   }
+  if (checkedSquare) return { kind: 'check', square: checkedSquare }
+  if (taken.length > 0) return { kind: 'capture', square: taken[0], squares: taken }
   return null
 }
 
