@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type Dispatch, type FormEvent, type SetStateAction } from 'react'
 import type { ChatItem, Color, PlayerInfo } from '../lib/protocol'
 import { colorName } from '../lib/text'
 
@@ -10,6 +10,8 @@ interface Props {
   names?: Record<string, string>
   /** ให้รายการข้อความสูงเต็มพื้นที่ที่มี (ใช้ในห้องรอและข้างกระดาน) */
   tall?: boolean
+  /** รายชื่อผู้ส่งที่ซ่อนไว้ ถ้าหน้าที่ใช้ต้องรู้ด้วย (ไม่ระบุ = เก็บเองในแผงนี้) */
+  mutedState?: [string[], Dispatch<SetStateAction<string[]>>]
   online: boolean
   /** เพิ่มขึ้นทุกครั้งที่เซิร์ฟเวอร์ปฏิเสธข้อความเพราะส่งถี่เกินไป */
   rateLimitedSeq: number
@@ -37,6 +39,7 @@ export function ChatPanel({
   players,
   names,
   tall = false,
+  mutedState,
   online,
   rateLimitedSeq,
   sendChat,
@@ -45,7 +48,8 @@ export function ChatPanel({
 }: Props) {
   const [text, setText] = useState('')
   // ผู้ส่งที่ผู้ใช้เลือกซ่อน มีผลเฉพาะหน้าจอนี้และหายเมื่อออกจากห้อง
-  const [muted, setMuted] = useState<string[]>([])
+  const ownMuted = useState<string[]>([])
+  const [muted, setMuted] = mutedState ?? ownMuted
   const visible = messages.filter((m) => m.mine || !muted.includes(m.sender))
   const [dismissedSeq, setDismissedSeq] = useState(0)
   const listRef = useRef<HTMLOListElement>(null)
