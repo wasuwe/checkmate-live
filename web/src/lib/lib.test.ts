@@ -210,11 +210,11 @@ describe('text', () => {
 
   test('resultText is written from the viewer’s side', () => {
     const over: StateMsg = { ...base, status: 'finished', result: '0-1', reason: 'checkmate' }
-    expect(resultText(over)).toBe('คุณแพ้ — รุกจน')
-    expect(resultText({ ...over, you: { role: 'player', color: 'b' } })).toBe('คุณชนะ — รุกจน')
-    expect(resultText({ ...over, you: { role: 'spectator', color: '' } })).toBe('ดำชนะ — รุกจน')
+    expect(resultText(over)).toBe('คุณแพ้ — รุกฆาต')
+    expect(resultText({ ...over, you: { role: 'player', color: 'b' } })).toBe('คุณชนะ — รุกฆาต')
+    expect(resultText({ ...over, you: { role: 'spectator', color: '' } })).toBe('ดำชนะ — รุกฆาต')
     expect(resultText({ ...over, result: '1/2-1/2', reason: 'stalemate' })).toBe('เสมอ — อับ (stalemate)')
-    expect(statusText(over)).toBe('คุณแพ้ — รุกจน')
+    expect(statusText(over)).toBe('คุณแพ้ — รุกฆาต')
     expect(resultText({ ...over, result: '1-0', reason: 'resign' })).toBe('คุณชนะ — ยอมแพ้')
     expect(resultText({ ...over, result: '1-0', reason: 'abandon' })).toBe('คุณชนะ — หลุดจากเกมเกินเวลา')
   })

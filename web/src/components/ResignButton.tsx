@@ -11,21 +11,29 @@ export function ResignButton({ disabled, onResign }: Props) {
 
   return (
     <>
-      <button type="button" className="danger" disabled={disabled} onClick={() => setConfirming(true)}>
+      <button type="button" className="btn mini danger" disabled={disabled} onClick={() => setConfirming(true)}>
         ยอมแพ้
       </button>
       {confirming && (
-        <div className="overlay fixed" role="dialog" aria-modal="true" aria-labelledby="resign-title">
-          <div className="dialog">
-            <h2 id="resign-title">ยอมแพ้เกมนี้?</h2>
+        <div className="overlay" onClick={() => setConfirming(false)}>
+          <div
+            className="dialog narrow"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="resign-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="dialog-title" id="resign-title">
+              ยอมแพ้เกมนี้?
+            </h2>
             <p>คู่แข่งจะชนะทันที และย้อนกลับไม่ได้</p>
-            <div className="row">
-              <button type="button" autoFocus onClick={() => setConfirming(false)}>
+            <div className="row wrap" style={{ justifyContent: 'center' }}>
+              <button type="button" className="btn mint" autoFocus onClick={() => setConfirming(false)}>
                 เล่นต่อ
               </button>
               <button
                 type="button"
-                className="danger"
+                className="btn danger"
                 onClick={() => {
                   setConfirming(false)
                   onResign()

@@ -1,32 +1,41 @@
-import { PIECE_SETS, setPieceSet, usePieceSet } from '../lib/pieceSets'
+import { previewCells, setById, updateSetPrefs, useSetPrefs, withActive, type BoardSet } from '../lib/pieceSets'
 
-const PREVIEW = ['wK', 'wN', 'bQ', 'bP']
-
-/** ตัวเลือกชุดตัวหมาก มีผลกับหน้าจอของผู้เลือกเท่านั้น คู่แข่งเห็นชุดของตัวเอง */
+/** ปุ่มสลับชุดหมากรุกจากชุดที่เก็บไว้ มีผลกับหน้าจอของผู้เลือกเท่านั้น คู่แข่งเห็นชุดของตัวเอง */
 export function PiecePicker() {
-  const selected = usePieceSet()
+  const { slots, active } = useSetPrefs()
   return (
-    <fieldset className="piece-sets">
-      <legend>ชุดตัวหมาก</legend>
-      {PIECE_SETS.map((set) => (
-        <label key={set.id} className={set.id === selected.id ? 'selected' : undefined}>
-          <input
-            type="radio"
-            name="piece-set"
-            value={set.id}
-            checked={set.id === selected.id}
-            onChange={() => setPieceSet(set.id)}
-          />
-          <span className="piece-preview" aria-hidden="true">
-            {PREVIEW.map((piece) => (
-              <span key={piece} className="piece-icon">
-                {set.pieces[piece]()}
-              </span>
-            ))}
-          </span>
-          <span>{set.label}</span>
-        </label>
+    <div className="row wrap" role="group" aria-label="ชุดหมากรุกที่เก็บไว้">
+      {slots.map((id, slot) => {
+        const set = setById(id)
+        return (
+          <button
+            key={slot}
+            type="button"
+            className="chip"
+            aria-pressed={slot === active}
+            onClick={() => updateSetPrefs((p) => withActive(p, slot))}
+          >
+            <span
+              className="swatch"
+              style={{ background: `linear-gradient(135deg, ${set.light} 50%, ${set.dark} 50%)` }}
+            />
+            {set.name}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/** กระดานตัวอย่าง 4×4 ของชุด เป็นภาพประกอบ ชื่อชุดแสดงเป็นข้อความข้าง ๆ เสมอ */
+export function SetPreview({ set }: { set: BoardSet }) {
+  return (
+    <div className="mini-board four" aria-hidden="true">
+      {previewCells(set).map((c, i) => (
+        <div key={i} style={{ background: c.bg, color: c.color }}>
+          {c.glyph}
+        </div>
       ))}
-    </fieldset>
+    </div>
   )
 }

@@ -1,13 +1,34 @@
-// router ขนาดเล็ก: แอปมีแค่หน้าแรกกับหน้าห้อง จึงไม่ใช้ไลบรารี
+// router ขนาดเล็ก: แอปมีไม่กี่หน้า จึงไม่ใช้ไลบรารี
 
 import { useCallback, useSyncExternalStore } from 'react'
 import { isRoomId } from './protocol'
 
-export type Route = { page: 'home' } | { page: 'room'; roomId: string } | { page: 'not_found' }
+export type Route =
+  | { page: 'home' }
+  | { page: 'play' }
+  | { page: 'login' }
+  | { page: 'register' }
+  | { page: 'terms' }
+  | { page: 'rules' }
+  | { page: 'profile' }
+  | { page: 'room'; roomId: string }
+  | { page: 'not_found' }
+
+const STATIC: Record<string, Route> = {
+  '/': { page: 'home' },
+  '/play': { page: 'play' },
+  '/login': { page: 'login' },
+  '/register': { page: 'register' },
+  '/terms': { page: 'terms' },
+  '/rules': { page: 'rules' },
+  '/profile': { page: 'profile' },
+}
 
 export function parseRoute(pathname: string): Route {
-  if (pathname === '/' || pathname === '') return { page: 'home' }
-  const match = /^\/room\/([^/]+)\/?$/.exec(pathname)
+  const path = pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname
+  if (path === '') return { page: 'home' }
+  if (Object.hasOwn(STATIC, path)) return STATIC[path]
+  const match = /^\/room\/([^/]+)$/.exec(path)
   if (match && isRoomId(match[1])) return { page: 'room', roomId: match[1] }
   return { page: 'not_found' }
 }
@@ -24,8 +45,16 @@ function subscribe(onChange: () => void): () => void {
 export function usePathname(): [string, (to: string) => void] {
   const pathname = useSyncExternalStore(subscribe, () => window.location.pathname)
   const navigate = useCallback((to: string) => {
-    window.history.pushState(null, '', to)
+    window.history.pushState({ inApp: true }, '', to)
     window.dispatchEvent(new PopStateEvent('popstate'))
+    window.scrollTo(0, 0)
   }, [])
   return [pathname, navigate]
+}
+
+/** ย้อนกลับหนึ่งหน้า ถ้าเปิดลิงก์เข้ามาตรง ๆ (ไม่มีหน้าก่อนในแอป) ให้ไปหน้าแรก */
+export function goBack(navigate: (to: string) => void): void {
+  // หน้าที่มาจากการกดในแอปมี state ที่ navigate ใส่ไว้ หน้าแรกที่เปิดเข้ามาไม่มี
+  if ((window.history.state as { inApp?: boolean } | null)?.inApp) window.history.back()
+  else navigate('/')
 }

@@ -3,7 +3,7 @@
 import type { Color, PlayerInfo, StateMsg } from './protocol'
 
 const REASONS: Record<string, string> = {
-  checkmate: 'รุกจน',
+  checkmate: 'รุกฆาต',
   resign: 'ยอมแพ้',
   timeout: 'หมดเวลา',
   stalemate: 'อับ (stalemate)',
@@ -69,4 +69,26 @@ export function statusText(state: StateMsg): string {
       return you === state.turn ? 'ตาคุณเดิน' : 'รอคู่แข่งเดิน'
     }
   }
+}
+
+/** ผลเกมแยกเป็นส่วน ๆ สำหรับป็อปอัปจบเกม */
+export function resultParts(state: StateMsg): {
+  headline: string
+  reason: string
+  outcome: 'win' | 'loss' | 'draw' | 'watch'
+} {
+  const winner = winnerOf(state.result)
+  const reason = REASONS[state.reason ?? ''] ?? ''
+  if (winner === null) return { headline: 'เกมจบแล้ว', reason, outcome: 'watch' }
+  if (winner === 'draw') return { headline: 'เสมอ', reason, outcome: 'draw' }
+  const you = state.you.color
+  if (you === '') return { headline: `ฝ่าย${colorName(winner)}ชนะ`, reason, outcome: 'watch' }
+  return you === winner
+    ? { headline: 'คุณชนะ!', reason, outcome: 'win' }
+    : { headline: 'คุณแพ้', reason, outcome: 'loss' }
+}
+
+/** รหัสห้อง 12 ตัวแบ่งเป็นกลุ่มละ 4 ให้อ่านและบอกต่อง่าย */
+export function formatRoomCode(roomId: string): string {
+  return roomId.replace(/(.{4})(?=.)/g, '$1 ')
 }

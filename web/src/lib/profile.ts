@@ -97,3 +97,36 @@ export async function resizeAvatar(file: Blob): Promise<Blob> {
     bitmap.close()
   }
 }
+
+/** รูปโปรไฟล์สำเร็จรูป: รูปหมากบนพื้นสี วาดในเบราว์เซอร์แล้วอัปโหลดเหมือนรูปทั่วไป */
+export const AVATAR_PRESETS: { glyph: string; bg: string; name: string }[] = [
+  { glyph: '♞', bg: '#FFB8CC', name: 'ม้า' },
+  { glyph: '♛', bg: '#C9BDFF', name: 'ควีน' },
+  { glyph: '♜', bg: '#9FE3C9', name: 'เรือ' },
+  { glyph: '♝', bg: '#FFDC85', name: 'บิชอป' },
+  { glyph: '♚', bg: '#A9D6F7', name: 'คิง' },
+  { glyph: '♟', bg: '#E2C2A2', name: 'เบี้ย' },
+]
+
+export async function presetAvatarBlob(glyph: string, bg: string, font: string): Promise<Blob> {
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = AVATAR_SIDE
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('no canvas')
+  ctx.fillStyle = bg
+  ctx.fillRect(0, 0, AVATAR_SIDE, AVATAR_SIDE)
+  ctx.font = `${AVATAR_SIDE * 0.62}px ${font}`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.lineJoin = 'round'
+  ctx.lineWidth = AVATAR_SIDE * 0.035
+  ctx.strokeStyle = '#3B2F4A'
+  ctx.fillStyle = '#ffffff'
+  // U+FE0E ให้ได้รูปตัวอักษร ไม่ใช่ emoji สี
+  const text = glyph + '︎'
+  ctx.strokeText(text, AVATAR_SIDE / 2, AVATAR_SIDE * 0.54)
+  ctx.fillText(text, AVATAR_SIDE / 2, AVATAR_SIDE * 0.54)
+  return new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('encode failed'))), 'image/png'),
+  )
+}

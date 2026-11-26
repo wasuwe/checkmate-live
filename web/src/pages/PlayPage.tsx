@@ -1,0 +1,123 @@
+import { useState } from 'react'
+import { createRoom, CreateRoomError } from '../lib/api'
+import { DEFAULT_TIME_CONTROL, TIME_CONTROLS } from '../lib/clock'
+import { VS } from '../lib/pieceSets'
+import { roomPath } from '../lib/router'
+
+interface Props {
+  navigate: (to: string) => void
+}
+
+interface GameType {
+  id: string
+  name: string
+  desc: string
+  glyph: string
+  bg: string
+  /** ยังเล่นไม่ได้: เซิร์ฟเวอร์ยังไม่มีกติกาของเกมนี้ */
+  soon: boolean
+}
+
+const GAMES: GameType[] = [
+  { id: 'chess', name: 'หมากรุกสากล', desc: 'กติกามาตรฐานสากล เล่นได้ทั่วโลก', glyph: '♞', bg: '#FFB8CC', soon: false },
+  { id: 'makruk', name: 'หมากรุกไทย', desc: 'เบี้ยเริ่มแถวที่สาม เดินแบบไทยแท้', glyph: '♜', bg: '#9FE3C9', soon: true },
+  { id: 'checkers', name: 'หมากฮอส', desc: 'เดินทแยง กินข้ามหัว เข้าฝั่งได้เป็นฮอส', glyph: '●', bg: '#C9BDFF', soon: true },
+  { id: 'neeb', name: 'หมากหนีบ', desc: 'เดินแบบเรือ หนีบหมากฝ่ายตรงข้ามไว้ตรงกลางเพื่อกิน', glyph: '◎', bg: '#A9D6F7', soon: true },
+]
+
+/** หน้าเลือกเกม แล้วตั้งเวลาและสร้างห้องในป็อปอัป */
+export function PlayPage({ navigate }: Props) {
+  const [picked, setPicked] = useState<GameType | null>(null)
+  const [timeControl, setTimeControl] = useState(DEFAULT_TIME_CONTROL)
+  const [creating, setCreating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function onCreate() {
+    setCreating(true)
+    setError(null)
+    try {
+      navigate(roomPath(await createRoom(timeControl)))
+    } catch (err) {
+      setError(err instanceof CreateRoomError ? err.message : 'สร้างห้องไม่สำเร็จ ตรวจการเชื่อมต่อแล้วลองใหม่')
+      setCreating(false)
+    }
+  }
+
+  function close() {
+    setPicked(null)
+    setError(null)
+  }
+
+  return (
+    <main className="screen medium" style={{ gap: 20 }}>
+      <h1 className="title">เลือกเกมที่อยากเล่น</h1>
+      <div className="game-grid">
+        {GAMES.map((g) => (
+          <button
+            key={g.id}
+            type="button"
+            className={`game-card${picked?.id === g.id ? ' picked' : ''}`}
+            disabled={g.soon}
+            onClick={() => setPicked(g)}
+          >
+            <div className="game-art" style={{ background: g.bg }} aria-hidden="true">
+              {g.glyph + VS}
+            </div>
+            <div className="game-name">{g.name}</div>
+            <div className="game-desc pretty">{g.desc}</div>
+            {g.soon && <div className="pill">เร็วๆ นี้</div>}
+          </button>
+        ))}
+      </div>
+
+      {picked && (
+        <div className="overlay" onClick={close}>
+          <div
+            className="dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="new-game-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="row">
+              <h2 className="dialog-title grow" id="new-game-title">
+                เริ่มเกมใหม่ · {picked.name}
+              </h2>
+              <button type="button" className="close" aria-label="ปิด" onClick={close}>
+                ✕
+              </button>
+            </div>
+            <p className="small pretty">
+              สร้างห้องแล้วส่งลิงก์ให้เพื่อน คนแรกที่เข้ามาจะเป็นคู่แข่ง คนถัดไปเป็นผู้ชม
+            </p>
+            <div className="small" style={{ fontWeight: 600 }} id="tc-label">
+              เวลาเล่นต่อฝั่ง
+            </div>
+            <div className="tc-grid" role="group" aria-labelledby="tc-label">
+              {TIME_CONTROLS.map((tc) => (
+                <button
+                  key={tc.value}
+                  type="button"
+                  className="tc"
+                  aria-pressed={tc.value === timeControl}
+                  onClick={() => setTimeControl(tc.value)}
+                >
+                  <b>{tc.label}</b>
+                  <span>{tc.hint}</span>
+                </button>
+              ))}
+            </div>
+            {error && (
+              <p className="error anim-shake" role="alert">
+                {error}
+              </p>
+            )}
+            <button type="button" className="btn pink strong" autoFocus disabled={creating} onClick={onCreate}>
+              {creating ? 'กำลังสร้างห้อง…' : 'สร้างห้อง'}
+            </button>
+          </div>
+        </div>
+      )}
+    </main>
+  )
+}
