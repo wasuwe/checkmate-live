@@ -1,3 +1,6 @@
+# ARG ที่ใช้ในบรรทัด FROM ต้องประกาศก่อน FROM ตัวแรก
+ARG GO_VERSION=1.27
+
 # ---------- 1) Build หน้าเว็บ React ----------
 FROM node:24-alpine AS web
 WORKDIR /web
@@ -9,7 +12,6 @@ ARG VITE_SUPABASE_ANON_KEY
 RUN npm run build
 
 # ---------- 2) Build Go server ----------
-ARG GO_VERSION=1.26
 FROM golang:${GO_VERSION}-alpine AS server
 WORKDIR /src
 COPY server/go.mod server/go.sum ./

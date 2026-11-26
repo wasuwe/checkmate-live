@@ -6,6 +6,7 @@
 #   VPS_HOST, VPS_USER, VPS_SSH_KEY
 # Variables (ค่าสาธารณะ ใช้ตอน build หน้าเว็บ):
 #   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
+#   DEPLOY_ENABLED=true  (ตั้งเมื่อ VPS พร้อมแล้วเท่านั้น)
 
 name: CI/CD
 
@@ -94,7 +95,8 @@ jobs:
   docker:
     name: Build & push image
     needs: [backend, frontend]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # ปิดไว้จนกว่า VPS จะพร้อม: ตั้ง repository variable DEPLOY_ENABLED=true เพื่อเปิด build image + deploy
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
