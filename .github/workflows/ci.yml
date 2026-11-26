@@ -1,12 +1,13 @@
-# CI/CD สำหรับเกมหมากรุก: Go (server/) + React/Vite (web/)
-# PR  -> ทดสอบ + build อย่างเดียว
-# main -> ทดสอบ -> build Docker image ขึ้น GHCR -> deploy ขึ้น VPS ผ่าน SSH
+# CI/CD สำหรับ checkmate-live: Go (server/) + React/Vite (web/)
+# PR   -> ทดสอบ + build หน้าเว็บ + build Docker image (ไม่ push) เพื่อตรวจว่า Dockerfile ยังใช้ได้
+# main -> ทดสอบ -> deploy ขึ้น Fly.io (Fly เป็นผู้ build image จาก Dockerfile)
 #
-# Secrets ที่ต้องตั้ง (Settings > Secrets and variables > Actions):
-#   VPS_HOST, VPS_USER, VPS_SSH_KEY
+# Secret ที่ต้องตั้ง (Settings > Secrets and variables > Actions):
+#   FLY_API_TOKEN            สร้างด้วย `fly tokens create deploy`
 # Variables (ค่าสาธารณะ ใช้ตอน build หน้าเว็บ):
 #   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
-#   DEPLOY_ENABLED=true  (ตั้งเมื่อ VPS พร้อมแล้วเท่านั้น)
+#   DEPLOY_ENABLED=true      ตั้งเมื่อสร้างแอปและตั้ง secrets บน Fly.io เรียบร้อยแล้วเท่านั้น
+# ความลับของเซิร์ฟเวอร์ (DATABASE_URL, GUEST_SECRET, SUPABASE_JWKS_URL) อยู่ใน Fly.io ไม่อยู่ใน GitHub
 
 name: CI/CD
 
@@ -92,40 +93,19 @@ jobs:
       - name: Audit dependencies
         run: npm audit --omit=dev --audit-level=high
 
-  docker:
-    name: Build & push image
-    needs: [backend, frontend]
-    # ปิดไว้จนกว่า VPS จะพร้อม: ตั้ง repository variable DEPLOY_ENABLED=true เพื่อเปิด build image + deploy
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+  image:
+    name: Docker image
+    # ตรวจว่า Dockerfile ยัง build ได้ ไม่ push ไปที่ไหน (Fly.io build เองตอน deploy)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     steps:
       - uses: actions/checkout@v5
 
       - uses: docker/setup-buildx-action@v3
 
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=raw,value=latest
-            type=sha
-
       - uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          push: false
           build-args: |
             VITE_SUPABASE_URL=${{ vars.VITE_SUPABASE_URL }}
             VITE_SUPABASE_ANON_KEY=${{ vars.VITE_SUPABASE_ANON_KEY }}
@@ -133,19 +113,39 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    name: Deploy to VPS
-    needs: docker
+    name: Deploy to Fly.io
+    needs: [backend, frontend, image]
+    # ปิดไว้จนกว่าแอปบน Fly.io จะพร้อม: ตั้ง repository variable DEPLOY_ENABLED=true เพื่อเปิด
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     environment: production
+    # deploy ทีละครั้ง และไม่ยกเลิกครั้งที่กำลังทำอยู่กลางคัน
+    concurrency:
+      group: fly-deploy
+      cancel-in-progress: false
     steps:
-      - uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            set -e
-            cd /opt/chess
-            docker compose pull
-            docker compose up -d --remove-orphans
-            docker image prune -f
+      - uses: actions/checkout@v5
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      # --ha=false: ห้องอยู่ในหน่วยความจำของเครื่องเดียว จึงต้องมีเครื่องเดียวเสมอ
+      - name: Deploy
+        run: >
+          flyctl deploy --remote-only --ha=false
+          --build-arg VITE_SUPABASE_URL="$VITE_SUPABASE_URL"
+          --build-arg VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Check the site answers
+        run: |
+          host=$(flyctl status --json | jq -r .Hostname)
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS "https://$host/healthz" > /dev/null; then echo "ok: https://$host"; exit 0; fi
+            sleep 6
+          done
+          echo "https://$host/healthz did not answer"; exit 1
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
