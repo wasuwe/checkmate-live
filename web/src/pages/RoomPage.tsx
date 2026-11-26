@@ -14,7 +14,9 @@ import { chatNames } from '../lib/lobby'
 import { VS } from '../lib/pieceSets'
 import { absences } from '../lib/presence'
 import type { ChatItem, Color, StateMsg } from '../lib/protocol'
-import { becameMyTurn, playChime, setTurnSound, turnSoundOn, useTurnSound } from '../lib/turnAlert'
+import { capturedSquares } from '../lib/fx'
+import { playMoveSound } from '../lib/sound'
+import { becameMyTurn, setTurnSound, turnSoundOn, useTurnSound } from '../lib/turnAlert'
 import { shouldToss, tossView, type TossView } from '../lib/toss'
 import {
   colorName,
@@ -307,7 +309,7 @@ function ChatPopover({ pop, children }: { pop: ChatPopup; children: React.ReactN
 }
 
 /**
- * เตือนเมื่อถึงตาผู้เล่น: เสียง (ถ้าเปิดไว้) สั่นบนมือถือ และชื่อแท็บเปลี่ยนเมื่ออยู่หน้าต่างอื่น
+ * เสียงวางหมากทุกตาเดิน (ถ้าเปิดไว้) และเตือนเมื่อถึงตาผู้เล่น: สั่นบนมือถือ และชื่อแท็บเปลี่ยนเมื่ออยู่หน้าต่างอื่น
  * คืนเลขที่เพิ่มทุกครั้งที่ถึงตา (ให้แถบผู้เล่นกะพริบ) และว่าป้ายบนกระดานยังแสดงอยู่หรือไม่ (หายเองหลังเล่นจบ)
  */
 function useTurnAlert(state: StateMsg | null): [number, boolean] {
@@ -318,11 +320,15 @@ function useTurnAlert(state: StateMsg | null): [number, boolean] {
   useEffect(() => {
     const before = prev.current
     prev.current = state
+    // เสียงวางหมากทุกตาเดิน (ทั้งของเราและของคู่แข่ง หมากฮอสที่กินต่อดังทุกต่อ) ตาที่กินมีเสียงหนักกว่า
+    // ไม่ดังตอนเข้าห้องหรือเชื่อมต่อใหม่ที่ข้ามไปหลายตา
+    if (state && before && state.ply === before.ply + 1 && turnSoundOn()) {
+      playMoveSound(capturedSquares(before, state).length > 0 ? 'capture' : 'move')
+    }
     if (!state || !becameMyTurn(before, state)) return
     const next = seq + 1
     setSeq(next)
     setToastSeq(next)
-    if (turnSoundOn()) playChime()
     navigator.vibrate?.(80)
     const timer = setTimeout(() => setToastSeq((t) => (t === next ? 0 : t)), TOAST_MS)
     return () => clearTimeout(timer)
@@ -351,7 +357,7 @@ function useTurnAlert(state: StateMsg | null): [number, boolean] {
 /** ป้าย "ถึงตาคุณแล้ว!" แสดงนานเท่ากับการเคลื่อนไหวของมัน (turnToast ใน index.css) */
 const TOAST_MS = 1800
 
-/** ปุ่มเปิด/ปิดเสียงเตือนเมื่อถึงตา */
+/** ปุ่มเปิด/ปิดเสียงวางหมาก */
 function TurnSoundToggle() {
   const on = useTurnSound()
   return (
@@ -361,10 +367,10 @@ function TurnSoundToggle() {
       aria-pressed={on}
       onClick={() => {
         setTurnSound(!on)
-        if (!on) playChime() // ให้ได้ยินตัวอย่างตอนเปิด
+        if (!on) playMoveSound('move') // ให้ได้ยินตัวอย่างตอนเปิด
       }}
     >
-      {on ? 'เสียงเตือนเมื่อถึงตา: เปิด' : 'เสียงเตือนเมื่อถึงตา: ปิด'}
+      {on ? 'เสียงหมาก: เปิด' : 'เสียงหมาก: ปิด'}
     </button>
   )
 }
