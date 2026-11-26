@@ -1,10 +1,13 @@
 import { pieceSvg, type BoardSet, type Kind } from '../lib/pieceSets'
+import type { StylePrefs } from '../lib/pieceStyles'
 import type { Color, Promo } from '../lib/protocol'
 
 interface Props {
   color: Color
   /** ชุดหมากรุกที่ผู้เล่นใช้อยู่ ให้ตัวเลือกหน้าตาตรงกับบนกระดาน */
   set: BoardSet
+  /** รูปแบบตัวหมากที่ผู้เล่นเลือก ให้ตัวเลือกหน้าตาตรงกับบนกระดาน */
+  styles?: StylePrefs
   onPick: (promo: Exclude<Promo, ''>) => void
   onCancel: () => void
 }
@@ -17,7 +20,7 @@ const CHOICES: { promo: Exclude<Promo, ''>; kind: Kind; name: string }[] = [
 ]
 
 /** ให้ผู้เล่นเลือกว่าจะเลื่อนขั้นเบี้ยเป็นตัวอะไร */
-export function PromotionDialog({ color, set, onPick, onCancel }: Props) {
+export function PromotionDialog({ color, set, styles, onPick, onCancel }: Props) {
   return (
     <div className="overlay" onClick={onCancel}>
       <div
@@ -36,7 +39,7 @@ export function PromotionDialog({ color, set, onPick, onCancel }: Props) {
                 style={{ background: set.dark, borderRadius: 12, border: '2px solid var(--ink)' }}
                 aria-hidden="true"
               >
-                {pieceSvg(set, color, c.kind, { badge: false })}
+                {pieceSvg(set, color, c.kind, { badge: false, styles })}
               </span>
               {c.name}
             </button>

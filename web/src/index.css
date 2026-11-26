@@ -2911,6 +2911,88 @@ a.link-card:hover {
   }
 }
 
+/* ---------- รูปแบบตัวหมากรุก (เลือกเป็นรายตัว) ---------- */
+
+.chip.style-all {
+  padding: 6px 14px;
+}
+
+.style-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.style-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 2.5px solid var(--ink);
+  border-radius: 16px;
+  background: var(--cream);
+}
+
+.style-kind {
+  font-family: var(--font-head);
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.style-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.style-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  background: #fff;
+  font-family: var(--font-body);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    translate 0.35s var(--bounce),
+    box-shadow 0.2s ease;
+}
+
+.style-option:hover {
+  translate: 0 -2px;
+}
+
+.style-option[aria-pressed='true'] {
+  background: var(--butter);
+  box-shadow: var(--ring);
+}
+
+/* ตัวหมากสีขาวบนช่องเข้ม และสีดำบนช่องอ่อน ให้เห็นทั้งสองฝั่ง */
+.style-pair {
+  display: flex;
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+}
+
+.style-pair > span {
+  width: 42px;
+  height: 42px;
+  display: block;
+}
+
+@media (max-width: 480px) {
+  .style-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation: none !important;

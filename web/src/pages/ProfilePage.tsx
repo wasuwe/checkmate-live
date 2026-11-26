@@ -16,8 +16,19 @@ import {
   withAddedSlot,
   withoutSlot,
   withSlot,
+  pieceSvg,
+  type BoardSet,
   type SetColor,
 } from '../lib/pieceSets'
+import {
+  CHESS_KINDS,
+  KIND_NAMES,
+  PIECE_STYLES,
+  setAllPieceStyles,
+  setPieceStyle,
+  stylesFor,
+  useStylePrefs,
+} from '../lib/pieceStyles'
 import { loginAvailable } from '../lib/session'
 
 interface Props {
@@ -186,6 +197,8 @@ function SetSlots() {
           })}
         </div>
       </section>
+
+      <PieceStyleSection set={setById(slots[active])} />
     </>
   )
 }
@@ -235,6 +248,69 @@ function Effects() {
           </div>
         </div>
       ))}
+    </section>
+  )
+}
+
+/**
+ * เลือกรูปแบบ (รูปทรง) ของตัวหมากรุกเป็นรายตัว เช่น คิงใช้แบบหนึ่ง ม้าใช้อีกแบบหนึ่ง
+ * รูปแบบใหม่ที่เพิ่มในระบบภายหลังจะขึ้นให้เลือกที่นี่เอง ใช้กับหมากรุกสากลและหมากรุกไทย
+ */
+function PieceStyleSection({ set }: { set: BoardSet }) {
+  const prefs = useStylePrefs()
+  return (
+    <section className="card" aria-labelledby="piece-style-title">
+      <div className="row wrap" style={{ alignItems: 'baseline' }}>
+        <h2 className="subtitle grow" id="piece-style-title">
+          รูปแบบตัวหมากรุก
+        </h2>
+        <p className="small">เลือกได้เป็นรายตัว · ใช้กับหมากรุกสากลและหมากรุกไทย</p>
+      </div>
+
+      <div className="row wrap" role="group" aria-label="ใช้รูปแบบเดียวกันทุกตัว">
+        <span className="small" style={{ fontWeight: 700 }}>
+          ใช้ทั้งชุด:
+        </span>
+        {PIECE_STYLES.map((style) => (
+          <button
+            key={style.id}
+            type="button"
+            className="chip dark style-all"
+            aria-pressed={CHESS_KINDS.every((k) => prefs[k] === style.id)}
+            title={style.desc}
+            onClick={() => setAllPieceStyles(style.id)}
+          >
+            {style.name}
+          </button>
+        ))}
+      </div>
+
+      <div className="style-rows">
+        {CHESS_KINDS.map((kind) => (
+          <div key={kind} className="style-row" role="group" aria-label={`รูปแบบของ${KIND_NAMES[kind]}`}>
+            <b className="style-kind">{KIND_NAMES[kind]}</b>
+            <div className="style-options">
+              {stylesFor(kind).map((style) => (
+                <button
+                  key={style.id}
+                  type="button"
+                  className="style-option"
+                  aria-pressed={prefs[kind] === style.id}
+                  aria-label={`${KIND_NAMES[kind]}แบบ${style.name}`}
+                  title={style.desc}
+                  onClick={() => setPieceStyle(kind, style.id)}
+                >
+                  <span className="style-pair" aria-hidden="true">
+                    <span style={{ background: set.dark }}>{pieceSvg(set, 'w', kind, { badge: false, styles: { ...prefs, [kind]: style.id } })}</span>
+                    <span style={{ background: set.light }}>{pieceSvg(set, 'b', kind, { badge: false, styles: { ...prefs, [kind]: style.id } })}</span>
+                  </span>
+                  <span className="tiny">{style.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </section>
   )
 }
