@@ -72,8 +72,8 @@ func New(cfg Config, authn auth.Authenticator) *Hub {
 	}
 }
 
-// CreateRoom สร้างห้องใหม่และคืนรหัสห้อง
-func (h *Hub) CreateRoom() (string, error) {
+// CreateRoom สร้างห้องใหม่และคืนรหัสห้อง ถ้า tc เป็นค่าว่างจะใช้ DefaultTimeControl
+func (h *Hub) CreateRoom(tc TimeControl) (string, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if h.closed {
@@ -91,7 +91,7 @@ func (h *Hub) CreateRoom() (string, error) {
 		}
 	}
 
-	room := newRoom(id, h.cfg, h.removeRoom)
+	room := newRoom(id, h.cfg, tc, h.removeRoom)
 	h.rooms[id] = room
 	h.wg.Go(func() { room.run(h.stop) })
 	return id, nil

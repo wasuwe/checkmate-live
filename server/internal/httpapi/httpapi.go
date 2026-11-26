@@ -3,6 +3,8 @@ package httpapi
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -83,13 +85,39 @@ func (a *api) createRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roomID, err := a.cfg.Hub.CreateRoom()
+	tc, ok := readTimeControl(w, r)
+	if !ok {
+		writeError(w, http.StatusBadRequest, "bad_time_control")
+		return
+	}
+
+	roomID, err := a.cfg.Hub.CreateRoom(tc)
 	if err != nil {
 		a.cfg.Logger.Error("create room", "err", err)
 		writeError(w, http.StatusServiceUnavailable, "unavailable")
 		return
 	}
 	writeJSON(w, http.StatusCreated, map[string]string{"roomId": roomID})
+}
+
+// readTimeControl อ่าน body แบบ {"timeControl":"5+3"} ถ้าไม่มี body ใช้ค่าเริ่มต้น
+func readTimeControl(w http.ResponseWriter, r *http.Request) (hub.TimeControl, bool) {
+	var body struct {
+		TimeControl string `json:"timeControl"`
+	}
+	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 256))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&body); err != nil {
+		if errors.Is(err, io.EOF) {
+			return hub.DefaultTimeControl, true
+		}
+		return hub.TimeControl{}, false
+	}
+	if body.TimeControl == "" {
+		return hub.DefaultTimeControl, true
+	}
+	tc, err := hub.ParseTimeControl(body.TimeControl)
+	return tc, err == nil
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

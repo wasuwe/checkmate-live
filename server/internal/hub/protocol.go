@@ -18,6 +18,7 @@ const (
 	msgJoin   = "join"
 	msgMove   = "move"
 	msgResign = "resign"
+	msgChat   = "chat"
 )
 
 // inbound คือข้อความขาเข้าทุกชนิดรวมกัน field ที่ไม่รู้จักจะถูกปฏิเสธ
@@ -29,6 +30,7 @@ type inbound struct {
 	From  string `json:"from,omitempty"`
 	To    string `json:"to,omitempty"`
 	Promo string `json:"promo,omitempty"`
+	Text  string `json:"text,omitempty"`
 }
 
 var (
@@ -51,6 +53,23 @@ func decodeInbound(data []byte) (inbound, error) {
 		return inbound{}, errBadMessage
 	}
 
+	// inbound เป็น struct รวมของทุกชนิดข้อความ จึงต้องตรวจเองว่าไม่มี field ของชนิดอื่นปนมา
+	// allowed คือข้อความเดียวกันที่เหลือเฉพาะ field ของชนิดนั้น ถ้าไม่เท่ากับ m แปลว่ามี field เกิน
+	allowed := inbound{Type: m.Type}
+	switch m.Type {
+	case msgAuth:
+		allowed.Token = m.Token
+	case msgJoin:
+		allowed.Room = m.Room
+	case msgMove:
+		allowed.Ply, allowed.From, allowed.To, allowed.Promo = m.Ply, m.From, m.To, m.Promo
+	case msgChat:
+		allowed.Text = m.Text
+	}
+	if m != allowed {
+		return inbound{}, errBadMessage
+	}
+
 	switch m.Type {
 	case msgAuth:
 		if m.Token == "" {
@@ -67,6 +86,12 @@ func decodeInbound(data []byte) (inbound, error) {
 		}
 	case msgResign:
 		// ไม่มี field เพิ่ม: ผู้แพ้คือเจ้าของ connection เซิร์ฟเวอร์ไม่รับ winner/color จาก client
+	case msgChat:
+		text, ok := cleanChatText(m.Text)
+		if !ok {
+			return inbound{}, errBadMessage
+		}
+		m.Text = text
 	default:
 		return inbound{}, errBadMessage
 	}
@@ -87,6 +112,8 @@ const (
 	errCodeNotYourTurn   = "not_your_turn"
 	errCodeStaleMove     = "stale_move"
 	errCodeIllegalMove   = "illegal_move"
+
+	errCodeChatRateLimited = "chat_rate_limited"
 )
 
 // Status คือสถานะของห้อง
@@ -131,6 +158,14 @@ type playerInfo struct {
 	GraceLeft int `json:"graceLeft,omitempty"`
 }
 
+// clockInfo คือเวลาที่เหลือของแต่ละฝั่งเป็นมิลลิวินาที ณ ตอนที่ส่งข้อความ
+// Running คือฝั่งที่นาฬิกากำลังเดิน ("" = หยุด) ฝั่งเว็บนับต่อเองเพื่อแสดงผลเท่านั้น
+type clockInfo struct {
+	White   int64      `json:"w"`
+	Black   int64      `json:"b"`
+	Running game.Color `json:"running"`
+}
+
 type youInfo struct {
 	Role  string     `json:"role"`
 	Color game.Color `json:"color"` // "" ถ้าเป็นคนดู หรือยังไม่ได้สุ่มสี
@@ -148,8 +183,11 @@ type stateMsg struct {
 	LastMove *moveInfo                  `json:"lastMove,omitempty"`
 	Players  map[game.Color]*playerInfo `json:"players,omitempty"`
 	You      youInfo                    `json:"you"`
-	Result   string                     `json:"result,omitempty"`
-	Reason   string                     `json:"reason,omitempty"`
+	// TimeControl เช่น "10+0" (นาที+วินาทีที่บวกต่อตา)
+	TimeControl string    `json:"tc"`
+	Clock       clockInfo `json:"clock"`
+	Result      string    `json:"result,omitempty"`
+	Reason      string    `json:"reason,omitempty"`
 }
 
 func mustJSON(v any) []byte {

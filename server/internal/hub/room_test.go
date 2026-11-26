@@ -25,6 +25,14 @@ type serverMsg struct {
 	You      youInfo                    `json:"you"`
 	Result   string                     `json:"result"`
 	Reason   string                     `json:"reason"`
+	TC       string                     `json:"tc"`
+	Clock    clockInfo                  `json:"clock"`
+	// แชท
+	ID       int        `json:"id"`
+	From     game.Color `json:"from"`
+	Text     string     `json:"text"`
+	Mine     bool       `json:"mine"`
+	Messages []chatItem `json:"messages"`
 }
 
 const testTimeout = 3 * time.Second
@@ -46,7 +54,7 @@ func newTestHub(t *testing.T, cfg Config) *Hub {
 
 func newTestRoom(t *testing.T, h *Hub) *Room {
 	t.Helper()
-	id, err := h.CreateRoom()
+	id, err := h.CreateRoom(TimeControl{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -411,7 +419,7 @@ func TestHubCloseStopsRooms(t *testing.T) {
 	default:
 		t.Fatal("client was not kicked on hub close")
 	}
-	if _, err := h.CreateRoom(); err != ErrClosed {
+	if _, err := h.CreateRoom(TimeControl{}); err != ErrClosed {
 		t.Fatalf("CreateRoom after close: err = %v, want ErrClosed", err)
 	}
 }

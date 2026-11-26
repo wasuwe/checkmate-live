@@ -17,6 +17,7 @@ const ERRORS: Record<string, string> = {
   stale_move: 'กระดานเปลี่ยนไปแล้ว ลองเดินใหม่',
   not_a_player: 'คุณเป็นผู้ชม เดินหมากไม่ได้',
   game_not_active: 'เกมนี้ไม่ได้อยู่ระหว่างเล่น',
+  bad_message: 'ส่งข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง',
 }
 
 export function colorName(color: Color): string {

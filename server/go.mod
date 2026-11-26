@@ -7,9 +7,7 @@ require (
 	github.com/coder/websocket v1.8.15
 	github.com/corentings/chess/v2 v2.6.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
+	golang.org/x/time v0.15.0
 )
 
-require (
-	github.com/MicahParks/jwkset v0.11.4 // indirect
-	golang.org/x/time v0.15.0 // indirect
-)
+require github.com/MicahParks/jwkset v0.11.4 // indirect

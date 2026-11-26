@@ -1,5 +1,12 @@
 import { describe, expect, test } from 'vitest'
 import { applyMove, checkedKingSquare, isPromotion, legalTargets, pieceColor } from './moves'
+import {
+  clockAt,
+  DEFAULT_TIME_CONTROL,
+  describeTimeControl,
+  formatClock,
+  TIME_CONTROLS,
+} from './clock'
 import { absences } from './presence'
 import { extractRoomId, isRoomId, parseServerMsg, type StateMsg } from './protocol'
 import { parseRoute, roomPath } from './router'
@@ -89,6 +96,64 @@ describe('router', () => {
   })
 })
 
+describe('clock', () => {
+  const base: StateMsg = {
+    type: 'state',
+    room: 'abcdefghjkmn',
+    status: 'playing',
+    fen: START,
+    turn: 'w',
+    ply: 0,
+    you: { role: 'player', color: 'w' },
+    tc: '5+3',
+    clock: { w: 300_000, b: 280_000, running: 'w' },
+  }
+
+  test('only the running side counts down', () => {
+    expect(clockAt(base, 1000, 1000)).toEqual({ w: 300_000, b: 280_000 })
+    expect(clockAt(base, 1000, 31_000)).toEqual({ w: 270_000, b: 280_000 })
+    const blackToMove: StateMsg = { ...base, clock: { ...base.clock, running: 'b' } }
+    expect(clockAt(blackToMove, 1000, 31_000)).toEqual({ w: 300_000, b: 250_000 })
+  })
+
+  test('a stopped clock does not move, and time never goes negative or backwards', () => {
+    const stopped: StateMsg = { ...base, clock: { ...base.clock, running: '' } }
+    expect(clockAt(stopped, 0, 999_999)).toEqual({ w: 300_000, b: 280_000 })
+    expect(clockAt(base, 0, 999_999).w).toBe(0)
+    expect(clockAt(base, 5000, 1000).w).toBe(300_000)
+  })
+
+  test('formatClock', () => {
+    expect(formatClock(600_000)).toBe('10:00')
+    expect(formatClock(599_001)).toBe('10:00')
+    expect(formatClock(599_000)).toBe('9:59')
+    expect(formatClock(61_000)).toBe('1:01')
+    expect(formatClock(10_000)).toBe('0:10')
+    expect(formatClock(9_999)).toBe('0:09.9')
+    expect(formatClock(9_400)).toBe('0:09.4')
+    expect(formatClock(100)).toBe('0:00.1')
+    expect(formatClock(0)).toBe('0:00.0')
+    expect(formatClock(-50)).toBe('0:00.0')
+    expect(formatClock(3_600_000)).toBe('60:00')
+  })
+
+  test('describeTimeControl', () => {
+    expect(describeTimeControl('10+0')).toBe('10 นาที')
+    expect(describeTimeControl('5+3')).toBe('5 นาที +3 วินาทีต่อตา')
+    expect(describeTimeControl('weird')).toBe('weird')
+  })
+
+  test('every offered time control is one the server accepts', () => {
+    for (const tc of TIME_CONTROLS) {
+      const match = /^(\d{1,2})\+(\d{1,2})$/.exec(tc.value)
+      expect(match, tc.value).not.toBeNull()
+      const [minutes, increment] = [Number(match![1]), Number(match![2])]
+      expect(minutes >= 1 && minutes <= 60 && increment <= 60, tc.value).toBe(true)
+    }
+    expect(TIME_CONTROLS.map((tc) => tc.value)).toContain(DEFAULT_TIME_CONTROL)
+  })
+})
+
 describe('presence', () => {
   const playing: StateMsg = {
     type: 'state',
@@ -98,6 +163,8 @@ describe('presence', () => {
     turn: 'w',
     ply: 0,
     you: { role: 'player', color: 'w' },
+    tc: '10+0',
+    clock: { w: 600000, b: 600000, running: 'w' },
     players: { w: { connected: true }, b: { connected: false, graceLeft: 60 } },
   }
 
@@ -129,6 +196,8 @@ describe('text', () => {
     turn: 'w',
     ply: 0,
     you: { role: 'player', color: 'w' },
+    tc: '10+0',
+    clock: { w: 600000, b: 600000, running: 'w' },
   }
 
   test('statusText while playing depends on whose turn it is', () => {

@@ -420,6 +420,114 @@ func TestWebSocketOversizedMessageDisconnects(t *testing.T) {
 	c.expectClosed("oversized message")
 }
 
+// createRoomWith ส่ง body ดิบไปที่ POST /api/rooms คืน status และรหัสห้อง
+func (s *testServer) createRoomWith(token, body string) (int, string) {
+	s.t.Helper()
+	req, err := http.NewRequest(http.MethodPost, s.URL+"/api/rooms", strings.NewReader(body))
+	if err != nil {
+		s.t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := s.Client().Do(req)
+	if err != nil {
+		s.t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	out := map[string]string{}
+	_ = json.NewDecoder(resp.Body).Decode(&out)
+	return resp.StatusCode, out["roomId"]
+}
+
+func TestCreateRoomTimeControl(t *testing.T) {
+	s := newTestServer(t, hub.Config{})
+	_, token := s.newGuest()
+
+	type clockState struct {
+		Type  string `json:"type"`
+		TC    string `json:"tc"`
+		Clock struct {
+			W int64 `json:"w"`
+		} `json:"clock"`
+	}
+	valid := map[string]struct {
+		tc string
+		ms int64
+	}{
+		``:                        {"10+0", 600_000},
+		`{}`:                      {"10+0", 600_000},
+		`{"timeControl":"5+3"}`:   {"5+3", 300_000},
+		`{"timeControl":"15+10"}`: {"15+10", 900_000},
+	}
+	for body, want := range valid {
+		status, roomID := s.createRoomWith(token, body)
+		if status != http.StatusCreated {
+			t.Fatalf("body %q: status = %d, want 201", body, status)
+		}
+		c := s.connect(token)
+		c.send(map[string]string{"type": "join", "room": roomID})
+		ctx, cancel := context.WithTimeout(context.Background(), e2eTimeout)
+		_, data, err := c.conn.Read(ctx)
+		cancel()
+		if err != nil {
+			t.Fatal(err)
+		}
+		var st clockState
+		if err := json.Unmarshal(data, &st); err != nil || st.Type != "state" {
+			t.Fatalf("body %q: first message %s", body, data)
+		}
+		if st.TC != want.tc || st.Clock.W != want.ms {
+			t.Errorf("body %q: tc=%q white=%dms, want %q %dms", body, st.TC, st.Clock.W, want.tc, want.ms)
+		}
+	}
+
+	invalid := []string{
+		`{"timeControl":"0+0"}`,
+		`{"timeControl":"999+0"}`,
+		`{"timeControl":"fast"}`,
+		`{"timeControl":5}`,
+		`{"timeControl":"5+3","winner":"w"}`,
+		`not json`,
+		`{"timeControl":"` + strings.Repeat("1", 1000) + `"}`,
+	}
+	for _, body := range invalid {
+		if status, _ := s.createRoomWith(token, body); status != http.StatusBadRequest {
+			t.Errorf("body %.40q: status = %d, want 400", body, status)
+		}
+	}
+}
+
+func TestChatOverWebSocket(t *testing.T) {
+	s := newTestServer(t, hub.Config{})
+	_, t1 := s.newGuest()
+	_, t2 := s.newGuest()
+	roomID := s.newRoom(t1)
+	join := map[string]string{"type": "join", "room": roomID}
+	isState := func(m msg) bool { return m.Type == "state" }
+
+	a := s.connect(t1)
+	a.send(map[string]string{"type": "chat", "text": "hi"})
+	a.expectError("not_joined")
+	a.send(join)
+	a.until("state", isState)
+	b := s.connect(t2)
+	b.send(join)
+	b.until("state", isState)
+
+	a.send(map[string]string{"type": "chat", "text": "<img src=x onerror=alert(1)>"})
+	b.until("chat", func(m msg) bool { return m.Type == "chat" })
+
+	a.sendRaw(`{"type":"chat","text":"` + strings.Repeat("ก", 201) + `"}`)
+	a.expectError("bad_message")
+	a.sendRaw(`{"type":"chat","text":"hi","from":"b"}`)
+	a.expectError("bad_message")
+
+	// คนที่เข้าทีหลังได้ประวัติแชท
+	_, t3 := s.newGuest()
+	c := s.connect(t3)
+	c.send(join)
+	c.until("chat_history", func(m msg) bool { return m.Type == "chat_history" })
+}
+
 func TestCreateRoomRequiresAuth(t *testing.T) {
 	s := newTestServer(t, hub.Config{})
 	for name, token := range map[string]string{"no token": "", "forged token": "guest_abc.forged"} {

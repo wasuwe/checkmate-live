@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { AccountPanel } from '../components/AccountPanel'
 import { createRoom } from '../lib/api'
 import { APP_NAME } from '../lib/appInfo'
+import { DEFAULT_TIME_CONTROL, TIME_CONTROLS } from '../lib/clock'
 import { extractRoomId } from '../lib/protocol'
 import { roomPath } from '../lib/router'
 
@@ -11,6 +12,7 @@ interface Props {
 
 export function HomePage({ navigate }: Props) {
   const [creating, setCreating] = useState(false)
+  const [timeControl, setTimeControl] = useState(DEFAULT_TIME_CONTROL)
   const [createError, setCreateError] = useState(false)
   const [code, setCode] = useState('')
   const [codeError, setCodeError] = useState(false)
@@ -19,7 +21,7 @@ export function HomePage({ navigate }: Props) {
     setCreating(true)
     setCreateError(false)
     try {
-      navigate(roomPath(await createRoom()))
+      navigate(roomPath(await createRoom(timeControl)))
     } catch {
       setCreateError(true)
       setCreating(false)
@@ -44,6 +46,22 @@ export function HomePage({ navigate }: Props) {
       <section className="card">
         <h2>เริ่มเกมใหม่</h2>
         <p>สร้างห้องแล้วส่งลิงก์ให้เพื่อน คนแรกที่เข้ามาจะเป็นคู่แข่ง คนถัดไปเป็นผู้ชม</p>
+        <fieldset className="time-controls">
+          <legend>เวลาเล่นต่อฝั่ง</legend>
+          {TIME_CONTROLS.map((tc) => (
+            <label key={tc.value} className={tc.value === timeControl ? 'selected' : undefined}>
+              <input
+                type="radio"
+                name="time-control"
+                value={tc.value}
+                checked={tc.value === timeControl}
+                onChange={() => setTimeControl(tc.value)}
+              />
+              <span className="tc-label">{tc.label}</span>
+              <span className="tc-hint">{tc.hint}</span>
+            </label>
+          ))}
+        </fieldset>
         <button type="button" className="primary" onClick={onCreate} disabled={creating}>
           {creating ? 'กำลังสร้างห้อง…' : 'สร้างห้อง'}
         </button>
