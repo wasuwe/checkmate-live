@@ -2264,24 +2264,230 @@ a.link-card:hover {
   white-space: pre-line; /* คำอธิบายขึ้นบรรทัดใหม่ได้ */
 }
 
-.admin-row {
+.admin-head {
+  align-items: center;
+}
+
+.admin-head .btn {
+  min-height: 44px;
+}
+
+/* แท็บหมวดข้อมูล: ติดขอบบนเมื่อเลื่อน เพื่อสลับหมวดได้ทุกเมื่อ */
+.admin-tabs {
+  position: sticky;
+  top: 8px;
+  z-index: 6;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: start;
-  padding: 12px;
-  border: 2.5px solid var(--ink);
-  border-radius: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 6px;
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 5px 0 var(--ink);
+}
+
+.admin-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 6px 8px;
+  border: 2.5px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  font-family: var(--font-head);
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.admin-tab:hover {
   background: var(--cream);
 }
 
-.admin-row > .admin-fields:first-child {
-  grid-column: 1 / 3;
+.admin-tab[aria-selected='true'] {
+  border-color: var(--ink);
+  background: var(--butter);
+}
+
+.admin-tab-count {
+  min-width: 26px;
+  padding: 1px 7px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* จุดบอกว่าหมวดนี้มีรายการที่ยังไม่ได้บันทึก */
+.admin-tab-dot {
+  position: absolute;
+  top: 5px;
+  right: 7px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--pink-strong);
+}
+
+.admin-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-panel[hidden] {
+  display: none;
+}
+
+.admin-panel-head {
+  align-items: center;
+}
+
+/* การ์ดของหนึ่งรายการ */
+.admin-row {
+  border: 2.5px solid var(--ink);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 3px 0 var(--ink);
+  overflow: hidden;
+}
+
+.admin-row.open {
+  box-shadow: 0 5px 0 var(--ink);
+}
+
+/* รายการที่พิมพ์ไว้แต่ยังไม่ได้บันทึก */
+.admin-row.dirty {
+  border-color: var(--pink-strong);
+  box-shadow: 0 5px 0 var(--pink-strong);
+}
+
+.admin-row-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+}
+
+.admin-row.open > .admin-row-head {
+  border-bottom: 2.5px dashed var(--ink);
+  background: var(--cream);
+}
+
+.admin-row-title {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: 16px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.admin-row-title:disabled {
+  cursor: default;
+}
+
+.admin-row-title > * {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-row-move {
+  flex: none;
+  display: flex;
+  gap: 6px;
+}
+
+.admin-row-move .btn,
+.save-line .btn,
+.oc-image .btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
+.pill.unsaved {
+  flex: none;
+  background: var(--pink);
+  white-space: nowrap;
+}
+
+.role-swatch {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+}
+
+.oc-thumb {
+  flex: none;
+  width: 40px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 2.5px solid var(--ink);
+  border-radius: 10px;
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 20px;
+}
+
+.oc-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+
+.oc-no {
+  font-family: var(--font-head);
+  font-weight: 500;
+  opacity: 0.6;
+}
+
+.admin-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  animation: fade 0.2s ease both;
+}
+
+.oc-edit {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.oc-edit > .admin-fields {
+  flex: 1;
 }
 
 .admin-fields {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
   gap: 10px;
   min-width: 0;
 }
@@ -2290,52 +2496,33 @@ a.link-card:hover {
   grid-column: 1 / -1;
 }
 
-.admin-fields .input {
-  background: #fff;
-}
-
 .admin-fields textarea.input {
   resize: vertical;
   min-height: 84px;
   line-height: 1.5;
 }
 
-.admin-note {
-  max-width: 150px;
-}
-
-/* รายการที่พิมพ์ไว้แต่ยังไม่ได้บันทึก */
-.admin-row.dirty {
-  background: #fff6d6;
-  box-shadow: inset 5px 0 0 var(--butter);
+.admin-fields .count {
+  align-self: flex-end;
+  font-weight: 400;
+  opacity: 0.7;
 }
 
 .save-line {
-  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 2px dashed rgba(59, 47, 74, 0.35);
 }
 
-.save-line .btn {
-  min-height: 44px;
+.save-line .error {
+  flex-basis: 100%;
 }
 
-.row-tools .btn.danger {
-  white-space: nowrap;
-}
-
-.row-tools {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.row-tools .btn {
-  min-width: 44px;
-  min-height: 44px;
-  padding: 6px 10px;
+.admin-note {
+  text-align: right;
 }
 
 .color-field input[type='color'] {
@@ -2387,7 +2574,8 @@ a.link-card:hover {
 }
 
 .oc-image {
-  width: 112px;
+  flex: none;
+  width: 132px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -2403,7 +2591,7 @@ a.link-card:hover {
   border-radius: 14px;
   font-family: var(--font-head);
   font-weight: 600;
-  font-size: 44px;
+  font-size: 48px;
   color: #fff;
   -webkit-text-stroke: 2px var(--ink);
 }
@@ -2414,51 +2602,52 @@ a.link-card:hover {
   object-fit: contain;
 }
 
-.oc-image .btn {
-  min-height: 44px;
-  padding: 6px 8px;
-  font-size: 13px;
-}
-
-/* แถบบันทึกติดขอบล่างของจอ */
+/* แถบสถานะติดขอบล่างของจอ */
 .admin-bar {
   position: sticky;
-  bottom: 12px;
+  bottom: 10px;
   z-index: 5;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 8px 12px;
   border: 3px solid var(--ink);
-  border-radius: 20px;
+  border-radius: 18px;
   background: #fff;
-  box-shadow: 0 6px 0 var(--ink);
+  box-shadow: 0 5px 0 var(--ink);
 }
 
 .admin-bar-status {
-  min-width: 160px;
+  min-width: 140px;
   font-weight: 600;
   font-size: 14px;
 }
 
+.admin-bar .btn {
+  min-height: 44px;
+}
+
 @media (max-width: 620px) {
-  .admin-row {
-    grid-template-columns: minmax(0, 1fr);
+  .admin-tab {
+    flex-direction: column;
+    gap: 2px;
+    font-size: 14px;
   }
 
-  .admin-row > .admin-fields:first-child {
-    grid-column: auto;
-  }
-
-  .row-tools {
-    flex-direction: row;
+  .admin-row-head {
     flex-wrap: wrap;
   }
 
-  .admin-note {
-    max-width: none;
+  /* ปุ่มย้ายและแก้ไขลงไปอยู่บรรทัดของตัวเอง ชิดขวา */
+  .admin-row-move {
     width: 100%;
+    justify-content: flex-end;
+  }
+
+  .oc-edit {
+    flex-direction: column;
+    align-items: stretch; /* ช่องกรอกกว้างเต็มการ์ด */
   }
 
   .oc-image {
@@ -2469,7 +2658,11 @@ a.link-card:hover {
   }
 
   .oc-image-preview {
-    width: 84px;
+    width: 96px;
+  }
+
+  .admin-bar-tab {
+    display: none;
   }
 }
 
