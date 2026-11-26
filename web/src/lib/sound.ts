@@ -72,10 +72,11 @@ export const KNOCK_STYLES: KnockStyle[] = [
   },
 ]
 
-export const DEFAULT_KNOCK = KNOCK_STYLES[0].id
+/** แบบที่เจ้าของโปรเจกต์เลือก (2026-11-27): ปักสั้น */
+export const DEFAULT_KNOCK = 'pak'
 
 export function knockById(id: string | undefined): KnockStyle {
-  return KNOCK_STYLES.find((k) => k.id === id) ?? KNOCK_STYLES[0]
+  return KNOCK_STYLES.find((k) => k.id === (id ?? DEFAULT_KNOCK)) ?? KNOCK_STYLES.find((k) => k.id === DEFAULT_KNOCK)!
 }
 
 let ctx: AudioContext | null = null
