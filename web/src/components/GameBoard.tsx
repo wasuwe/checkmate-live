@@ -12,6 +12,7 @@ import {
   targetsFor,
 } from '../lib/moves'
 import { piecesFor, useSetPrefs } from '../lib/pieceSets'
+import { useStylePrefs } from '../lib/pieceStyles'
 import type { GameId, Promo, StateMsg } from '../lib/protocol'
 import { FxBurst } from './Fx'
 import { PromotionDialog } from './PromotionDialog'
@@ -49,6 +50,7 @@ const FX_DURATION_MS = 1700
 
 export function GameBoard({ state, online, errorSeq, sendMove }: Props) {
   const { set } = useSetPrefs()
+  const styles = useStylePrefs()
   const [pending, setPending] = useState<Pending | null>(null)
   const [selected, setSelected] = useState<{ square: string; ply: number } | null>(null)
   const [promotion, setPromotion] = useState<{ from: string; to: string; ply: number } | null>(null)
@@ -79,7 +81,7 @@ export function GameBoard({ state, online, errorSeq, sendMove }: Props) {
   // หมากที่เพิ่งเดินเด้งลงช่องหนึ่งครั้งต่อตาเดิน
   const landOn = lastMove?.to
   const landKey = state.ply + (activePending ? 1 : 0)
-  const pieces = useMemo(() => piecesFor(set, { landOn, landKey }), [set, landOn, landKey])
+  const pieces = useMemo(() => piecesFor(set, { landOn, landKey, styles }), [set, landOn, landKey, styles])
 
   function commit(from: string, to: string, promo: Promo): boolean {
     const next = previewFor(state, from, to, promo)
@@ -159,6 +161,7 @@ export function GameBoard({ state, online, errorSeq, sendMove }: Props) {
         <PromotionDialog
           color={myColor}
           set={set}
+          styles={styles}
           onPick={(promo) => {
             commit(activePromotion.from, activePromotion.to, promo)
             setPromotion(null)

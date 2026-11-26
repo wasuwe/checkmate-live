@@ -7,7 +7,8 @@
 // ไฟล์นี้ไม่มี component (มีแต่ฟังก์ชันวาดตัวหมาก) กฎ fast refresh จึงไม่เกี่ยว
 /* oxlint-disable react/only-export-components */
 
-import { useSyncExternalStore, type CSSProperties, type JSX } from 'react'
+import { cloneElement, useSyncExternalStore, type CSSProperties, type JSX } from 'react'
+import { drawPiece, styleKind, type StylePrefs } from './pieceStyles'
 import type { Color } from './protocol'
 
 export const INK = '#3B2F4A'
@@ -93,6 +94,8 @@ export interface PieceOptions {
   landKey?: number
   /** แสดงป้ายบอกชนิดหมากที่มุม (ค่าเริ่มต้น: แสดง) */
   badge?: boolean
+  /** รูปแบบตัวหมากที่ผู้เล่นเลือกเป็นรายตัว (ไม่ระบุ = แบบสัญลักษณ์ทุกตัว) */
+  styles?: StylePrefs
 }
 
 /** ตัวหมากหนึ่งตัวเป็น SVG ใช้ได้ทั้งบนกระดานและที่อื่น */
@@ -100,27 +103,15 @@ export function pieceSvg(
   set: BoardSet,
   color: Color,
   kind: Kind,
-  opts: { badge?: boolean; className?: string; style?: CSSProperties; key?: string | number } = {},
+  opts: { badge?: boolean; className?: string; style?: CSSProperties; key?: string | number; styles?: StylePrefs } = {},
 ): JSX.Element {
   if (kind === 'C' || kind === 'H' || kind === 'O') return discSvg(set, color, kind === 'H', opts)
+  // รูปทรงมาจากรูปแบบที่ผู้เล่นเลือกของตัวหมากรุกสากลที่ตรงกัน (เม็ด=ควีน โคน=บิชอป เบี้ยหงาย=เบี้ย)
+  const base = styleKind(kind) ?? 'P'
+  const body = drawPiece(opts.styles?.[base], base, { fill: color === 'w' ? set.w : set.b, ink: INK, color })
   return (
     <svg key={opts.key} viewBox="0 0 45 45" className={opts.className ?? 'piece'} style={opts.style}>
-      <text
-        x="22.5"
-        y="25"
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fontSize="35"
-        fontFamily={GLYPH_FONT}
-        fill={color === 'w' ? set.w : set.b}
-        stroke={INK}
-        strokeWidth="1.5"
-        paintOrder="stroke"
-        strokeLinejoin="round"
-        transform={FLIPPED[kind] ? 'rotate(180 22.5 22.5)' : undefined}
-      >
-        {GLYPH[kind] + VS}
-      </text>
+      {FLIPPED[kind] ? cloneElement(body, { transform: 'rotate(180 22.5 22.5)' }) : body}
       {opts.badge !== false && (
         <>
           <circle cx="7.2" cy="7.2" r="5.6" fill="#fff" stroke={INK} strokeWidth="0.9" />
@@ -195,6 +186,7 @@ export function piecesFor(set: BoardSet, opts: PieceOptions = {}): PieceRenderer
         const landing = props?.square !== undefined && props.square === opts.landOn
         return pieceSvg(set, color, kind, {
           badge: opts.badge,
+          styles: opts.styles,
           className: landing ? 'piece land' : 'piece',
           style: props?.svgStyle,
           // key ใหม่ทำให้หมากที่เพิ่งเดินถูกสร้างใหม่ การเด้งจึงเล่นหนึ่งครั้งต่อตาเดิน
