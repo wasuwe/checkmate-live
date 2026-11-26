@@ -1,8 +1,10 @@
-// เสียงวางหมากไม้บนกระดาน (เจ้าของโปรเจกต์ขอให้เหมือนเดินหมากจริง 2026-11-27)
-// สังเคราะห์ด้วย Web Audio ไม่มีไฟล์เสียง: เสียง "ก๊อก" ของไม้กระทบไม้ประกอบจาก
-//   1) เสียงกระทบสั้นมาก (สัญญาณรบกวนผ่านตัวกรองช่วงกลางสูง) = ขอบหมากกระแทกกระดาน
-//   2) เสียงก้องของเนื้อไม้ (คลื่นความถี่กลางที่ดับเร็ว) = เสียง "ก๊อก"
+// เสียงหมากเคาะกระดาน "ปัก" (เจ้าของโปรเจกต์ขอให้เหมือนเดินหมากจริง 2026-11-27
+// รอบแรกเป็น "ต๊อก" แหลมเกินไป จึงทำให้ทึบและต่ำลง)
+// สังเคราะห์ด้วย Web Audio ไม่มีไฟล์เสียง ประกอบจาก
+//   1) เสียงกระแทกสั้น (สัญญาณรบกวนผ่านตัวกรองช่วงกลางต่ำ) = ฐานหมากกระแทกกระดาน
+//   2) เสียงเนื้อไม้หนา (ความถี่กลางต่ำที่ดับเร็วมาก) = ตัว "ปัก"
 //   3) เสียงทุ้มของกระดาน (ความถี่ต่ำที่ตกลงเร็ว) = น้ำหนักของตัวหมาก
+// แล้วตัดเสียงแหลมทิ้งทั้งหมด ให้ทึบแบบไม้หนาบนโต๊ะ
 // ทุกครั้งสุ่มระดับเสียงเล็กน้อย ให้ไม่ซ้ำกันเป๊ะเหมือนของจริง
 
 export type MoveSound = 'move' | 'capture'
@@ -31,20 +33,20 @@ function knock(ac: BaseAudioContext, out: AudioNode, at: number, force: number, 
   noise.buffer = noiseFor(ac)
   const band = ac.createBiquadFilter()
   band.type = 'bandpass'
-  band.frequency.value = 2400 * pitch
-  band.Q.value = 1.6
+  band.frequency.value = 1100 * pitch
+  band.Q.value = 0.8
   const hitGain = ac.createGain()
   hitGain.gain.setValueAtTime(0.0001, at)
-  hitGain.gain.exponentialRampToValueAtTime(0.9 * force, at + 0.002)
-  hitGain.gain.exponentialRampToValueAtTime(0.0001, at + 0.035)
+  hitGain.gain.exponentialRampToValueAtTime(1.3 * force, at + 0.0015)
+  hitGain.gain.exponentialRampToValueAtTime(0.0001, at + 0.028)
   noise.connect(band).connect(hitGain).connect(out)
   noise.start(at)
   noise.stop(at + 0.06)
 
-  // 2) เนื้อไม้ "ก๊อก": สองความถี่ที่ไม่ลงตัวกันแบบไม้จริง ดับใน ~70ms
+  // 2) เนื้อไม้ "ปัก": สองความถี่ที่ไม่ลงตัวกันแบบไม้จริง ดับเร็วมากจึงไม่ก้อง
   for (const [freq, level, decay] of [
-    [920, 0.5, 0.07],
-    [1530, 0.22, 0.045],
+    [520, 0.6, 0.045],
+    [1180, 0.16, 0.025],
   ] as const) {
     const osc = ac.createOscillator()
     osc.type = 'sine'
@@ -62,12 +64,12 @@ function knock(ac: BaseAudioContext, out: AudioNode, at: number, force: number, 
   // 3) เสียงทุ้มของกระดาน
   const body = ac.createOscillator()
   body.type = 'sine'
-  body.frequency.setValueAtTime(190 * pitch, at)
-  body.frequency.exponentialRampToValueAtTime(110 * pitch, at + 0.09)
+  body.frequency.setValueAtTime(170 * pitch, at)
+  body.frequency.exponentialRampToValueAtTime(85 * pitch, at + 0.06)
   const bg = ac.createGain()
   bg.gain.setValueAtTime(0.0001, at)
-  bg.gain.exponentialRampToValueAtTime(0.55 * force, at + 0.004)
-  bg.gain.exponentialRampToValueAtTime(0.0001, at + 0.11)
+  bg.gain.exponentialRampToValueAtTime(0.8 * force, at + 0.003)
+  bg.gain.exponentialRampToValueAtTime(0.0001, at + 0.075)
   body.connect(bg).connect(out)
   body.start(at)
   body.stop(at + 0.13)
@@ -79,15 +81,20 @@ function knock(ac: BaseAudioContext, out: AudioNode, at: number, force: number, 
  */
 export function renderMoveSound(ac: BaseAudioContext, kind: MoveSound, at = ac.currentTime): void {
   const master = ac.createGain()
-  master.gain.value = 0.55
-  // ตัดเสียงต่ำมากและแหลมมากที่ลำโพงเล็กเล่นไม่ได้ ให้ฟังเป็นไม้ไม่ใช่เสียงหึ่ง
-  const shape = ac.createBiquadFilter()
-  shape.type = 'highpass'
-  shape.frequency.value = 80
-  master.connect(shape).connect(ac.destination)
+  master.gain.value = 0.6
+  // ตัดเสียงหึ่งต่ำมาก และตัดเสียงแหลมเหนือ ~2.2kHz ทิ้ง ให้ทึบแบบ "ปัก" ไม่ใช่ "ติ๊ก"
+  const low = ac.createBiquadFilter()
+  low.type = 'highpass'
+  low.frequency.value = 70
+  const dull = ac.createBiquadFilter()
+  dull.type = 'lowpass'
+  dull.frequency.value = 2200
+  dull.Q.value = 0.5
+  master.connect(low).connect(dull).connect(ac.destination)
   if (kind === 'capture') {
-    knock(ac, master, at, 0.45, 1.12 * vary())
-    knock(ac, master, at + 0.075, 1.25, 0.92 * vary())
+    // "ปัก ปัก": หมากที่ถูกกินถูกเคาะออก แล้วหมากที่เดินวางลงหนักกว่า
+    knock(ac, master, at, 0.7, 1.05 * vary())
+    knock(ac, master, at + 0.11, 1.2, 0.94 * vary())
   } else {
     knock(ac, master, at, 1, vary())
   }
