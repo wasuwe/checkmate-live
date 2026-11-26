@@ -79,7 +79,7 @@ export function RoomPage({ roomId, navigate }: Props) {
     return <Lobby state={state} lobby={state.lobby} stateAt={game.stateAt} online={online} sendReady={game.sendReady} chat={chat} />
   }
 
-  // ระหว่างเกมและหลังจบ: กระดานใหญ่เต็มพื้นที่ แผงข้างเหลือแค่สิ่งที่ใช้ระหว่างเล่น
+  // ระหว่างเกมและหลังจบ: กระดานใหญ่เต็มพื้นที่ ห้องยุบเป็นแถบด้านบน แชทอยู่ด้านล่าง
   return (
     <main className="screen full room">
       {!online && (
@@ -88,16 +88,55 @@ export function RoomPage({ roomId, navigate }: Props) {
         </p>
       )}
 
-      <div className="game full">
+      {/* คอลัมน์เดียว: แถบห้อง (ยุบไว้) อยู่บนสุด กระดานอยู่กลางและได้พื้นที่มากที่สุด แชทอยู่ล่างสุด */}
+      <div className="game stack">
         <div className="game-col board-col">
-          <div className="game-status">
-            <p className={`status status-${state.status}`} role="status">
-              {statusText(state)}
-            </p>
-            <p className="seat">
-              {seatText(state)} · {describeTimeControl(state.tc)}
-            </p>
+          <div className="room-bar">
+            <details className="room-details">
+              <summary aria-label={`ห้อง ${formatRoomCode(roomId)} กดเพื่อเชิญเพื่อนหรือเปลี่ยนชุดหมากรุก`}>
+                <span className="tiny">ห้อง</span>
+                <b className="room-code">{formatRoomCode(roomId)}</b>
+                <span className="room-caret" aria-hidden="true" />
+              </summary>
+              <div className="room-pop">
+                <div className="tiny">{gameName(gameId)} · เชิญเพื่อนด้วยลิงก์หรือรหัสห้อง</div>
+                <div className="row wrap">
+                  <CopyLinkButton />
+                  {/* เปิดแท็บใหม่ เพื่อไม่ให้ออกจากห้องกลางเกม */}
+                  <a className="btn mini" href={`/rules?game=${gameId}`} target="_blank" rel="noopener">
+                    กฎ
+                  </a>
+                </div>
+                <div className="set-details">
+                  <b className="small">ชุดหมากรุก</b>
+                  <PiecePicker />
+                  <a className="small" href="/profile" target="_blank" rel="noopener">
+                    จัดการชุด
+                  </a>
+                </div>
+              </div>
+            </details>
+
+            <div className="game-status">
+              <p className={`status status-${state.status}`} role="status">
+                {statusText(state)}
+              </p>
+              <p className="seat">
+                {seatText(state)} · {describeTimeControl(state.tc)}
+              </p>
+            </div>
+
+            {state.status === 'playing' && state.you.role === 'player' && (
+              <ResignButton disabled={!online} onResign={game.sendResign} />
+            )}
+            {state.status === 'finished' && (
+              <button type="button" className="btn mini pink" onClick={() => navigate('/play')}>
+                เล่นเกมใหม่
+              </button>
+            )}
           </div>
+
+          {state.status === 'waiting' && <WaitingCard roomId={roomId} />}
           {counting && (
             <p className="count-chip" role="status">
               {counting}
@@ -107,41 +146,6 @@ export function RoomPage({ roomId, navigate }: Props) {
           <Clocks state={state} stateAt={game.stateAt}>
             <GameBoard state={state} online={online} errorSeq={game.errorSeq} sendMove={game.sendMove} />
           </Clocks>
-        </div>
-
-        <div className="game-col side">
-          {state.status === 'waiting' && <WaitingCard roomId={roomId} />}
-
-          <section className="card side" aria-label="ห้องนี้">
-            <div className="row">
-              <div className="grow">
-                <div className="tiny">{gameName(gameId)} · รหัสห้อง</div>
-                <div className="room-code">{formatRoomCode(roomId)}</div>
-              </div>
-              {/* เปิดแท็บใหม่ เพื่อไม่ให้ออกจากห้องกลางเกม */}
-              <a className="btn mini" href={`/rules?game=${gameId}`} target="_blank" rel="noopener">
-                กฎ
-              </a>
-            </div>
-            <div className="row wrap">
-              <CopyLinkButton />
-              {state.status === 'playing' && state.you.role === 'player' && (
-                <ResignButton disabled={!online} onResign={game.sendResign} />
-              )}
-              {state.status === 'finished' && (
-                <button type="button" className="btn mini pink" onClick={() => navigate('/play')}>
-                  เล่นเกมใหม่
-                </button>
-              )}
-            </div>
-            <details className="set-details">
-              <summary>เปลี่ยนชุดหมากรุก</summary>
-              <PiecePicker />
-              <a className="small" href="/profile" target="_blank" rel="noopener">
-                จัดการชุด
-              </a>
-            </details>
-          </section>
 
           {chat}
         </div>

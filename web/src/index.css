@@ -2948,10 +2948,105 @@ a.link-card:hover {
   gap: 20px;
 }
 
-/* กระดานใหญ่ที่สุดเท่าที่ยังเห็นทั้งกระดานและแถบผู้เล่นสองฝั่งในจอเดียว */
+/* หน้าเล่นเกม: คอลัมน์เดียว แถบห้อง → กระดาน → แชท */
+.game.stack {
+  display: block;
+}
+
+/* กระดานใหญ่ที่สุดเท่าที่ยังเห็นแถบห้อง กระดาน และแถบผู้เล่นสองฝั่งในจอเดียว (แชทอยู่ถัดลงไป) */
 .board-col {
-  width: min(100%, max(300px, calc(100dvh - 304px)));
+  width: min(100%, max(300px, calc(100dvh - 302px)));
   margin-inline: auto;
+}
+
+/* แถบห้อง: รหัสห้อง (กดเพื่อเปิดตัวเลือก) สถานะเกม และปุ่มยอมแพ้ ในแถวเดียว */
+.room-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.room-bar .game-status {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.room-details {
+  position: relative;
+}
+
+.room-bar .btn,
+.room-bar .room-details summary {
+  min-height: 44px;
+  box-sizing: border-box;
+  flex: none;
+}
+
+.room-details summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 2.5px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  cursor: pointer;
+  list-style: none;
+}
+
+.room-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.room-details .room-code {
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+.room-details[open] summary {
+  background: var(--butter);
+}
+
+.room-caret {
+  width: 8px;
+  height: 8px;
+  border-right: 2.5px solid var(--ink);
+  border-bottom: 2.5px solid var(--ink);
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.2s ease;
+}
+
+.room-details[open] .room-caret {
+  transform: translateY(2px) rotate(225deg);
+}
+
+/* ตัวเลือกของห้องลอยทับกระดาน จึงไม่ดันกระดานลง */
+.room-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  width: min(340px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 6px 0 var(--ink);
+}
+
+.room-pop .set-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.game.stack .chat.tall .chat-list {
+  max-height: 260px;
 }
 
 .game-status {
