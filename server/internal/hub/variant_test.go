@@ -172,3 +172,19 @@ func TestNeebRoomCapturesByCustodian(t *testing.T) {
 		t.Fatalf("snapshot = %+v", snap)
 	}
 }
+
+// รหัสห้อง 6 หลักเดาได้ถ้าลองมากพอ จึงจำกัดจำนวนครั้งที่ IP หนึ่งขอเข้าห้อง และห้องใหม่ต้องไม่ชนกับห้องที่เปิดอยู่
+func TestRoomCodesAreUniqueAmongOpenRooms(t *testing.T) {
+	h := newTestHub(t, Config{MaxRooms: 600, MaxOpenRoomsPerUser: 600})
+	seen := map[string]bool{}
+	for range 500 {
+		id, err := h.CreateRoom(TimeControl{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if seen[id] || !roomIDRe.MatchString(id) {
+			t.Fatalf("room id %q is duplicated or malformed", id)
+		}
+		seen[id] = true
+	}
+}

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { GameSocket, type Snapshot, type SocketLike } from './gameSocket'
 import type { StateMsg } from './protocol'
 
-const ROOM = 'abcdefghjkmn'
+const ROOM = '482915'
 
 class FakeSocket implements SocketLike {
   readyState = 0

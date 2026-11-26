@@ -66,7 +66,7 @@ func (s *Store) insertReport(ctx context.Context, r hub.ChatReport) error {
 	_, err := s.pool.Exec(ctx, `
 		insert into chat_reports (room_id, message_id, message, sender_id, reporter_id, sent_at, reported_at)
 		values ($1, $2, $3, $4, $5, $6, $7)
-		on conflict (room_id, message_id, reporter_id) do nothing`,
+		on conflict (room_id, message_id, reporter_id, sent_at) do nothing`,
 		r.RoomID, r.MessageID, r.Text, r.SenderID, r.ReporterID, r.SentAt, r.ReportedAt)
 	return err
 }

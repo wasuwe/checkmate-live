@@ -9,6 +9,7 @@ import (
 	"math/big"
 	mrand "math/rand/v2"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -47,6 +48,8 @@ type Config struct {
 	MaxRooms int
 	// MaxOpenRoomsPerUser คือจำนวนห้องที่ยังไม่จบซึ่งผู้ใช้หนึ่งคนสร้างค้างไว้ได้
 	MaxOpenRoomsPerUser int
+	// JoinRate คือความถี่ที่ IP หนึ่งขอเข้าห้องได้ (นับทั้งรหัสที่ถูกและผิด) กันการไล่เดารหัสห้อง 6 หลัก
+	JoinRate ratelimit.Rule
 	// OnReport ถูกเรียกเมื่อมีคนรายงานข้อความแชท เรียกจาก goroutine ของห้อง จึงต้องคืนทันที
 	OnReport func(ChatReport)
 	// CoinFlip ใช้สุ่มสี คืน true เพื่อสลับให้คนที่เข้าทีหลังเป็นขาว (test กำหนดเองได้)
@@ -79,6 +82,10 @@ func (c Config) withDefaults() Config {
 	if c.MaxRooms == 0 {
 		c.MaxRooms = 1000
 	}
+	if c.JoinRate.Every == 0 {
+		// 30 ครั้งรวด แล้ว 1 ครั้งทุก 4 วินาที (15 ครั้งต่อนาที) เผื่อหลายคนที่ใช้อินเทอร์เน็ตเดียวกัน
+		c.JoinRate = ratelimit.Rule{Every: 4 * time.Second, Burst: 30}
+	}
 	if c.MaxOpenRoomsPerUser == 0 {
 		c.MaxOpenRoomsPerUser = 5
 	}
@@ -107,6 +114,7 @@ type Hub struct {
 
 	ipConns   *ratelimit.Counter
 	userConns *ratelimit.Counter
+	joins     *ratelimit.Limiter // ต่อ IP
 
 	mu    sync.Mutex
 	rooms map[string]*Room
@@ -126,6 +134,7 @@ func New(cfg Config, authn auth.Authenticator) *Hub {
 		auth:      authn,
 		ipConns:   ratelimit.NewCounter(cfg.MaxConnsPerIP),
 		userConns: ratelimit.NewCounter(cfg.MaxConnsPerUser),
+		joins:     ratelimit.New(cfg.JoinRate),
 		rooms:     map[string]*Room{},
 		open:      map[string]string{},
 		openBy:    map[string]int{},
@@ -237,21 +246,23 @@ func (h *Hub) Close() {
 	h.wg.Wait()
 }
 
-// roomIDAlphabet ตัดตัวอักษรที่สับสนง่ายออก (0/o, 1/l) เพราะคนต้องพิมพ์รหัสห้องเอง
+// รหัสห้องเป็นตัวเลข 6 หลัก ตั้งแต่ 100000 ถึง 999999 (เจ้าของโปรเจกต์กำหนด 2026-11-26 ให้พิมพ์และบอกต่อง่าย)
+//
+// รหัสมีแค่ 900,000 แบบ จึงเดาได้ถ้าลองมากพอ สิ่งที่ชดเชย:
+//   - จำกัดจำนวนครั้งที่ IP หนึ่งลองเข้าห้อง (Config.JoinRate) ทั้งที่ถูกและผิด
+//   - ห้องที่จบแล้วหรือว่างนานถูกปิด รหัสจึงใช้ได้ช่วงสั้น
+//   - คนที่เดาเข้ามาได้เป็นได้แค่ผู้ชม เว้นแต่ห้องยังรอคู่แข่งอยู่
+//
+// รหัสถูกนำกลับมาใช้ใหม่ได้หลังห้องปิด ตารางที่อ้างรหัสห้องจึงต้องไม่ถือว่ารหัสไม่ซ้ำตลอดกาล
 const (
-	roomIDAlphabet = "abcdefghijkmnpqrstuvwxyz23456789"
-	roomIDLength   = 12 // 32^12 = 60 บิต เดาไม่ได้
+	roomIDMin   = 100_000
+	roomIDCount = 900_000
 )
 
 func newRoomID() (string, error) {
-	limit := big.NewInt(int64(len(roomIDAlphabet)))
-	b := make([]byte, roomIDLength)
-	for i := range b {
-		n, err := rand.Int(rand.Reader, limit)
-		if err != nil {
-			return "", err
-		}
-		b[i] = roomIDAlphabet[n.Int64()]
+	n, err := rand.Int(rand.Reader, big.NewInt(roomIDCount))
+	if err != nil {
+		return "", err
 	}
-	return string(b), nil
+	return strconv.FormatInt(roomIDMin+n.Int64(), 10), nil
 }

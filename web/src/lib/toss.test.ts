@@ -6,7 +6,7 @@ import { shouldToss, tossView, TOSS_MIN_MS, TOSS_TOTAL_MS } from './toss'
 function state(patch: Partial<StateMsg> = {}): StateMsg {
   return {
     type: 'state',
-    room: 'abcdefghjkmn',
+    room: '482915',
     status: 'playing',
     fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
     turn: 'w',

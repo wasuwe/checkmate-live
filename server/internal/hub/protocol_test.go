@@ -8,7 +8,7 @@ import (
 func TestDecodeInboundValid(t *testing.T) {
 	valid := []string{
 		`{"type":"auth","token":"abc"}`,
-		`{"type":"join","room":"abcdefghjkmn"}`,
+		`{"type":"join","room":"482915"}`,
 		`{"type":"move","ply":0,"from":"e2","to":"e4"}`,
 		`{"type":"move","ply":12,"from":"e7","to":"e8","promo":"q"}`,
 		`{"type":"move","ply":12,"from":"e2","to":"e4","promo":""}`,
@@ -26,19 +26,24 @@ func TestDecodeInboundRejects(t *testing.T) {
 		"not json":           `hello`,
 		"array":              `[]`,
 		"unknown type":       `{"type":"hack"}`,
-		"missing type":       `{"room":"abcdefghjkmn"}`,
+		"missing type":       `{"room":"482915"}`,
 		"unknown field":      `{"type":"move","ply":0,"from":"e2","to":"e4","winner":"w"}`,
 		"color from client":  `{"type":"move","ply":0,"from":"e2","to":"e4","color":"b"}`,
 		"resign with ply":    `{"type":"resign","ply":3}`,
-		"join with token":    `{"type":"join","room":"abcdefghjkmn","token":"x"}`,
-		"auth with room":     `{"type":"auth","token":"abc","room":"abcdefghjkmn"}`,
+		"join with token":    `{"type":"join","room":"482915","token":"x"}`,
+		"auth with room":     `{"type":"auth","token":"abc","room":"482915"}`,
 		"move with text":     `{"type":"move","ply":0,"from":"e2","to":"e4","text":"hi"}`,
 		"resign with winner": `{"type":"resign","winner":"w"}`,
 		"resign with color":  `{"type":"resign","color":"b"}`,
 		"trailing data":      `{"type":"auth","token":"abc"}{"type":"auth","token":"abc"}`,
 		"empty token":        `{"type":"auth","token":""}`,
 		"room too short":     `{"type":"join","room":"abc"}`,
-		"room bad chars":     `{"type":"join","room":"ABCDEFGHJKMN"}`,
+		"room bad chars":     `{"type":"join","room":"48291a"}`,
+		"room too long":      `{"type":"join","room":"4829150"}`,
+		"room leading zero":  `{"type":"join","room":"082915"}`,
+		"room old format":    `{"type":"join","room":"abcdefghjkmn"}`,
+		"room with space":    `{"type":"join","room":"482 915"}`,
+		"room as number":     `{"type":"join","room":482915}`,
 		"room path":          `{"type":"join","room":"../../../etc"}`,
 		"move without ply":   `{"type":"move","from":"e2","to":"e4"}`,
 		"negative ply":       `{"type":"move","ply":-1,"from":"e2","to":"e4"}`,
@@ -59,17 +64,19 @@ func TestDecodeInboundRejects(t *testing.T) {
 
 func TestNewRoomIDFormat(t *testing.T) {
 	seen := map[string]bool{}
-	for range 200 {
+	for range 2000 {
 		id, err := newRoomID()
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !roomIDRe.MatchString(id) {
-			t.Fatalf("room id %q does not match the join pattern", id)
-		}
-		if seen[id] {
-			t.Fatalf("duplicate room id %q", id)
+		// ตัวเลข 6 หลักที่ไม่ขึ้นต้นด้วย 0 และตรงกับรูปแบบที่ join รับ
+		if len(id) != 6 || id < "100000" || id > "999999" || !roomIDRe.MatchString(id) {
+			t.Fatalf("room id %q is not a six-digit code", id)
 		}
 		seen[id] = true
+	}
+	// รหัสมี 900,000 แบบ การสุ่ม 2,000 ครั้งซ้ำกันได้บ้าง แต่ต้องกระจายเกือบทั้งหมด
+	if len(seen) < 1900 {
+		t.Fatalf("only %d distinct ids out of 2000; the ids are not random enough", len(seen))
 	}
 }

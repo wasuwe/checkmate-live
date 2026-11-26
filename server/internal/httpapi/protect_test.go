@@ -389,3 +389,31 @@ func TestChatReportRateLimit(t *testing.T) {
 		t.Fatalf("%d reports recorded, want 3", n)
 	}
 }
+
+// TestJoinAttemptsAreLimitedPerIP: การไล่เดารหัสห้องถูกหยุดหลังครบโควตา และหลังจากนั้นไม่บอกแล้วว่าห้องมีอยู่หรือไม่
+func TestJoinAttemptsAreLimitedPerIP(t *testing.T) {
+	s := newTestServer(t, hub.Config{JoinRate: ratelimit.Rule{Every: time.Hour, Burst: 3}})
+	_, token := s.newGuest()
+	real := s.newRoom(token)
+
+	c := s.connect(token)
+	for i := range 3 {
+		c.send(map[string]string{"type": "join", "room": "100000"})
+		if got := c.until("answer", func(m msg) bool { return m.Type == "error" }); got.Code != "room_not_found" {
+			t.Fatalf("guess %d: %q, want room_not_found", i+1, got.Code)
+		}
+	}
+	// ครบโควตาแล้ว: แม้แต่รหัสที่ถูกก็ไม่ได้เข้า และคำตอบไม่บอกว่าห้องมีอยู่
+	for _, room := range []string{"100000", real} {
+		c.send(map[string]string{"type": "join", "room": room})
+		if got := c.until("answer", func(m msg) bool { return m.Type == "error" || m.Type == "state" }); got.Type != "error" || got.Code != "rate_limited" {
+			t.Fatalf("join %s after the quota: %+v, want rate_limited", room, got)
+		}
+	}
+	// เปิด connection ใหม่จาก IP เดิมก็ยังถูกจำกัด
+	again := s.connect(token)
+	again.send(map[string]string{"type": "join", "room": real})
+	if got := again.until("answer", func(m msg) bool { return m.Type == "error" || m.Type == "state" }); got.Code != "rate_limited" {
+		t.Fatalf("new connection from the same address: %+v, want rate_limited", got)
+	}
+}
