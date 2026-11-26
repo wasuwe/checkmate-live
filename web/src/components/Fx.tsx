@@ -11,19 +11,24 @@ export type FxLevel = 1 | 2 | 3
 
 /** ระลอกของแต่ละขั้น: จำนวนชิ้นต่อระลอก เวลาเริ่ม (วินาที) และระยะเป็นเท่าของ dist */
 const WAVES: Record<FxLevel, { count: number; at: number; reach: number }[]> = {
-  1: [{ count: 14, at: 0, reach: 1 }],
+  1: [
+    { count: 16, at: 0, reach: 0.75 },
+    { count: 20, at: 0.14, reach: 1.25 },
+  ],
   2: [
-    { count: 16, at: 0, reach: 1 },
-    { count: 18, at: 0.22, reach: 1.55 },
+    { count: 18, at: 0, reach: 0.8 },
+    { count: 24, at: 0.16, reach: 1.35 },
+    { count: 28, at: 0.38, reach: 1.9 },
   ],
   3: [
-    { count: 18, at: 0, reach: 0.8 },
-    { count: 22, at: 0.3, reach: 1.25 },
-    { count: 26, at: 0.65, reach: 1.7 },
+    { count: 24, at: 0, reach: 0.8 },
+    { count: 30, at: 0.25, reach: 1.3 },
+    { count: 36, at: 0.55, reach: 1.8 },
+    { count: 40, at: 0.9, reach: 2.3 },
   ],
 }
 
-const RINGS: Record<FxLevel, number> = { 1: 3, 2: 4, 3: 6 }
+const RINGS: Record<FxLevel, number> = { 1: 4, 2: 5, 3: 7 }
 
 interface Props {
   type: FxType
@@ -138,8 +143,8 @@ export function FxBurst({ type, seed, dist, level = 1, delay = 0, banner, banner
   })
 
   // คลื่นกระแทกขั้น 2 ขึ้นไป มีประกายเม็ดกลมพุ่งออกมาด้วย ไม่งั้นจะมีแค่วงแหวนไม่กี่วงและดูเล็กกว่าแบบอื่น
-  if (type === 'ring' && level > 1) {
-    WAVES[(level - 1) as FxLevel].forEach((wave, w) => {
+  if (type === 'ring') {
+    WAVES[Math.max(1, level - 1) as FxLevel].forEach((wave, w) => {
       for (let i = 0; i < wave.count; i++) {
         const n = 1000 + w * 100 + i
         const r1 = seeded(seed + n)

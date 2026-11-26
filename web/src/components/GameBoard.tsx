@@ -224,20 +224,32 @@ function BoardFx({ event, flipped, game }: { event: FxEvent; flipped: boolean; g
 
   return (
     <div className={`fx-layer lv${level}`} aria-hidden="true">
-      {/* ขั้น 2 ขึ้นไป: แสงวาบทั้งกระดาน ขั้น 3: แสงหมุนด้านหลัง */}
-      {level >= 2 && <div className="fx-flash" />}
+      {/* แสงวาบทั้งกระดาน (แรงขึ้นตามขั้น) ขั้น 3: แสงหมุนด้านหลัง */}
+      <div className="fx-flash" />
       {level === 3 && <div className="fx-rays" />}
-      {event.square ? (
-        <div className="fx-square" style={toPercent(squarePosition(event.square, flipped))}>
-          <FxBurst type={type} seed={seed} dist={level === 1 ? 78 : 96} level={level} />
-        </div>
-      ) : (
+      {/* เอฟเฟกต์เกิดที่ตัวของฝ่ายตรงข้าม: ทุกตัวที่ถูกกิน คิงที่ถูกรุก หรือคิงที่ถูกรุกจน */}
+      {level < 3 &&
+        (event.squares ?? (event.square ? [event.square] : [])).map((sq, i) => (
+          <div key={sq} className="fx-square" style={toPercent(squarePosition(sq, flipped))}>
+            {/* แรงกระแทกที่ตัวที่โดน: วงแสงขยายออก เล่นทุกครั้งไม่ว่าเลือกเอฟเฟกต์แบบไหน */}
+            <span className="fx-impact" />
+            <FxBurst type={type} seed={seed + i * 17} dist={level === 1 ? 120 : 150} level={level} />
+          </div>
+        ))}
+      {level === 3 && (
         <>
-          <FxBurst type={type} seed={seed} dist={170} level={3} />
-          {/* พลุสี่ลูกไล่กันรอบกระดาน */}
+          {event.square ? (
+            <div className="fx-square" style={toPercent(squarePosition(event.square, flipped))}>
+              <span className="fx-impact" />
+              <FxBurst type={type} seed={seed} dist={190} level={3} />
+            </div>
+          ) : (
+            <FxBurst type={type} seed={seed} dist={190} level={3} />
+          )}
+          {/* พลุแปดลูกไล่กันรอบกระดาน */}
           {FIREWORKS.map((f, i) => (
             <div key={i} className="fx-square" style={{ left: `${f.left}%`, top: `${f.top}%` }}>
-              <FxBurst type={type} seed={seed + (i + 1) * 31} dist={84} level={2} delay={f.at} />
+              <FxBurst type={type} seed={seed + (i + 1) * 31} dist={120} level={1} delay={f.at} />
             </div>
           ))}
         </>
@@ -259,10 +271,14 @@ function BoardFx({ event, flipped, game }: { event: FxEvent; flipped: boolean; g
 
 /** ตำแหน่ง (มุมซ้ายบนของกล่องขนาดหนึ่งช่อง เป็นเปอร์เซ็นต์ของกระดาน) และเวลาเริ่มของพลุตอนชนะ */
 const FIREWORKS = [
-  { left: 12.5, top: 12.5, at: 0.9 },
-  { left: 75, top: 18, at: 1.3 },
-  { left: 18, top: 68, at: 1.7 },
-  { left: 72, top: 70, at: 2.1 },
+  { left: 12.5, top: 12.5, at: 0.8 },
+  { left: 75, top: 18, at: 1.1 },
+  { left: 18, top: 68, at: 1.4 },
+  { left: 72, top: 70, at: 1.7 },
+  { left: 44, top: 6, at: 2.0 },
+  { left: 4, top: 40, at: 2.3 },
+  { left: 84, top: 44, at: 2.6 },
+  { left: 44, top: 82, at: 2.9 },
 ]
 
 function toPercent(pos: { left: number; top: number }): CSSProperties {
