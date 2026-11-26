@@ -2,12 +2,14 @@ import { useCallback, useEffect, useState } from 'react'
 import { ChatPanel } from '../components/ChatPanel'
 import { ClockRow } from '../components/ClockRow'
 import { CoinToss } from '../components/CoinToss'
+import { Lobby } from '../components/Lobby'
 import { GameBoard } from '../components/GameBoard'
 import { PiecePicker } from '../components/PiecePicker'
 import { ResignButton } from '../components/ResignButton'
 import { useGameSocket } from '../hooks/useGameSocket'
 import { clockAt, describeTimeControl } from '../lib/clock'
 import { gameName, gameOf } from '../lib/games'
+import { chatNames } from '../lib/lobby'
 import { VS } from '../lib/pieceSets'
 import { absences } from '../lib/presence'
 import type { Color, StateMsg } from '../lib/protocol'
@@ -58,22 +60,44 @@ export function RoomPage({ roomId, navigate }: Props) {
   const online = game.connection === 'open'
   const gameId = gameOf(state)
   const counting = countText(state) || forcedText(state)
+  const chat = (
+    <ChatPanel
+      messages={game.chat}
+      players={state.players}
+      names={chatNames(state)}
+      tall
+      online={online}
+      rateLimitedSeq={game.chatLimitedSeq}
+      sendChat={game.sendChat}
+      reported={game.reported}
+      sendReport={game.sendReport}
+    />
+  )
+
+  // ก่อนเกมเริ่ม: ห้องรอ (รอคน แชท กดพร้อม)
+  if (state.status === 'waiting' && state.lobby) {
+    return <Lobby state={state} lobby={state.lobby} stateAt={game.stateAt} online={online} sendReady={game.sendReady} chat={chat} />
+  }
+
+  // ระหว่างเกมและหลังจบ: กระดานใหญ่เต็มพื้นที่ แผงข้างเหลือแค่สิ่งที่ใช้ระหว่างเล่น
   return (
-    <main className="screen wide room">
+    <main className="screen full room">
       {!online && (
         <p className="banner" role="status">
           การเชื่อมต่อหลุด กำลังเชื่อมต่อใหม่…
         </p>
       )}
 
-      <div className="game">
-        <div className="game-col">
-          <p className={`status status-${state.status}`} role="status">
-            {statusText(state)}
-          </p>
-          <p className="seat">
-            {seatText(state)} · {describeTimeControl(state.tc)}
-          </p>
+      <div className="game full">
+        <div className="game-col board-col">
+          <div className="game-status">
+            <p className={`status status-${state.status}`} role="status">
+              {statusText(state)}
+            </p>
+            <p className="seat">
+              {seatText(state)} · {describeTimeControl(state.tc)}
+            </p>
+          </div>
           {counting && (
             <p className="count-chip" role="status">
               {counting}
@@ -110,27 +134,16 @@ export function RoomPage({ roomId, navigate }: Props) {
                 </button>
               )}
             </div>
-          </section>
-
-          <section className="card side" aria-label="ชุดหมากรุก">
-            <div className="row">
-              <h2 className="card-title grow">เลือกชุดหมากรุก</h2>
+            <details className="set-details">
+              <summary>เปลี่ยนชุดหมากรุก</summary>
+              <PiecePicker />
               <a className="small" href="/profile" target="_blank" rel="noopener">
                 จัดการชุด
               </a>
-            </div>
-            <PiecePicker />
+            </details>
           </section>
 
-          <ChatPanel
-            messages={game.chat}
-            players={state.players}
-            online={online}
-            rateLimitedSeq={game.chatLimitedSeq}
-            sendChat={game.sendChat}
-            reported={game.reported}
-            sendReport={game.sendReport}
-          />
+          {chat}
         </div>
       </div>
 

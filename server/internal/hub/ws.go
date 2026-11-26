@@ -139,6 +139,13 @@ func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 			}
 			room.post(event{kind: evChat, client: client, text: msg.Text})
 
+		case msgReady:
+			if room == nil {
+				client.Send(encodeError(errCodeNotJoined))
+				continue
+			}
+			room.post(event{kind: evReady, client: client, ready: *msg.Ready})
+
 		case msgReport:
 			if room == nil {
 				client.Send(encodeError(errCodeNotJoined))

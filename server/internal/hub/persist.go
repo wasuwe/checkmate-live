@@ -3,6 +3,7 @@ package hub
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/wasuwe/checkmate-live/server/internal/game"
@@ -27,8 +28,11 @@ type RoomSnapshot struct {
 	CreatedBy   string `json:"-"`
 	TimeControl string `json:"-"`
 	// Variant คือชนิดของเกม ว่าง = หมากรุกสากล (ห้องที่บันทึกก่อนมีหลายเกม)
-	Variant    string    `json:"variant,omitempty"`
-	Pending    string    `json:"pending,omitempty"`
+	Variant string `json:"variant,omitempty"`
+	// Pending คือรูปแบบเก่า (ผู้เล่นคนแรกที่รอคู่) ยังอ่านได้ แต่ไม่เขียนแล้ว ใช้ Seats แทน
+	Pending string `json:"pending,omitempty"`
+	// Seats คือผู้เล่นที่นั่งรออยู่ในห้องรอ สูงสุด 2 คน (การกดพร้อมไม่ถูกเก็บ ต้องกดใหม่หลังเซิร์ฟเวอร์รีสตาร์ต)
+	Seats      []string  `json:"seats,omitempty"`
 	White      string    `json:"white,omitempty"`
 	Black      string    `json:"black,omitempty"`
 	Moves      []string  `json:"moves,omitempty"` // เช่น "e2e4", "e7e8q"
@@ -73,7 +77,7 @@ func (r *Room) snapshot(now time.Time) RoomSnapshot {
 		CreatedBy:   r.createdBy,
 		TimeControl: r.clock.tc.String(),
 		Variant:     string(r.game.Variant()),
-		Pending:     r.pending,
+		Seats:       slices.Clone(r.seats),
 		White:       r.players[game.White],
 		Black:       r.players[game.Black],
 		Moves:       make([]string, len(moves)),
@@ -175,7 +179,14 @@ func (h *Hub) roomFromSnapshot(snap RoomSnapshot) (*Room, error) {
 		if len(moves) != 0 || snap.White != "" || snap.Black != "" {
 			return nil, fmt.Errorf("%w: waiting room with a game in progress", ErrBadSnapshot)
 		}
-		room.pending = snap.Pending
+		seats := snap.Seats
+		if len(seats) == 0 && snap.Pending != "" {
+			seats = []string{snap.Pending}
+		}
+		if len(seats) > 2 || (len(seats) == 2 && seats[0] == seats[1]) || slices.Contains(seats, "") {
+			return nil, fmt.Errorf("%w: bad lobby seats", ErrBadSnapshot)
+		}
+		room.seats = slices.Clone(seats)
 
 	case StatusPlaying:
 		if snap.White == "" || snap.Black == "" || snap.White == snap.Black || g.Over() {

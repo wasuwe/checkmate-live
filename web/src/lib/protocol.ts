@@ -26,6 +26,27 @@ export interface PlayerInfo {
   avatar?: string
   /** ผู้เล่นที่ไม่ได้ login */
   guest?: boolean
+  /** เลขประจำตัวในแชทของผู้เล่นคนนี้ ใช้ใส่ชื่อให้ข้อความแชท */
+  sender?: string
+}
+
+/** ที่นั่งหนึ่งที่ในห้องรอ (ยังไม่มีสี สีถูกสุ่มตอนเริ่มเกม) */
+export interface LobbySeat {
+  name?: string
+  avatar?: string
+  guest?: boolean
+  connected: boolean
+  ready: boolean
+  /** ที่นั่งของผู้ที่ดูหน้าจอนี้ */
+  you?: boolean
+  sender?: string
+}
+
+/** สถานะของห้องรอ มีเฉพาะตอนรอเริ่มเกม */
+export interface LobbyInfo {
+  seats: LobbySeat[]
+  /** ms ที่เหลือก่อนเกมเริ่ม ณ ตอนที่เซิร์ฟเวอร์ส่ง (มีเฉพาะตอนทุกคนพร้อมแล้ว) */
+  countdown?: number
 }
 
 export interface StateMsg {
@@ -62,6 +83,8 @@ export interface StateMsg {
   count?: CountInfo
   /** ฝ่ายที่ถึงตาต้องกิน (หมากฮอสบังคับกิน) */
   forced?: boolean
+  /** ห้องรอก่อนเกม (มีเฉพาะตอน status เป็น waiting) */
+  lobby?: LobbyInfo
 }
 
 export interface AuthOkMsg {
@@ -123,6 +146,7 @@ export type ClientMsg =
   | { type: 'resign' }
   | { type: 'chat'; text: string }
   | { type: 'report'; id: number }
+  | { type: 'ready'; ready: boolean }
 
 const SERVER_TYPES = new Set(['state', 'auth_ok', 'game_over', 'error', 'chat', 'chat_history', 'report_ok'])
 

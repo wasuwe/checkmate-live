@@ -94,10 +94,24 @@ func main() {
 		}
 	}
 
+	// LOBBY_COUNTDOWN คือเวลานับถอยหลังหลังผู้เล่นทั้งสองกดพร้อม เช่น "3s" (ค่าเริ่มต้น) "0s" = เริ่มทันที
+	lobbyCountdown := 3 * time.Second
+	if v := os.Getenv("LOBBY_COUNTDOWN"); v != "" {
+		if lobbyCountdown, err = time.ParseDuration(v); err != nil || lobbyCountdown < 0 || lobbyCountdown > 30*time.Second {
+			log.Error("invalid LOBBY_COUNTDOWN", "value", v)
+			os.Exit(1)
+		}
+		if lobbyCountdown == 0 {
+			lobbyCountdown = -1 // hub ใช้ค่าติดลบแทน "ไม่นับ" (0 คือใช้ค่าเริ่มต้น)
+		}
+	}
+
 	hubCfg := hub.Config{
 		OriginPatterns: splitList(os.Getenv("ALLOWED_ORIGINS")),
 		AbandonGrace:   abandonGrace,
 		StartDelay:     startDelay,
+		Lobby:          true, // ห้องรอ: ต้องกดพร้อมทั้งสองคนก่อนเริ่ม
+		LobbyCountdown: lobbyCountdown,
 		ClientIP:       clientIP,
 		Logger:         log,
 	}
