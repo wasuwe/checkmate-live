@@ -428,3 +428,62 @@ func TestChatRateLimitAndHistoryCap(t *testing.T) {
 		}
 	})
 }
+
+func TestClockDoesNotRunBeforeItsStartTime(t *testing.T) {
+	t0 := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	k := newClock(TimeControl{Initial: 5 * time.Minute, Increment: 3 * time.Second})
+	k.start(game.White, t0.Add(3*time.Second)) // เริ่มนับในอีก 3 วินาที
+
+	if got := k.left(game.White, t0.Add(2*time.Second)); got != 5*time.Minute {
+		t.Fatalf("time left during the delay = %v, want the full 5m", got)
+	}
+	if got := k.delay(t0.Add(2 * time.Second)); got != time.Second {
+		t.Fatalf("delay = %v, want 1s", got)
+	}
+	if got := k.left(game.White, t0.Add(13*time.Second)); got != 5*time.Minute-10*time.Second {
+		t.Fatalf("time left 10s after the start = %v", got)
+	}
+	if got := k.delay(t0.Add(13 * time.Second)); got != 0 {
+		t.Fatalf("delay after the start = %v, want 0", got)
+	}
+	if flag, ok := k.flagAt(); !ok || !flag.Equal(t0.Add(3*time.Second+5*time.Minute)) {
+		t.Fatalf("flag time = %v, want the start time plus 5m", flag)
+	}
+
+	// เดินก่อนเหรียญตกถึงพื้น: ไม่เสียเวลา ได้ increment ตามปกติ และนาฬิกาอีกฝั่งเริ่มนับทันที
+	k.press(t0.Add(time.Second))
+	if got := k.left(game.White, t0.Add(time.Minute)); got != 5*time.Minute+3*time.Second {
+		t.Fatalf("white after an early move = %v", got)
+	}
+	if k.running != game.Black || k.delay(t0.Add(time.Second)) != 0 {
+		t.Fatalf("after an early move: running=%q delay=%v", k.running, k.delay(t0.Add(time.Second)))
+	}
+}
+
+func TestStartDelayInState(t *testing.T) {
+	h := newTestHub(t, Config{StartDelay: 3 * time.Second})
+	r := newTestRoom(t, h)
+	alice, bob := newFakeClient(t, "alice"), newFakeClient(t, "bob")
+	alice.join(r)
+	waiting := alice.untilState("waiting", isStatus(StatusWaiting))
+	if waiting.Clock.Delay != 0 {
+		t.Fatalf("delay while waiting = %d", waiting.Clock.Delay)
+	}
+	bob.join(r)
+	start := alice.untilState("playing", isStatus(StatusPlaying))
+	if start.Clock.Running != game.White || start.Clock.Delay <= 2000 || start.Clock.Delay > 3000 {
+		t.Fatalf("start clock = %+v, want white running with a delay of about 3000ms", start.Clock)
+	}
+	if start.Clock.White != DefaultTimeControl.Initial.Milliseconds() {
+		t.Fatalf("white clock at the start = %d, want the full time", start.Clock.White)
+	}
+
+	// ไม่ตั้ง StartDelay = นับทันทีเหมือนเดิม
+	plain := newTestRoom(t, newTestHub(t, Config{}))
+	carol, dave := newFakeClient(t, "carol"), newFakeClient(t, "dave")
+	carol.join(plain)
+	dave.join(plain)
+	if st := carol.untilState("playing", isStatus(StatusPlaying)); st.Clock.Delay != 0 {
+		t.Fatalf("delay without StartDelay = %d", st.Clock.Delay)
+	}
+}
