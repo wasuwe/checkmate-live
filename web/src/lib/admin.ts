@@ -119,22 +119,26 @@ export function applyOp(op: Op): Promise<Result> {
   return send('/api/admin/credits/ops', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(op) })
 }
 
-const ocImagePath = (oc: Pick<Oc, 'id' | 'rev'>) => `/api/admin/credits/ocs/${encodeURIComponent(oc.id)}/image?rev=${oc.rev}`
+/** ชนิดของรายการที่ใส่รูปได้: ตัวละคร และคน */
+export type ImageKind = 'ocs' | 'people'
+
+const ocImagePath = (oc: Pick<Oc, 'id' | 'rev'>, kind: ImageKind) =>
+  `/api/admin/credits/${kind}/${encodeURIComponent(oc.id)}/image?rev=${oc.rev}`
 
 /** อัปโหลดรูปและตั้งเป็นรูปของตัวละครทันที รูปเดิมถูกลบจากเซิร์ฟเวอร์ */
-export async function setOcImage(oc: Pick<Oc, 'id' | 'rev'>, file: Blob): Promise<Result> {
+export async function setOcImage(oc: Pick<Oc, 'id' | 'rev'>, file: Blob, kind: ImageKind = 'ocs'): Promise<Result> {
   let image: Blob
   try {
     image = await resizeOcImage(file)
   } catch {
     return { status: 'error', message: ERRORS.bad_image }
   }
-  return send(ocImagePath(oc), { method: 'PUT', headers: { 'Content-Type': 'image/png' }, body: image })
+  return send(ocImagePath(oc, kind), { method: 'PUT', headers: { 'Content-Type': 'image/png' }, body: image })
 }
 
 /** เอารูปของตัวละครออก และลบรูปนั้นจากเซิร์ฟเวอร์ */
-export function removeOcImage(oc: Pick<Oc, 'id' | 'rev'>): Promise<Result> {
-  return send(ocImagePath(oc), { method: 'DELETE' })
+export function removeOcImage(oc: Pick<Oc, 'id' | 'rev'>, kind: ImageKind = 'ocs'): Promise<Result> {
+  return send(ocImagePath(oc, kind), { method: 'DELETE' })
 }
 
 /** ถามเซิร์ฟเวอร์ว่าบัญชีที่ login อยู่เป็น admin หรือไม่ (เรียกไม่สำเร็จ = ไม่ใช่) */

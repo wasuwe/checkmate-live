@@ -60,6 +60,8 @@ type Person struct {
 	// Link ว่าง = ไม่เป็นลิงก์
 	Link string `json:"link"`
 	Bg   string `json:"bg"`
+	// Image คือรูปของคนนี้ที่อัปโหลดผ่านหน้าจัดการ ("/api/content-images/<id>") หรือว่าง = ใช้ตัวอักษรย่อแทน
+	Image string `json:"image"`
 }
 
 // TeamGroup คือกลุ่มของทีมตามบทบาท เช่น Developer
@@ -190,6 +192,12 @@ func (c *Credits) Clean() error {
 		}
 		if !colorRe.MatchString(p.Bg) {
 			return bad("people[%d].bg", i)
+		}
+		if p.Image != "" {
+			id, found := strings.CutPrefix(p.Image, imagePathPrefix)
+			if !found || !ValidImageID(id) {
+				return bad("people[%d].image", i)
+			}
 		}
 	}
 

@@ -161,6 +161,8 @@ func (c *Credits) applyPerson(op Op) error {
 		}
 		p := *op.Person
 		p.ID, p.Rev = op.ID, op.Rev+1
+		// รูปเปลี่ยนได้ผ่านการอัปโหลดเท่านั้น (SetImage) ค่าที่ส่งมากับฟอร์มไม่ถูกใช้
+		p.Image = c.People[i].Image
 		c.People[i] = p
 		return nil
 	case OpDelete:
@@ -272,9 +274,36 @@ func (c *Credits) SetOcImage(id string, rev int, image string) error {
 	return c.Clean()
 }
 
+// SetPersonImage ตั้งหรือเอารูปของคนออก (image ว่าง = ไม่มีรูป) ใช้เลขรุ่นเหมือนการแก้อื่น
+func (c *Credits) SetPersonImage(id string, rev int, image string) error {
+	i := slices.Index(personIDs(c), id)
+	if i < 0 || c.People[i].Rev != rev {
+		return ErrConflict
+	}
+	c.People[i].Image = image
+	c.People[i].Rev++
+	return c.Clean()
+}
+
+// SetImage ตั้งรูปของรายการชนิด kind ("ocs" หรือ "people")
+func (c *Credits) SetImage(kind, id string, rev int, image string) error {
+	switch kind {
+	case KindOcs:
+		return c.SetOcImage(id, rev, image)
+	case KindPeople:
+		return c.SetPersonImage(id, rev, image)
+	}
+	return ErrBadOp
+}
+
 // ImageIDs คืนรหัสของรูปทั้งหมดที่ข้อมูลนี้ใช้อยู่
 func (c *Credits) ImageIDs() []string {
 	var out []string
+	for _, p := range c.People {
+		if id, ok := strings.CutPrefix(p.Image, imagePathPrefix); ok && ValidImageID(id) {
+			out = append(out, id)
+		}
+	}
 	for _, o := range c.Ocs {
 		if id, ok := strings.CutPrefix(o.Image, imagePathPrefix); ok && ValidImageID(id) {
 			out = append(out, id)
@@ -308,6 +337,11 @@ func (c *Credits) Seed() error {
 			c.Team[i].ID = newItemID("g", taken)
 		}
 		taken = append(taken, c.Team[i].ID)
+	}
+	for i := range c.People {
+		if c.People[i].Image != "" {
+			return &FieldError{Field: "people[" + strconv.Itoa(i) + "].image"}
+		}
 	}
 	for i := range c.Ocs {
 		c.Ocs[i].Rev = 1

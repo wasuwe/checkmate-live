@@ -16,6 +16,8 @@ export interface Person {
   /** ลิงก์ที่เปิดเมื่อกด ว่าง = ไม่เป็นลิงก์ */
   link: string
   bg: string
+  /** ที่อยู่รูปของคนนี้ที่อัปโหลดผ่านหน้าจัดการ หรือ '' ถ้าไม่มี (ใช้ตัวอักษรย่อแทน) */
+  image: string
 }
 
 export interface TeamGroup {
@@ -50,10 +52,10 @@ export interface CreditsData {
 
 export const SAMPLE_CREDITS: CreditsData = {
   people: [
-    { id: 'nok', rev: 1, name: 'Nok', handle: '@nok.dev', link: '', bg: '#FFB8CC' },
-    { id: 'mew', rev: 1, name: 'Mew', handle: '@mewdraws', link: '', bg: '#9FE3C9' },
-    { id: 'pim', rev: 1, name: 'Pim', handle: '@pim.art', link: '', bg: '#C9BDFF' },
-    { id: 'tae', rev: 1, name: 'Tae', handle: '@taecodes', link: '', bg: '#FFDC85' },
+    { id: 'nok', rev: 1, name: 'Nok', handle: '@nok.dev', link: '', bg: '#FFB8CC', image: '' },
+    { id: 'mew', rev: 1, name: 'Mew', handle: '@mewdraws', link: '', bg: '#9FE3C9', image: '' },
+    { id: 'pim', rev: 1, name: 'Pim', handle: '@pim.art', link: '', bg: '#C9BDFF', image: '' },
+    { id: 'tae', rev: 1, name: 'Tae', handle: '@taecodes', link: '', bg: '#FFDC85', image: '' },
   ],
   team: [
     { id: 'dev', rev: 1, role: 'Developer', bg: '#A9D6F7', ids: ['nok', 'tae'] },
@@ -70,7 +72,7 @@ export const SAMPLE_CREDITS: CreditsData = {
 }
 
 /** คนที่ไม่พบ (ข้อมูลอ้างถึง id ที่ไม่มี) แสดงเป็นชื่อว่างแทนการทำให้หน้าพัง */
-const NOBODY: Person = { id: '', rev: 0, name: '—', handle: '', link: '', bg: '#FFFFFF' }
+const NOBODY: Person = { id: '', rev: 0, name: '—', handle: '', link: '', bg: '#FFFFFF', image: '' }
 
 export function personOf(data: CreditsData, id: string): Person {
   return data.people.find((p) => p.id === id) ?? NOBODY
@@ -147,7 +149,7 @@ export function parseCredits(value: unknown): CreditsData | null {
   if (!Array.isArray(raw.people) || !Array.isArray(raw.team) || !Array.isArray(raw.ocs)) return null
   const obj = (v: unknown) => (typeof v === 'object' && v !== null ? (v as Record<string, unknown>) : {})
   return {
-    people: raw.people.map(obj).map((p) => ({ id: str(p.id), rev: num(p.rev), name: str(p.name), handle: str(p.handle), link: str(p.link), bg: str(p.bg) })),
+    people: raw.people.map(obj).map((p) => ({ id: str(p.id), rev: num(p.rev), name: str(p.name), handle: str(p.handle), link: str(p.link), bg: str(p.bg), image: str(p.image) })),
     team: raw.team.map(obj).map((g) => ({
       id: str(g.id),
       rev: num(g.rev),
@@ -198,4 +200,70 @@ export function useCredits(): CreditsState {
     }
   }, [])
   return state
+}
+
+// ---------- กระดานเครดิต ----------
+
+/** คนหนึ่งคนบนกระดานเครดิต */
+export interface BoardSeat {
+  person: Person
+  /** บทบาททั้งหมดของคนนี้ (ชื่อกลุ่มและสีของกลุ่ม) */
+  roles: { role: string; bg: string }[]
+  /** ฝั่งของกระดาน: 0 กับ 1 ยืนประจันหน้ากัน */
+  side: 0 | 1
+  /** ระยะจากแถวหลังของฝั่งตัวเอง (0 = หลังสุด) */
+  rank: number
+  /** ตำแหน่งตามแนวขวางของกระดาน (0-3) */
+  file: number
+}
+
+export interface BoardLayout {
+  seats: BoardSeat[]
+  /** ชื่อบทบาทของแต่ละฝั่ง */
+  sides: [string[], string[]]
+  /** คนที่ไม่มีช่องเหลือให้ยืน (ฝั่งหนึ่งยืนได้ 16 คน) แสดงเป็นรายการใต้กระดาน */
+  overflow: BoardSeat[]
+}
+
+/**
+ * ลำดับช่องที่ใช้ยืน: กระจายแบบตาหมากรุกก่อน (คนที่ยืนหน้ากับหลังจะไม่อยู่แนวเดียวกัน ป้ายชื่อจึงไม่บังกัน)
+ * แล้วค่อยเติมช่องที่เหลือ
+ */
+const BOARD_SLOTS: [rank: number, file: number][] = [
+  [1, 1], [0, 2], [2, 2], [1, 3], [0, 0], [2, 0], [3, 1], [3, 3],
+  [1, 0], [0, 1], [2, 1], [1, 2], [0, 3], [2, 3], [3, 0], [3, 2],
+]
+
+/**
+ * จัดทีมงานลงกระดาน: กลุ่มลำดับคู่ (กลุ่มที่ 1, 3, ...) อยู่ฝั่งหนึ่ง กลุ่มลำดับคี่อยู่อีกฝั่ง
+ * คนที่อยู่หลายกลุ่มยืนช่องเดียว ตามกลุ่มแรกที่พบ และแสดงทุกบทบาท
+ * ถ้ามีคนอยู่ฝั่งเดียว (เช่น มีกลุ่มเดียว) จะสลับฝั่งทีละคนเพื่อให้มีสองฝั่งประจันหน้ากัน
+ */
+export function boardLayout(data: CreditsData): BoardLayout {
+  const found = new Map<string, { person: Person; roles: { role: string; bg: string }[]; side: 0 | 1 }>()
+  data.team.forEach((group, g) => {
+    for (const id of group.ids) {
+      const person = data.people.find((p) => p.id === id)
+      if (!person) continue
+      const entry = found.get(id)
+      if (entry) entry.roles.push({ role: group.role, bg: group.bg })
+      else found.set(id, { person, roles: [{ role: group.role, bg: group.bg }], side: g % 2 === 0 ? 0 : 1 })
+    }
+  })
+  const list = [...found.values()]
+  if (list.length > 1 && (list.every((e) => e.side === 0) || list.every((e) => e.side === 1))) {
+    list.forEach((e, i) => (e.side = i % 2 === 0 ? 0 : 1))
+  }
+
+  const seats: BoardSeat[] = []
+  const overflow: BoardSeat[] = []
+  const used = [0, 0]
+  for (const e of list) {
+    const slot = BOARD_SLOTS[used[e.side]++]
+    // ฝั่งที่สองกลับด้านแนวขวาง ให้สองฝั่งไม่เป็นเงาสะท้อนกันพอดี
+    if (slot) seats.push({ ...e, rank: slot[0], file: e.side === 0 ? slot[1] : 3 - slot[1] })
+    else overflow.push({ ...e, rank: 0, file: 0 })
+  }
+  const rolesOf = (side: 0 | 1) => [...new Set(list.filter((e) => e.side === side).map((e) => e.roles[0].role))]
+  return { seats, sides: [rolesOf(0), rolesOf(1)], overflow }
 }

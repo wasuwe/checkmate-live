@@ -422,3 +422,35 @@ func TestAdminRoutesAreRateLimited(t *testing.T) {
 		t.Fatalf("statuses = %v, want 409 409 429", codes)
 	}
 }
+
+func TestPeopleCanHaveImages(t *testing.T) {
+	s := newAdminServer(t, "boss@example.com")
+	s.init()
+	_, body, _ := s.call(http.MethodGet, "/api/credits", "", "", nil)
+	credits, _ := body["credits"].(map[string]any)
+	if credits == nil {
+		credits = body
+	}
+	first, _ := credits["people"].([]any)[0].(map[string]any)
+	personID, _ := first["id"].(string)
+	path := "/api/admin/credits/people/" + personID + "/image"
+
+	status, body, _ := s.call(http.MethodPut, path+"?rev=1", adminToken, "image/png", sizedPNG(t, 24, 24))
+	image, _ := item(body, "people", 0)["image"].(string)
+	if status != http.StatusOK || !strings.HasPrefix(image, "/api/content-images/") || item(body, "people", 0)["rev"] != float64(2) || s.store.ImageCount() != 1 {
+		t.Fatalf("upload: %d %v", status, body["_raw"])
+	}
+	// เลขรุ่นเก่าถูกปฏิเสธ และรูปที่ส่งมาไม่ค้างในที่เก็บ
+	if status, body, _ := s.call(http.MethodPut, path+"?rev=1", adminToken, "image/png", sizedPNG(t, 8, 8)); status != http.StatusConflict || body["error"] != "conflict" || s.store.ImageCount() != 1 {
+		t.Fatalf("stale upload: %d images=%d", status, s.store.ImageCount())
+	}
+	// เอารูปออก: รูปถูกลบจากที่เก็บ
+	status, body, _ = s.call(http.MethodDelete, path+"?rev=2", adminToken, "", nil)
+	if status != http.StatusOK || item(body, "people", 0)["image"] != "" || s.store.ImageCount() != 0 {
+		t.Fatalf("remove: %d images=%d %v", status, s.store.ImageCount(), body["_raw"])
+	}
+	// ชนิดอื่นไม่มีรูป
+	if status, _, _ := s.call(http.MethodPut, "/api/admin/credits/team/x/image?rev=1", adminToken, "image/png", sizedPNG(t, 8, 8)); status != http.StatusBadRequest {
+		t.Fatalf("team image: %d", status)
+	}
+}
