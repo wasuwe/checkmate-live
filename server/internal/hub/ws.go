@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
+	"golang.org/x/time/rate"
 
 	"github.com/wasuwe/checkmate-live/server/internal/game"
 )
@@ -18,11 +19,22 @@ const (
 	pingTimeout  = 10 * time.Second
 	// profileTimeout คือเวลาที่รอฐานข้อมูลตอนหาชื่อผู้เล่น
 	profileTimeout = 2 * time.Second
+	// maxRateStrikes คือจำนวนครั้งที่ connection ส่งเกินโควตาได้ก่อนถูกตัด
+	maxRateStrikes = 30
 )
 
 // ServeWS รับ connection WebSocket หนึ่งเส้น
 // ลำดับ: auth (ข้อความแรก ภายใน AuthTimeout) → join → move / resign ...
 func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
+	// จำกัดก่อน upgrade: connection ที่ยังไม่ได้ auth ก็นับ จึงเปิดค้างจำนวนมากจาก IP เดียวไม่ได้
+	ip := h.cfg.ClientIP(r)
+	if !h.ipConns.Acquire(ip) {
+		w.Header().Set("Retry-After", "10")
+		http.Error(w, "too many connections", http.StatusTooManyRequests)
+		return
+	}
+	defer h.ipConns.Release(ip)
+
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 		OriginPatterns: h.cfg.OriginPatterns,
 	})
@@ -40,6 +52,15 @@ func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !h.userConns.Acquire(userID) {
+		writeCtx, cancelWrite := context.WithTimeout(ctx, writeTimeout)
+		_ = conn.Write(writeCtx, websocket.MessageText, encodeError(errCodeTooManyConnections))
+		cancelWrite()
+		_ = conn.Close(websocket.StatusPolicyViolation, "too many connections")
+		return
+	}
+	defer h.userConns.Release(userID)
+
 	client := newClient(userID, cancel)
 	client.Profile = h.lookupProfile(ctx, userID)
 	go writePump(ctx, conn, client)
@@ -52,14 +73,26 @@ func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	limiter := rate.NewLimiter(rate.Every(h.cfg.MessageRate.Every), h.cfg.MessageRate.Burst)
+	strikes := 0
+
 	for {
 		msg, err := readInbound(ctx, conn)
+		if err != nil && !errors.Is(err, errBadMessage) {
+			return
+		}
+		// ข้อความที่เกินโควตาถูกทิ้ง (รวมข้อความที่ผิดรูปแบบ) ถ้ายังส่งรัวไม่หยุดจะถูกตัดการเชื่อมต่อ
+		if !limiter.Allow() {
+			if strikes++; strikes > maxRateStrikes {
+				_ = conn.Close(websocket.StatusPolicyViolation, "rate limit exceeded")
+				return
+			}
+			client.Send(encodeError(errCodeRateLimited))
+			continue
+		}
 		if errors.Is(err, errBadMessage) {
 			client.Send(encodeError(errCodeBadMessage))
 			continue
-		}
-		if err != nil {
-			return
 		}
 
 		switch msg.Type {
@@ -100,6 +133,13 @@ func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			room.post(event{kind: evChat, client: client, text: msg.Text})
+
+		case msgReport:
+			if room == nil {
+				client.Send(encodeError(errCodeNotJoined))
+				continue
+			}
+			room.post(event{kind: evReport, client: client, id: *msg.ID})
 
 		default: // auth ซ้ำ หรือชนิดที่ไม่ควรมาตอนนี้
 			client.Send(encodeError(errCodeBadMessage))

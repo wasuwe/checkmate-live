@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	"github.com/wasuwe/checkmate-live/server/internal/httpapi"
 	"github.com/wasuwe/checkmate-live/server/internal/hub"
 	"github.com/wasuwe/checkmate-live/server/internal/profile"
+	"github.com/wasuwe/checkmate-live/server/internal/ratelimit"
 	"github.com/wasuwe/checkmate-live/server/internal/store"
 )
 
@@ -43,6 +45,7 @@ func main() {
 
 	// ผู้ใช้ที่ login: ตรวจ JWT ของ Supabase ผ่าน JWKS (ถ้าไม่ตั้ง SUPABASE_JWKS_URL จะมีแต่ guest)
 	// GUEST_ENABLED=false ปิดการเล่นแบบไม่ login
+	var connectSrc []string // origin ภายนอกที่หน้าเว็บเรียกได้ ใส่ใน Content-Security-Policy
 	authn := auth.Multi{}
 	guestEnabled := os.Getenv("GUEST_ENABLED") != "false"
 	if guestEnabled {
@@ -55,6 +58,10 @@ func main() {
 			os.Exit(1)
 		}
 		authn.User = supabase
+		// หน้าเว็บเรียก Supabase Auth ที่ origin เดียวกับ JWKS
+		if u, err := url.Parse(jwksURL); err == nil && u.Host != "" {
+			connectSrc = append(connectSrc, u.Scheme+"://"+u.Host)
+		}
 	}
 	if authn.Guest == nil && authn.User == nil {
 		log.Error("no way to sign in: set SUPABASE_JWKS_URL or leave GUEST_ENABLED on")
@@ -71,10 +78,25 @@ func main() {
 		}
 	}
 
+	// CLIENT_IP_HEADER คือ header ที่ proxy หน้าเซิร์ฟเวอร์ใส่ IP จริงของผู้ใช้ (บน Fly.io คือ "Fly-Client-IP")
+	// ตั้งเฉพาะเมื่ออยู่หลัง proxy ที่เขียนทับ header นี้เสมอ ไม่งั้นผู้ใช้ปลอม IP เพื่อหลบการจำกัดได้
+	ipHeader := os.Getenv("CLIENT_IP_HEADER")
+	clientIP := func(r *http.Request) string { return ratelimit.ClientIP(r, ipHeader) }
+	log.Info("abuse protection configured", "clientIPHeader", ipHeader)
+
 	hubCfg := hub.Config{
 		OriginPatterns: splitList(os.Getenv("ALLOWED_ORIGINS")),
 		AbandonGrace:   abandonGrace,
+		ClientIP:       clientIP,
 		Logger:         log,
+	}
+	// การรายงานแชทลง log เสมอ (ไม่มีเนื้อความ) และลงฐานข้อมูลถ้ามี
+	var reports *store.ReportSink
+	hubCfg.OnReport = func(r hub.ChatReport) {
+		log.Warn("chat reported", "room", r.RoomID, "message", r.MessageID, "sender", r.SenderID, "reporter", r.ReporterID)
+		if reports != nil {
+			reports.Report(r)
+		}
 	}
 
 	// ฐานข้อมูล: ถ้าไม่ตั้ง DATABASE_URL ทุกอย่างอยู่ใน memory และหายเมื่อรีสตาร์ต
@@ -100,6 +122,7 @@ func main() {
 		}
 		writer = store.NewWriter(db, log)
 		hubCfg.Store = writer
+		reports = store.NewReportSink(db, log)
 	}
 	log.Info("storage configured", "database", db != nil)
 
@@ -139,11 +162,14 @@ func main() {
 	}
 
 	apiCfg := httpapi.Config{
-		StaticDir: os.Getenv("STATIC_DIR"),
-		Logger:    log,
-		Hub:       h,
-		Auth:      authn,
-		Profiles:  profiles,
+		StaticDir:  os.Getenv("STATIC_DIR"),
+		Logger:     log,
+		Hub:        h,
+		Auth:       authn,
+		Profiles:   profiles,
+		Limits:     &httpapi.DefaultLimits,
+		ClientIP:   clientIP,
+		ConnectSrc: connectSrc,
 	}
 	if guestEnabled {
 		apiCfg.Guest = guest // เปิด POST /api/guest
@@ -155,6 +181,7 @@ func main() {
 		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    16 << 10,
 	}
 
 	go func() {
@@ -178,6 +205,7 @@ func main() {
 		if left := writer.Close(shutdownCtx); left > 0 {
 			log.Error("some data was not saved before shutdown", "jobs", left)
 		}
+		reports.Close()
 		db.Close()
 	}
 }

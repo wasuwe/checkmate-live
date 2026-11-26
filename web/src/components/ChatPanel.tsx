@@ -10,6 +10,9 @@ interface Props {
   /** เพิ่มขึ้นทุกครั้งที่เซิร์ฟเวอร์ปฏิเสธข้อความเพราะส่งถี่เกินไป */
   rateLimitedSeq: number
   sendChat: (text: string) => boolean
+  /** id ของข้อความที่เซิร์ฟเวอร์รับการรายงานแล้ว */
+  reported: number[]
+  sendReport: (id: number) => boolean
 }
 
 export const CHAT_MAX_LENGTH = 200
@@ -23,8 +26,19 @@ function sender(item: ChatItem, players: Props['players']): string {
 }
 
 /** แชทในห้อง ข้อความแสดงเป็น text ล้วนเสมอ ไม่ตีความเป็น HTML */
-export function ChatPanel({ messages, players, online, rateLimitedSeq, sendChat }: Props) {
+export function ChatPanel({
+  messages,
+  players,
+  online,
+  rateLimitedSeq,
+  sendChat,
+  reported,
+  sendReport,
+}: Props) {
   const [text, setText] = useState('')
+  // ผู้ส่งที่ผู้ใช้เลือกซ่อน มีผลเฉพาะหน้าจอนี้และหายเมื่อออกจากห้อง
+  const [muted, setMuted] = useState<string[]>([])
+  const visible = messages.filter((m) => m.mine || !muted.includes(m.sender))
   const [dismissedSeq, setDismissedSeq] = useState(0)
   const listRef = useRef<HTMLOListElement>(null)
   const lastId = messages.at(-1)?.id ?? 0
@@ -48,14 +62,49 @@ export function ChatPanel({ messages, players, online, rateLimitedSeq, sendChat 
   return (
     <section className="card chat" aria-label="แชทในห้อง">
       <h2>แชท</h2>
-      {messages.length === 0 ? (
+      {muted.length > 0 && (
+        <p className="chat-muted" role="status">
+          ซ่อนข้อความจาก {muted.length} คน{' '}
+          <button type="button" className="link" onClick={() => setMuted([])}>
+            แสดงทั้งหมด
+          </button>
+        </p>
+      )}
+      {visible.length === 0 ? (
         <p className="chat-empty">ยังไม่มีข้อความ</p>
       ) : (
         <ol className="chat-list" ref={listRef} aria-live="polite">
-          {messages.map((m) => (
+          {visible.map((m) => (
             <li key={m.id} className={m.mine ? 'mine' : undefined}>
-              <span className="chat-from">{sender(m, players)}</span>
-              <span className="chat-text">{m.text}</span>
+              <span className="chat-body">
+                <span className="chat-from">{sender(m, players)}</span>
+                <span className="chat-text">{m.text}</span>
+              </span>
+              {!m.mine && (
+                <span className="chat-actions">
+                  <button
+                    type="button"
+                    className="link"
+                    aria-label={`ซ่อนข้อความทั้งหมดจาก${sender(m, players)}`}
+                    onClick={() => setMuted((list) => [...list, m.sender])}
+                  >
+                    ซ่อน
+                  </button>
+                  {reported.includes(m.id) ? (
+                    <span className="chat-reported">รายงานแล้ว</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="link"
+                      disabled={!online}
+                      aria-label={`รายงานข้อความนี้จาก${sender(m, players)}`}
+                      onClick={() => sendReport(m.id)}
+                    >
+                      รายงาน
+                    </button>
+                  )}
+                </span>
+              )}
             </li>
           ))}
         </ol>

@@ -389,6 +389,28 @@ button.danger {
 
 .chat-list li {
   overflow-wrap: anywhere;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.chat-actions {
+  flex: none;
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.chat-actions button.link {
+  font-weight: 400;
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.chat-reported,
+.chat-muted {
+  font-size: 0.85rem;
 }
 
 .chat-from {

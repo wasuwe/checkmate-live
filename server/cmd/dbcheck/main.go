@@ -21,6 +21,7 @@ import (
 func main() {
 	region := flag.String("try-poolers", "", "ลอง Supabase session pooler ของ region นี้ด้วย เช่น ap-southeast-1")
 	summary := flag.Bool("summary", false, "แสดงจำนวนห้องตามสถานะ และเกมล่าสุด 5 เกม")
+	reports := flag.Bool("reports", false, "แสดงข้อความแชทที่ถูกรายงานล่าสุด 20 รายการ")
 	flag.Parse()
 
 	if err := envfile.Load(".env"); err != nil {
@@ -40,6 +41,13 @@ func main() {
 
 	if *summary {
 		if err := printSummary(raw, password(u)); err != nil {
+			os.Exit(1)
+		}
+		return
+	}
+
+	if *reports {
+		if err := printReports(raw, password(u)); err != nil {
 			os.Exit(1)
 		}
 		return
@@ -137,6 +145,43 @@ func printSummary(databaseURL, password string) error {
 		return nil
 	}); err != nil {
 		return fail(err)
+	}
+	return nil
+}
+
+// printReports แสดงข้อความแชทที่ถูกรายงานล่าสุด
+func printReports(databaseURL, password string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	fail := func(err error) error {
+		fmt.Println("ไม่สำเร็จ:", redact(err.Error(), password))
+		return err
+	}
+
+	conn, err := pgx.Connect(ctx, databaseURL)
+	if err != nil {
+		return fail(err)
+	}
+	defer conn.Close(ctx)
+
+	rows, err := conn.Query(ctx, `
+		select to_char(reported_at, 'YYYY-MM-DD HH24:MI'), room_id, sender_id, reporter_id, message
+		from chat_reports order by reported_at desc limit 20`)
+	if err != nil {
+		return fail(err)
+	}
+	fmt.Println("chat reports (ล่าสุด 20 รายการ):")
+	var at, room, sender, reporter, message string
+	n := 0
+	if _, err := pgx.ForEachRow(rows, []any{&at, &room, &sender, &reporter, &message}, func() error {
+		n++
+		fmt.Printf("  %s  room=%s\n    sender=%s\n    reporter=%s\n    message=%q\n", at, room, sender, reporter, message)
+		return nil
+	}); err != nil {
+		return fail(err)
+	}
+	if n == 0 {
+		fmt.Println("  (ไม่มี)")
 	}
 	return nil
 }
