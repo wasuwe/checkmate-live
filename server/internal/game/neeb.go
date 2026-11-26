@@ -14,7 +14,11 @@ import (
 //   - สอด: เดินเข้าไปอยู่ระหว่างหมากฝ่ายตรงข้าม 2 ตัวที่อยู่ติดสองข้างในแนวเดียวกัน กินทั้ง 2 ตัว
 //   - การกินเกิดจากการเดินของฝ่ายที่กินเท่านั้น หมากที่เดินเข้าไปอยู่ระหว่างหมากฝ่ายตรงข้ามเองไม่ถูกกิน
 //   - ไม่บังคับกิน ตาหนึ่งเดินหมากตัวเดียว
+//   - ชนะเมื่อฝ่ายตรงข้ามเหลือหมากไม่เกิน neebLosingPieces ตัว หรือไม่มีตาเดิน
 const neebStart = "oooooooo/8/8/8/8/8/8/OOOOOOOO"
+
+// neebLosingPieces: ฝ่ายที่เหลือหมากไม่เกินจำนวนนี้แพ้ทันที (เจ้าของโปรเจกต์กำหนด 2026-11-26)
+const neebLosingPieces = 2
 
 // neebQuietLimit: เดินครบจำนวนนี้ (ครึ่งตา) โดยไม่มีการกิน เกมเสมอ (ฝ่ายละ 50 ตา)
 const neebQuietLimit = 100
@@ -190,7 +194,7 @@ func (g *Neeb) Move(m Move) error {
 		}
 	}
 	switch {
-	case pieces == 0:
+	case pieces <= neebLosingPieces:
 		g.result, g.reason = winResult(mover), ReasonWipeout
 	case len(g.Legal()) == 0:
 		g.result, g.reason = winResult(mover), ReasonBlocked

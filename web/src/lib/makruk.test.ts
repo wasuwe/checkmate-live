@@ -93,8 +93,8 @@ describe('games list', () => {
     for (const g of GAMES) expect(g.soon).toBe(!isGameId(g.id))
     expect(gameName('makruk')).toBe('หมากรุกไทย')
     expect(gameOf({ game: 'makruk' })).toBe('makruk')
-    expect(checkWords('makruk').mate).toBe('รุกจน!')
-    expect(checkWords('chess').mate).toBe('รุกฆาต!')
+    expect(checkWords('makruk')).toEqual({ check: 'Check!', mate: 'Checkmate!' })
+    expect(checkWords('chess')).toEqual({ check: 'Check!', mate: 'Checkmate!' })
   })
 
   test('every makruk piece can be drawn in every set', () => {
@@ -154,10 +154,10 @@ describe('makruk text', () => {
 })
 
 describe('makruk wording', () => {
-  test('a makruk checkmate is called by its Thai name, a chess one keeps its own', () => {
+  test('checkmate is shown in English in both chess games', () => {
     const done = (game: 'makruk' | 'chess') =>
       resultParts(state({ game, status: 'finished', result: '1-0', reason: 'checkmate' })).reason
-    expect(done('makruk')).toBe('รุกจน')
-    expect(done('chess')).toBe('รุกฆาต')
+    expect(done('makruk')).toBe('Checkmate')
+    expect(done('chess')).toBe('Checkmate')
   })
 })

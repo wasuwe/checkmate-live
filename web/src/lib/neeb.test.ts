@@ -115,3 +115,14 @@ describe('neeb move helpers, games list and rules', () => {
     expect(neebApply('7o/8/8/8/8/2O5/8/1o1o4 w', 'c3', 'c1')).toBe('7o/8/8/8/8/8/8/2O5 b')
   })
 })
+
+describe('neeb result text', () => {
+  test('winning by pieces says the opponent is down to two, not that everything was captured', async () => {
+    const { resultParts } = await import('./text')
+    const done = (game: 'neeb' | 'checkers') =>
+      resultParts(state({ game, status: 'finished', result: '1-0', reason: 'wipeout' })).reason
+    expect(done('neeb')).toBe('คู่แข่งเหลือหมากไม่เกิน 2 ตัว')
+    expect(done('checkers')).toBe('กินหมากหมดกระดาน')
+    expect(RULES.neeb.basics[0].body).toContain('เหลือ 2 ตัวหรือน้อยกว่า')
+  })
+})

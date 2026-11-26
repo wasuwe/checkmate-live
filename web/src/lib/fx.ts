@@ -18,8 +18,8 @@ export const FX_TYPES: { id: FxType; name: string; icon: string; color: string }
 
 export const FX_EVENTS: { id: FxEventKind; label: string; desc: string }[] = [
   { id: 'capture', label: 'เมื่อกินหมาก', desc: 'เล่นตรงช่องที่กินได้' },
-  { id: 'check', label: 'เมื่อรุก', desc: 'เล่นที่คิงหรือขุนของฝ่ายที่ถูกรุก พร้อมป้าย "รุก!" (หมากรุกสากลและหมากรุกไทย)' },
-  { id: 'mate', label: 'เมื่อชนะบนกระดาน', desc: 'รุกฆาต รุกจน หรือกินหมด เล่นเต็มกระดานพร้อมป้าย' },
+  { id: 'check', label: 'เมื่อ Check', desc: 'เล่นที่คิงหรือขุนของฝ่ายที่ถูกรุก พร้อมป้าย "Check!" (หมากรุกสากลและหมากรุกไทย)' },
+  { id: 'mate', label: 'เมื่อ Checkmate', desc: 'เล่นเต็มกระดานพร้อมป้าย "Checkmate!" และเมื่อชนะบนกระดานในหมากฮอสกับหมากหนีบ' },
 ]
 
 export type FxPrefs = Record<FxEventKind, FxType>

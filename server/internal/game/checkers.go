@@ -8,7 +8,7 @@ import (
 
 // เหตุผลที่เกมหมากฮอสจบ
 const (
-	// ReasonWipeout คือฝ่ายแพ้ถูกกินหมดกระดาน
+	// ReasonWipeout คือฝ่ายแพ้ถูกกินหมดกระดาน (หมากหนีบ: เหลือหมากไม่เกิน 2 ตัว)
 	ReasonWipeout = "wipeout"
 	// ReasonBlocked คือฝ่ายแพ้ยังมีหมากแต่ไม่มีตาเดิน
 	ReasonBlocked = "blocked"

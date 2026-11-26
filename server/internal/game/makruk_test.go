@@ -326,3 +326,25 @@ func TestMakrukBlockedPawnsCannotGoOnForever(t *testing.T) {
 		t.Fatalf("quiet = %d after a bia move, want 0", g.quiet)
 	}
 }
+
+// ตัวอย่างที่ตีพิมพ์ (Wikipedia: Makruk, Counting rules): เรือ 2 ลำกับม้า 1 ตัวไล่ขุนเดี่ยว
+// มีหมาก 5 ตัว นับถึง 8 ฝ่ายไล่จึงมี 3 ตาในการรุกให้จน
+func TestMakrukCountMatchesThePublishedExample(t *testing.T) {
+	g := mustMakruk(t, "7k/8/8/8/8/8/8/RRN1K3 b")
+	if c := g.Count(); c == nil || c.N != 5 || c.Limit != 8 {
+		t.Fatalf("count = %+v, want 5/8", c)
+	}
+	chaserMoves := 0
+	for _, m := range []string{"h8g8", "a1a2", "g8h8", "a2a1", "h8g8", "a1a2"} {
+		if g.Over() {
+			t.Fatalf("game over before %s, after %d moves by the chasing side", m, chaserMoves)
+		}
+		playM(t, g, m)
+		if m[0] == 'a' {
+			chaserMoves++
+		}
+	}
+	if result, reason := g.Result(); result != "1/2-1/2" || reason != ReasonCount || chaserMoves != 3 {
+		t.Fatalf("result = %q %q after %d moves by the chasing side, want a draw by counting after exactly 3", result, reason, chaserMoves)
+	}
+}

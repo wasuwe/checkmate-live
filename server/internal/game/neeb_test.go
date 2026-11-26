@@ -94,32 +94,50 @@ func TestNeebMovingIntoASandwichIsSafe(t *testing.T) {
 }
 
 func TestNeebWins(t *testing.T) {
-	g := mustNeeb(t, "8/8/8/8/8/8/2O5/Oo6 w")
+	// ดำเหลือ 3 ตัว ขาวหนีบ b1 ได้ ดำจึงเหลือ 2 ตัวและแพ้ทันที
+	g := mustNeeb(t, "6oo/8/8/8/8/8/2O5/Oo5O w")
 	playM(t, g, "c2c1")
-	if result, reason := g.Result(); result != "1-0" || reason != ReasonWipeout {
-		t.Fatalf("result = %q %q, want 1-0 wipeout", result, reason)
+	if g.FEN() != "6oo/8/8/8/8/8/8/O1O4O b" {
+		t.Fatalf("after the capture: %s", g.FEN())
 	}
-	if err := g.Move(Move{From: "a1", To: "a2"}); !errors.Is(err, ErrGameOver) {
+	if result, reason := g.Result(); result != "1-0" || reason != ReasonWipeout {
+		t.Fatalf("result = %q %q, want 1-0 because black is down to two pieces", result, reason)
+	}
+	if err := g.Move(Move{From: "h8", To: "h7"}); !errors.Is(err, ErrGameOver) {
 		t.Errorf("move after the game: %v", err)
 	}
 
-	// ดำที่มุม a8 ถูกปิดทั้งสองทาง
-	g = mustNeeb(t, "o7/O7/8/8/8/8/8/1O6 w")
-	playM(t, g, "b1b8")
+	// เหลือ 3 ตัวยังเล่นต่อ
+	g = mustNeeb(t, "5ooo/8/8/8/8/8/2O5/Oo5O w")
+	playM(t, g, "c2c1")
+	if g.Over() {
+		t.Fatalf("game over with three pieces left: %s", g.FEN())
+	}
+
+	// สอดกิน 2 ตัวพร้อมกันจาก 4 ตัว เหลือ 2 ตัว แพ้
+	g = mustNeeb(t, "6oo/8/8/8/8/8/1O6/o1o3OO w")
+	playM(t, g, "b2b1")
+	if result, reason := g.Result(); result != "1-0" || reason != ReasonWipeout {
+		t.Fatalf("result = %q %q, want 1-0 after an intervention capture", result, reason)
+	}
+
+	// ดำที่มุม a8 กับ a7 b8 ถูกปิดทุกทาง แม้ยังมีหมาก 3 ตัว
+	g = mustNeeb(t, "oo6/oO6/O7/8/8/8/8/2O5 w")
+	playM(t, g, "c1c8")
 	if result, reason := g.Result(); result != "1-0" || reason != ReasonBlocked {
-		t.Fatalf("result = %q %q, want 1-0 blocked", result, reason)
+		t.Fatalf("result = %q %q, want 1-0 blocked (%s)", result, reason, g.FEN())
 	}
 }
 
 func TestNeebDraws(t *testing.T) {
-	g := mustNeeb(t, "7o/8/8/8/8/8/8/O7 w")
+	g := mustNeeb(t, "5ooo/8/8/8/8/8/8/OOO5 w")
 	g.quiet = neebQuietLimit - 1
 	playM(t, g, "a1a2")
 	if result, reason := g.Result(); result != "1/2-1/2" || reason != ReasonDraw {
 		t.Fatalf("result = %q %q, want a draw after %d quiet plies", result, reason, neebQuietLimit)
 	}
 
-	g = mustNeeb(t, "7o/8/8/8/8/8/8/O7 w")
+	g = mustNeeb(t, "5ooo/8/8/8/8/8/8/OOO5 w")
 	playM(t, g, "a1a2", "h8h7", "a2a1", "h7h8", "a1a2", "h8h7", "a2a1")
 	if g.Over() {
 		t.Fatal("game over before the third repetition")

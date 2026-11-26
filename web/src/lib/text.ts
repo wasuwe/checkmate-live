@@ -4,7 +4,7 @@ import { gameOf } from './games'
 import type { Color, PlayerInfo, StateMsg } from './protocol'
 
 const REASONS: Record<string, string> = {
-  checkmate: 'รุกฆาต',
+  checkmate: 'Checkmate',
   resign: 'ยอมแพ้',
   timeout: 'หมดเวลา',
   stalemate: 'อับ (stalemate)',
@@ -15,9 +15,10 @@ const REASONS: Record<string, string> = {
   blocked: 'ไม่มีตาเดินเหลือ',
 }
 
-/** เหตุผลที่เกมจบเป็นข้อความ หมากรุกไทยเรียกการรุกจนกระดานว่า "รุกจน" */
+/** เหตุผลที่เกมจบเป็นข้อความ บางเหตุผลมีความหมายต่างกันตามเกม */
 function reasonText(state: StateMsg): string {
-  if (state.reason === 'checkmate' && gameOf(state) === 'makruk') return 'รุกจน'
+  // หมากหนีบชนะเมื่อคู่แข่งเหลือหมากไม่เกิน 2 ตัว ไม่ต้องกินจนหมด
+  if (state.reason === 'wipeout' && gameOf(state) === 'neeb') return 'คู่แข่งเหลือหมากไม่เกิน 2 ตัว'
   return REASONS[state.reason ?? ''] ?? ''
 }
 
