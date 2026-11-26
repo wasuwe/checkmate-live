@@ -1,0 +1,50 @@
+# การตั้งค่า Fly.io ของ checkmate-live (ดูขั้นตอนทั้งหมดใน DESIGN.md หัวข้อ 6)
+#
+# ชื่อแอปต้องไม่ซ้ำกับใครใน Fly.io ถ้าชื่อนี้ถูกใช้ไปแล้ว ให้เปลี่ยนทั้งบรรทัด app
+# และ ALLOWED_ORIGINS ด้านล่างให้ตรงกัน
+app = "checkmate-live"
+primary_region = "sin" # สิงคโปร์ ใกล้ฐานข้อมูล Supabase
+
+# รอให้เซิร์ฟเวอร์บันทึกห้องที่ค้างอยู่ลงฐานข้อมูลก่อนปิด (ห้องถูกกู้คืนตอนเครื่องใหม่เริ่ม)
+kill_signal = "SIGTERM"
+kill_timeout = "30s"
+
+[build]
+  dockerfile = "Dockerfile"
+
+# ค่าที่ไม่เป็นความลับ ส่วน DATABASE_URL, GUEST_SECRET, SUPABASE_JWKS_URL ตั้งด้วย `fly secrets set`
+[env]
+  STATIC_DIR = "/app/web"
+  ALLOWED_ORIGINS = "https://checkmate-live.fly.dev"
+  # Fly ใส่ IP จริงของผู้ใช้ใน header นี้และเขียนทับค่าที่ผู้ใช้ส่งมาเอง
+  # ถ้าไม่ตั้ง ผู้ใช้ทุกคนจะถูกนับเป็น IP เดียวกัน (IP ของ proxy) และโดนจำกัดความถี่ร่วมกัน
+  CLIENT_IP_HEADER = "Fly-Client-IP"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # ห้องและ WebSocket อยู่ในหน่วยความจำของเครื่องเดียว:
+  # ห้ามหยุดเครื่องเมื่อไม่มีคนใช้ (เกมที่เล่นอยู่จะหลุด) และห้ามมีมากกว่า 1 เครื่อง (ผู้เล่นสองคนจะไปคนละเครื่อง)
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 800
+    hard_limit = 1000
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/healthz"
+    interval = "15s"
+    timeout = "3s"
+    grace_period = "10s"
+
+[deploy]
+  # มีเครื่องเดียว: ปิดเครื่องเก่าก่อนเปิดเครื่องใหม่ เพื่อไม่ให้มีสองเครื่องรับผู้เล่นพร้อมกัน
+  strategy = "immediate"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

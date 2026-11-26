@@ -17,7 +17,7 @@
 | Database | Supabase (PostgreSQL) | Postgres มาตรฐาน พร้อม Auth ในตัว |
 | DB Driver | `pgx` + `sqlc` | เร็ว type-safe กัน SQL injection |
 | Auth | Supabase Auth (JWT) | ไม่ต้องเขียนระบบสมาชิกเอง |
-| Deploy | Docker + VPS + Caddy | HTTPS อัตโนมัติ ค่าใช้จ่ายต่ำ |
+| Deploy | Docker + Fly.io (เครื่องเดียว สิงคโปร์) | HTTPS อัตโนมัติ รองรับ WebSocket ไม่ต้องดูแลเซิร์ฟเวอร์เอง |
 | CI/CD | GitHub Actions + GHCR | ทดสอบ → build image → deploy อัตโนมัติ |
 
 ### ทางเลือก Frontend ที่พิจารณาแล้ว
@@ -346,7 +346,7 @@ case "resign":
 - ใช้ parameterized query ผ่าน `sqlc` หรือ `pgx`
 
 ### Server และ Infra
-- ใช้ HTTPS/WSS เท่านั้น ผ่าน Caddy
+- ใช้ HTTPS/WSS เท่านั้น (Fly.io บังคับ HTTPS ด้วย `force_https`)
 - ตั้ง CORS เฉพาะโดเมนของเรา และใส่ security headers (CSP, HSTS)
 - ตั้ง timeout ให้ `http.Server` (`ReadHeaderTimeout`, `IdleTimeout`)
 
@@ -359,35 +359,56 @@ case "resign":
 
 ---
 
-## 6. CI/CD (GitHub Actions)
+## 6. CI/CD และการขึ้นระบบ (GitHub Actions + Fly.io)
+
+ระบบจริงรันบน **Fly.io** เครื่องเดียว ที่สิงคโปร์ (เจ้าของโปรเจกต์เลือกแทน VPS + Caddy ที่ออกแบบไว้ตอนแรก) Fly.io ออกใบรับรอง HTTPS ให้เองและรองรับ WebSocket
 
 | เหตุการณ์ | ขั้นตอน |
 |---|---|
-| Pull Request | Go: gofmt, vet, test `-race`, govulncheck, build · React: lint, test, build, npm audit |
-| Push เข้า `main` | ทดสอบ → build Docker image ขึ้น GHCR (`latest` และ `sha-xxxxxxx`) → SSH deploy ขึ้น VPS |
+| Pull Request | Go: gofmt, vet, test `-race`, govulncheck, build · React: lint, test, build, npm audit · Docker image: build (ไม่ push) |
+| Push เข้า `main` | ทดสอบทั้งหมด → `flyctl deploy` (Fly.io build image จาก `Dockerfile`) → ตรวจว่า `/healthz` ตอบ |
 
 - **Image:** multi-stage build (Node → Go → distroless) รันแบบ non-root
-- **บน VPS:** container เป็นแบบ read-only, `cap_drop: ALL`, `no-new-privileges` และเปิด port เฉพาะ localhost
+- **การตั้งค่าเครื่อง:** `fly.toml` ที่รากของ repo
+- **เครื่องเดียวเสมอ:** ห้องและ WebSocket อยู่ในหน่วยความจำของเครื่องเดียว จึงปิด scale-to-zero (`auto_stop_machines = "off"`) และ deploy ด้วย `--ha=false` ถ้ามีสองเครื่อง ผู้เล่นสองคนในห้องเดียวกันอาจไปคนละเครื่องและไม่เจอกัน
+- **ระหว่าง deploy:** เครื่องเก่าถูกปิดแล้วเครื่องใหม่เปิด ผู้เล่นหลุดชั่วครู่ หน้าเว็บเชื่อมต่อใหม่เอง ห้องที่เล่นอยู่ถูกกู้จากฐานข้อมูล และผู้เล่นมีเวลา `ABANDON_GRACE` ในการกลับเข้ามา
 
-### การตั้งค่า
-- **Secrets:** `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`
-- **Variables:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
-- **Environment:** `production` (เปิด required reviewers ได้)
-- **บน VPS:** วาง `docker-compose.yml` กับ `.env` ไว้ที่ `/opt/chess`
+### ตั้งค่าครั้งแรก (ทำโดยเจ้าของโปรเจกต์)
+ทำตามลำดับ ทุกคำสั่งรันที่รากของ repo
 
-`.env` บน VPS:
-```
-DATABASE_URL=postgresql://postgres.[ref]:[password]@[pooler-host]:5432/postgres
-SUPABASE_JWKS_URL=https://[ref].supabase.co/auth/v1/.well-known/jwks.json
-ALLOWED_ORIGINS=https://chess.example.com
-STATIC_DIR=/app/web
-GUEST_SECRET=<สุ่มยาว ๆ>   # ถ้าไม่ตั้ง token ของ guest จะใช้ไม่ได้หลังรีสตาร์ต
-GUEST_ENABLED=true         # ไม่บังคับ ตั้ง false เพื่อบังคับ login ก่อนเล่น
-ABANDON_GRACE=60s          # ไม่บังคับ ค่าเริ่มต้น 60s
-CLIENT_IP_HEADER=Fly-Client-IP  # ตั้งเมื่ออยู่หลัง proxy ที่ใส่ IP จริงของผู้ใช้มาใน header นี้ (ดูหัวข้อ Security)
-```
+1. ติดตั้ง flyctl แล้ว `fly auth login` (สมัครบัญชี Fly.io ถ้ายังไม่มี)
+2. สร้างแอป: `fly apps create checkmate-live` ถ้าชื่อนี้มีคนใช้แล้ว ให้เลือกชื่ออื่น แล้วแก้ `app` และ `ALLOWED_ORIGINS` ใน `fly.toml` ให้ตรงกัน
+3. ตั้งความลับของเซิร์ฟเวอร์ (ค่าเดียวกับใน `server/.env` ห้ามส่งค่าเหล่านี้ในแชทหรือ commit):
+   ```
+   fly secrets set --stage DATABASE_URL="..." SUPABASE_JWKS_URL="..." GUEST_SECRET="..."
+   ```
+   `GUEST_SECRET` ต้องตั้ง ไม่งั้นผู้เล่นรับเชิญจะเสียที่นั่งทุกครั้งที่ deploy
+4. ใน Supabase (Authentication → URL Configuration) ตั้ง Site URL เป็น `https://<ชื่อแอป>.fly.dev`
+5. ใน GitHub (Settings → Secrets and variables → Actions):
+   - Secret `FLY_API_TOKEN` จาก `fly tokens create deploy`
+   - Variables `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (ค่าเดียวกับใน `web/.env.local` เป็นค่าสาธารณะ)
+   - Variable `DEPLOY_ENABLED` = `true`
+6. merge เข้า `main` แล้ว GitHub Actions จะ deploy ให้ หรือ deploy เองครั้งแรกด้วย
+   `fly deploy --ha=false --build-arg VITE_SUPABASE_URL=... --build-arg VITE_SUPABASE_ANON_KEY=...`
 
-**การย้อนเวอร์ชัน:** แก้ image tag ใน compose เป็น `sha-xxxxxxx` ที่ต้องการ แล้วรัน `docker compose up -d`
+### ตัวแปรของเซิร์ฟเวอร์
+| ตัวแปร | ตั้งที่ | หมายเหตุ |
+|---|---|---|
+| `DATABASE_URL` | Fly secret | session pooler ของ Supabase (IPv4) |
+| `SUPABASE_JWKS_URL` | Fly secret | `https://[ref].supabase.co/auth/v1/.well-known/jwks.json` |
+| `GUEST_SECRET` | Fly secret | สุ่มยาว ๆ ถ้าไม่ตั้ง token ของ guest ใช้ไม่ได้หลังรีสตาร์ต |
+| `ALLOWED_ORIGINS` | `fly.toml` | ที่อยู่ของเว็บ เช่น `https://checkmate-live.fly.dev` (เพิ่มโดเมนของตัวเองได้ คั่นด้วยจุลภาค) |
+| `STATIC_DIR` | `fly.toml` | `/app/web` |
+| `CLIENT_IP_HEADER` | `fly.toml` | `Fly-Client-IP` ถ้าไม่ตั้ง ผู้ใช้ทุกคนถูกจำกัดความถี่ร่วมกัน (ดูหัวข้อ Security) |
+| `GUEST_ENABLED` | ไม่บังคับ | `false` เพื่อบังคับ login ก่อนเล่น |
+| `ABANDON_GRACE` | ไม่บังคับ | ค่าเริ่มต้น `60s` |
+| `START_DELAY` | ไม่บังคับ | เวลาโยนเหรียญก่อนนาฬิกาเริ่ม ค่าเริ่มต้น `3500ms` |
+
+### ดูแลระบบ
+- ดู log: `fly logs` · สถานะ: `fly status`
+- **ย้อนเวอร์ชัน:** `fly releases` ดูรายการ แล้ว `fly deploy --ha=false --image <image ของ release ที่ต้องการ>`
+- **ค่าใช้จ่าย:** เครื่อง `shared-cpu-1x` 256MB เปิดตลอด ตรวจยอดได้ที่หน้า Billing ของ Fly.io
+- `docker-compose.yml` เป็นของแผน VPS เดิม ไม่ได้ใช้กับ Fly.io
 
 ---
 
@@ -400,4 +421,4 @@ CLIENT_IP_HEADER=Fly-Client-IP  # ตั้งเมื่ออยู่หล�
 5. บันทึกเกมลง DB + RLS
 6. นาฬิกา + แชท + คนดู
 7. Security hardening (rate limit, origin, limits)
-8. CI/CD + deploy ขึ้น VPS
+8. CI/CD + deploy ขึ้น Fly.io
