@@ -157,7 +157,8 @@ describe('pages', () => {
       ['/profile', 'profile'],
       ['/profile/', 'profile'],
       ['/credits', 'credits'],
-      ['/admin', 'admin'],
+      ['/backstage', 'admin'],
+      ['/admin', 'not_found'], // ชื่อที่เดาง่ายไม่ได้พาไปหน้าจัดการ
     ]) {
       expect(parseRoute(path).page, path).toBe(page)
     }

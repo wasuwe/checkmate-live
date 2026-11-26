@@ -16,6 +16,9 @@ export type Route =
   | { page: 'room'; roomId: string }
   | { page: 'not_found' }
 
+/** ที่อยู่ของหน้าจัดการข้อมูลของผู้ดูแล เปลี่ยนที่นี่ที่เดียว (เจ้าของโปรเจกต์เลือกชื่อนี้แทน /admin) */
+export const ADMIN_PATH = '/backstage'
+
 const STATIC: Record<string, Route> = {
   '/': { page: 'home' },
   '/play': { page: 'play' },
@@ -25,7 +28,7 @@ const STATIC: Record<string, Route> = {
   '/rules': { page: 'rules' },
   '/profile': { page: 'profile' },
   '/credits': { page: 'credits' },
-  '/admin': { page: 'admin' },
+  [ADMIN_PATH]: { page: 'admin' },
 }
 
 export function parseRoute(pathname: string): Route {
