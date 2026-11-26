@@ -22,12 +22,36 @@ func main() {
 
 	addr := envOr("ADDR", ":8080")
 
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	// GUEST_SECRET ทำให้ token ของ guest ใช้ต่อได้หลังรีสตาร์ต ถ้าไม่ตั้งจะสุ่มใหม่ทุกครั้งที่เริ่ม
 	guest, err := auth.NewGuest([]byte(os.Getenv("GUEST_SECRET")))
 	if err != nil {
 		log.Error("init guest auth", "err", err)
 		os.Exit(1)
 	}
+
+	// ผู้ใช้ที่ login: ตรวจ JWT ของ Supabase ผ่าน JWKS (ถ้าไม่ตั้ง SUPABASE_JWKS_URL จะมีแต่ guest)
+	// GUEST_ENABLED=false ปิดการเล่นแบบไม่ login
+	authn := auth.Multi{}
+	guestEnabled := os.Getenv("GUEST_ENABLED") != "false"
+	if guestEnabled {
+		authn.Guest = guest
+	}
+	if jwksURL := os.Getenv("SUPABASE_JWKS_URL"); jwksURL != "" {
+		supabase, err := auth.NewSupabase(ctx, jwksURL)
+		if err != nil {
+			log.Error("init supabase auth", "err", err)
+			os.Exit(1)
+		}
+		authn.User = supabase
+	}
+	if authn.Guest == nil && authn.User == nil {
+		log.Error("no way to sign in: set SUPABASE_JWKS_URL or leave GUEST_ENABLED on")
+		os.Exit(1)
+	}
+	log.Info("auth configured", "guest", authn.Guest != nil, "supabase", authn.User != nil)
 
 	// ABANDON_GRACE คือเวลาที่ผู้เล่นซึ่งหลุดกลับเข้ามาได้ก่อนถูกปรับแพ้ เช่น "60s" (ค่าเริ่มต้น)
 	var abandonGrace time.Duration
@@ -42,16 +66,19 @@ func main() {
 		OriginPatterns: splitList(os.Getenv("ALLOWED_ORIGINS")),
 		AbandonGrace:   abandonGrace,
 		Logger:         log,
-	}, guest)
+	}, authn)
 	defer h.Close()
 
-	handler := httpapi.New(httpapi.Config{
+	apiCfg := httpapi.Config{
 		StaticDir: os.Getenv("STATIC_DIR"),
 		Logger:    log,
 		Hub:       h,
-		Auth:      guest,
-		Guest:     guest,
-	})
+		Auth:      authn,
+	}
+	if guestEnabled {
+		apiCfg.Guest = guest // เปิด POST /api/guest
+	}
+	handler := httpapi.New(apiCfg)
 
 	srv := &http.Server{
 		Addr:              addr,
@@ -59,9 +86,6 @@ func main() {
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	go func() {
 		log.Info("server listening", "addr", addr)
