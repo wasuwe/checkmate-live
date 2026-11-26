@@ -1,0 +1,23 @@
+# วางไฟล์นี้ไว้ที่ /opt/chess บน VPS คู่กับไฟล์ .env
+# .env ตัวอย่าง:
+#   DATABASE_URL=postgresql://postgres.[ref]:[password]@[pooler-host]:5432/postgres
+#   SUPABASE_JWKS_URL=https://[ref].supabase.co/auth/v1/.well-known/jwks.json
+#   ALLOWED_ORIGINS=https://chess.example.com
+#   STATIC_DIR=/app/web
+
+services:
+  app:
+    image: ghcr.io/OWNER/REPO:latest   # แก้เป็นชื่อ repo จริง (ตัวพิมพ์เล็ก)
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:8080:8080"          # เปิดเฉพาะในเครื่อง ให้ Caddy เป็นตัวรับ HTTPS
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
