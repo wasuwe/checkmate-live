@@ -1,55 +1,75 @@
 import { describe, expect, test } from 'vitest'
-import { initialOf, moveIndex, ocNumber, ocsOf, OCS, ownerFilters, PEOPLE, safeLink, selectionFor, TEAM } from './credits'
+import {
+  initialOf,
+  moveIndex,
+  ocNumber,
+  ocsOf,
+  ownerFilters,
+  parseCredits,
+  personOf,
+  safeColor,
+  safeImage,
+  safeLink,
+  SAMPLE_CREDITS as DATA,
+  selectionFor,
+} from './credits'
 
-describe('credits data', () => {
+describe('sample credits data', () => {
   test('every id that is referenced exists, and ids are unique', () => {
-    expect(new Set(OCS.map((o) => o.id)).size).toBe(OCS.length)
-    for (const o of OCS) {
-      expect(PEOPLE[o.owner], `owner of ${o.id}`).toBeDefined()
-      expect(PEOPLE[o.artist], `artist of ${o.id}`).toBeDefined()
+    const people = new Set(DATA.people.map((p) => p.id))
+    expect(people.size).toBe(DATA.people.length)
+    expect(new Set(DATA.ocs.map((o) => o.id)).size).toBe(DATA.ocs.length)
+    for (const o of DATA.ocs) {
+      expect(people.has(o.owner), `owner of ${o.id}`).toBe(true)
+      expect(people.has(o.artist), `artist of ${o.id}`).toBe(true)
       expect(o.color).toMatch(/^#[0-9a-f]{6}$/i)
       expect(o.pale).toMatch(/^#[0-9a-f]{6}$/i)
       expect(o.name.length).toBeGreaterThan(0)
     }
-    for (const group of TEAM) for (const id of group.ids) expect(PEOPLE[id], id).toBeDefined()
+    for (const group of DATA.team) for (const id of group.ids) expect(people.has(id), id).toBe(true)
   })
 
-  test('links are either empty or http(s), and character images are served from our own site', () => {
-    for (const p of Object.values(PEOPLE)) expect(p.link === '' || safeLink(p.link) !== null, p.name).toBe(true)
-    // รูปจากโดเมนอื่นถูก security headers บล็อก
-    for (const o of OCS) if (o.image) expect(o.image, o.id).toMatch(/^\/credits\//)
+  test('the sample has no links and no images, so nothing fake can be clicked', () => {
+    for (const p of DATA.people) expect(p.link).toBe('')
+    for (const o of DATA.ocs) expect(o.image).toBe('')
   })
 
   test('numbers follow the full list and do not change with the filter', () => {
-    expect(ocNumber(OCS[0])).toBe('01')
-    expect(ocNumber(OCS[OCS.length - 1])).toBe(String(OCS.length).padStart(2, '0'))
-    const filtered = ocsOf(OCS[2].owner)
-    expect(ocNumber(filtered[0])).toBe(String(OCS.indexOf(filtered[0]) + 1).padStart(2, '0'))
+    expect(ocNumber(DATA, DATA.ocs[0])).toBe('01')
+    expect(ocNumber(DATA, DATA.ocs[DATA.ocs.length - 1])).toBe(String(DATA.ocs.length).padStart(2, '0'))
+    const filtered = ocsOf(DATA, DATA.ocs[2].owner)
+    expect(ocNumber(DATA, filtered[0])).toBe(String(DATA.ocs.indexOf(filtered[0]) + 1).padStart(2, '0'))
+  })
+
+  test('a reference to someone who does not exist does not break the page', () => {
+    expect(personOf(DATA, 'nok').name).toBe('Nok')
+    expect(personOf(DATA, 'ghost')).toMatchObject({ name: '—', link: '' })
   })
 })
 
 describe('owner filter', () => {
   test('starts with "all", then only people who own a character', () => {
-    const filters = ownerFilters()
+    const filters = ownerFilters(DATA)
     expect(filters[0]).toEqual({ id: 'all', label: 'ทั้งหมด' })
-    for (const f of filters.slice(1)) expect(ocsOf(f.id).length).toBeGreaterThan(0)
-    const owners = new Set(OCS.map((o) => o.owner))
+    for (const f of filters.slice(1)) expect(ocsOf(DATA, f.id).length).toBeGreaterThan(0)
+    const owners = new Set(DATA.ocs.map((o) => o.owner))
     expect(filters.slice(1).map((f) => f.id).sort()).toEqual([...owners].sort())
   })
 
   test('one owner can have several characters', () => {
-    expect(ocsOf('all')).toEqual(OCS)
-    const counts = ownerFilters().slice(1).map((f) => ocsOf(f.id).length)
-    expect(counts.reduce((a, b) => a + b, 0)).toBe(OCS.length)
-    expect(ocsOf('nobody')).toEqual([])
+    expect(ocsOf(DATA, 'all')).toEqual(DATA.ocs)
+    const counts = ownerFilters(DATA).slice(1).map((f) => ocsOf(DATA, f.id).length)
+    expect(counts.reduce((a, b) => a + b, 0)).toBe(DATA.ocs.length)
+    expect(ocsOf(DATA, 'nobody')).toEqual([])
   })
 
   test('changing the filter keeps the selection when it is still listed, else picks the first', () => {
-    const other = OCS.find((o) => o.owner !== OCS[0].owner)!
-    expect(selectionFor('all', other.id)).toBe(other.id)
-    expect(selectionFor(other.owner, other.id)).toBe(other.id)
-    expect(selectionFor(other.owner, OCS[0].id)).toBe(ocsOf(other.owner)[0].id)
-    expect(selectionFor('nobody', OCS[0].id)).toBe(OCS[0].id)
+    const other = DATA.ocs.find((o) => o.owner !== DATA.ocs[0].owner)!
+    expect(selectionFor(DATA, 'all', other.id)).toBe(other.id)
+    expect(selectionFor(DATA, other.owner, other.id)).toBe(other.id)
+    expect(selectionFor(DATA, other.owner, DATA.ocs[0].id)).toBe(ocsOf(DATA, other.owner)[0].id)
+    expect(selectionFor(DATA, 'nobody', DATA.ocs[0].id)).toBe(DATA.ocs[0].id)
+    expect(selectionFor({ people: [], team: [], ocs: [] }, 'all', 'x')).toBe('')
   })
 })
 
@@ -70,13 +90,50 @@ describe('arrow keys in the character grid', () => {
   })
 })
 
-describe('links', () => {
+// ข้อมูลมาจากเซิร์ฟเวอร์และ admin เป็นคนพิมพ์ ค่าที่จะถูกใส่ลงใน href, style และ src ถูกกรองอีกชั้นที่หน้าเว็บ
+describe('values from the server are filtered before they reach the page', () => {
   test('only http(s) links are opened', () => {
     expect(safeLink('https://example.com/a')).toBe('https://example.com/a')
     expect(safeLink('http://example.com')).toBe('http://example.com')
     expect(safeLink('')).toBeNull()
     expect(safeLink('javascript:alert(1)')).toBeNull()
     expect(safeLink('//example.com')).toBeNull()
+  })
+
+  test('only #rrggbb colours are used in styles', () => {
+    expect(safeColor('#FF8FB1')).toBe('#FF8FB1')
+    expect(safeColor('red')).toBe('#FFFFFF')
+    expect(safeColor('#fff;background:url(https://evil.example/x)', '#000000')).toBe('#000000')
+    expect(safeColor('')).toBe('#FFFFFF')
+  })
+
+  test('only images served by our own image route are shown', () => {
+    const ok = '/api/content-images/0123456789abcdef0123456789abcdef'
+    expect(safeImage(ok)).toBe(ok)
+    expect(safeImage('')).toBeNull()
+    expect(safeImage('https://evil.example/x.png')).toBeNull()
+    expect(safeImage('/api/content-images/../admin/me')).toBeNull()
+    expect(safeImage(ok + '?x=1')).toBeNull()
+  })
+})
+
+describe('reading the server response', () => {
+  test('a well-formed document is read as is', () => {
+    expect(parseCredits(JSON.parse(JSON.stringify(DATA)))).toEqual(DATA)
+  })
+
+  test('anything that is not a credits document is rejected', () => {
+    for (const bad of [null, undefined, 'x', 3, [], {}, { people: [], team: [] }, { people: {}, team: [], ocs: [] }]) {
+      expect(parseCredits(bad)).toBeNull()
+    }
+  })
+
+  test('missing or wrongly typed fields become empty values instead of breaking the page', () => {
+    const parsed = parseCredits({ people: [{ id: 'a', name: 5 }, null], team: [{ role: 'Dev', ids: ['a', 7] }], ocs: [{ id: 'o' }] })
+    expect(parsed?.people[0]).toEqual({ id: 'a', name: '', handle: '', link: '', bg: '' })
+    expect(parsed?.people[1].id).toBe('')
+    expect(parsed?.team[0]).toEqual({ role: 'Dev', bg: '', ids: ['a'] })
+    expect(parsed?.ocs[0]).toMatchObject({ id: 'o', name: '', image: '', owner: '' })
   })
 })
 

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/wasuwe/checkmate-live/server/internal/auth"
+	"github.com/wasuwe/checkmate-live/server/internal/content"
 	"github.com/wasuwe/checkmate-live/server/internal/envfile"
 	"github.com/wasuwe/checkmate-live/server/internal/httpapi"
 	"github.com/wasuwe/checkmate-live/server/internal/hub"
@@ -157,6 +158,16 @@ func main() {
 		}
 	}
 
+	// เนื้อหาที่ admin แก้ได้ (หน้าเครดิต) ถ้าไม่มีฐานข้อมูลจะเก็บใน memory และหายเมื่อรีสตาร์ต
+	var siteContent content.Store = content.NewMemory()
+	if db != nil {
+		siteContent = db.Content()
+	}
+	// ADMIN_EMAILS คืออีเมลของผู้ดูแล คั่นด้วย comma เช่น "a@example.com, b@example.com"
+	// ใส่เฉพาะอีเมลที่สมัครบัญชีไว้แล้ว (ดูคำเตือนใน DESIGN.md) ไม่ log อีเมล แค่จำนวน
+	admins := splitList(os.Getenv("ADMIN_EMAILS"))
+	log.Info("admin configured", "admins", len(admins))
+
 	h := hub.New(hubCfg, authn)
 	restored := 0
 	for _, snap := range saved {
@@ -177,6 +188,8 @@ func main() {
 		Hub:        h,
 		Auth:       authn,
 		Profiles:   profiles,
+		Content:    siteContent,
+		Admins:     admins,
 		Limits:     &httpapi.DefaultLimits,
 		ClientIP:   clientIP,
 		ConnectSrc: connectSrc,

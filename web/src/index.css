@@ -2256,6 +2256,195 @@ a.link-card:hover {
   }
 }
 
+/* ---------- หน้าจัดการข้อมูล (admin) ---------- */
+
+.oc-bio {
+  font-size: 15px;
+  line-height: 1.6;
+  white-space: pre-line; /* คำอธิบายขึ้นบรรทัดใหม่ได้ */
+}
+
+.admin-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 12px;
+  border: 2.5px solid var(--ink);
+  border-radius: 18px;
+  background: var(--cream);
+}
+
+.admin-row > .admin-fields:first-child {
+  grid-column: 1 / 3;
+}
+
+.admin-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-fields .wide {
+  grid-column: 1 / -1;
+}
+
+.admin-fields .input {
+  background: #fff;
+}
+
+.admin-fields textarea.input {
+  resize: vertical;
+  min-height: 84px;
+  line-height: 1.5;
+}
+
+.admin-note {
+  grid-column: 1 / -1;
+}
+
+.row-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.row-tools .btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px 10px;
+}
+
+.color-field input[type='color'] {
+  width: 100%;
+  height: 48px;
+  padding: 3px;
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.members {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.members legend {
+  padding: 0 0 6px;
+}
+
+.check-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 14px 6px 10px;
+  border: 2.5px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.check-chip:has(input:checked) {
+  background: var(--butter);
+}
+
+.check-chip input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--ink);
+}
+
+.oc-image {
+  width: 112px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.oc-image-preview {
+  aspect-ratio: 3 / 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 44px;
+  color: #fff;
+  -webkit-text-stroke: 2px var(--ink);
+}
+
+.oc-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.oc-image .btn {
+  min-height: 44px;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+/* แถบบันทึกติดขอบล่างของจอ */
+.admin-bar {
+  position: sticky;
+  bottom: 12px;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 6px 0 var(--ink);
+}
+
+.admin-bar-status {
+  min-width: 160px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+@media (max-width: 620px) {
+  .admin-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-row > .admin-fields:first-child {
+    grid-column: auto;
+  }
+
+  .row-tools {
+    flex-direction: row;
+  }
+
+  .oc-image {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .oc-image-preview {
+    width: 84px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation: none !important;

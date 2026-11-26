@@ -201,3 +201,40 @@ func TestMultiRoutesByTokenShape(t *testing.T) {
 		t.Errorf("user token with login disabled: err = %v", err)
 	}
 }
+
+func TestSupabaseIdentifyReturnsTheSignedEmail(t *testing.T) {
+	f := newFakeSupabase(t)
+	s := f.verifier()
+	ctx := context.Background()
+
+	claims := f.claims()
+	claims["email"] = " Boss@Example.com "
+	id, err := s.Identify(ctx, f.es256(claims))
+	if err != nil || id.UserID != testUserID || id.Email != "Boss@Example.com" {
+		t.Fatalf("Identify = %+v, %v", id, err)
+	}
+	// Multi ส่งต่ออีเมลของบัญชี และ guest ไม่มีอีเมล
+	guest, err := NewGuest(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	multi := Multi{Guest: guest, User: s}
+	if id, err := Identify(ctx, multi, f.es256(claims)); err != nil || id.Email != "Boss@Example.com" {
+		t.Fatalf("Multi identify = %+v, %v", id, err)
+	}
+	guestID, guestToken, _ := guest.Issue()
+	if id, err := Identify(ctx, multi, guestToken); err != nil || id.UserID != guestID || id.Email != "" {
+		t.Fatalf("guest identify = %+v, %v", id, err)
+	}
+
+	// token ที่ไม่มี claim email ยังใช้ login ได้ แต่ไม่มีอีเมล
+	if id, err := s.Identify(ctx, f.es256(f.claims())); err != nil || id.Email != "" {
+		t.Fatalf("no email claim: %+v, %v", id, err)
+	}
+	// อีเมลใน token ที่ลายเซ็นไม่ถูกต้องไม่ถูกเชื่อ
+	forged := f.es256(claims)
+	forged = forged[:len(forged)-4] + "AAAA"
+	if id, err := s.Identify(ctx, forged); err == nil || id.Email != "" {
+		t.Fatalf("forged token was identified: %+v", id)
+	}
+}

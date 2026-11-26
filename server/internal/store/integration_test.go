@@ -12,6 +12,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/wasuwe/checkmate-live/server/internal/content"
 	"github.com/wasuwe/checkmate-live/server/internal/envfile"
 	"github.com/wasuwe/checkmate-live/server/internal/hub"
 	"github.com/wasuwe/checkmate-live/server/internal/profile"
@@ -295,7 +296,7 @@ func TestIntegrationTablesAreClosedToWebRoles(t *testing.T) {
 			t.Logf("role %s does not exist in this database; skipping", role)
 			continue
 		}
-		for _, table := range []string{"rooms", "games"} {
+		for _, table := range []string{"rooms", "games", "site_content", "content_images"} {
 			for _, priv := range []string{"select", "insert", "update", "delete"} {
 				var allowed bool
 				err := s.pool.QueryRow(ctx, "select has_table_privilege($1, $2, $3)", role, schema+"."+table, priv).Scan(&allowed)
@@ -397,5 +398,63 @@ func TestIntegrationChatReports(t *testing.T) {
 	}
 	if n != 2 || message != "ข้อความหยาบ" || sender != "guest_aaa" {
 		t.Fatalf("chat_reports: %d rows, message %q, sender %q; want 2 rows", n, message, sender)
+	}
+}
+
+func TestIntegrationContent(t *testing.T) {
+	s, _ := openTestStore(t)
+	ctx := context.Background()
+	c := s.Content()
+
+	if got, err := c.Credits(ctx); got != nil || err != nil {
+		t.Fatalf("credits before any save: %v %v", got, err)
+	}
+	credits := content.Credits{
+		People: []content.Person{{ID: "nok", Name: "Nok", Bg: "#FFB8CC"}},
+		Team:   []content.TeamGroup{{Role: "Developer", Bg: "#A9D6F7", IDs: []string{"nok"}}},
+		Ocs:    []content.Oc{{ID: "kaimuk", Name: "ไข่มุก", Owner: "nok", Artist: "nok", Color: "#FF8FB1", Pale: "#FFE8EF"}},
+	}
+	if err := c.SaveCredits(ctx, credits, "admin-1"); err != nil {
+		t.Fatal(err)
+	}
+	credits.Ocs[0].Name = "ผึ้ง"
+	if err := c.SaveCredits(ctx, credits, "admin-2"); err != nil { // บันทึกทับ
+		t.Fatal(err)
+	}
+	got, err := c.Credits(ctx)
+	if err != nil || got == nil || got.Ocs[0].Name != "ผึ้ง" || got.People[0].ID != "nok" {
+		t.Fatalf("stored credits: %+v %v", got, err)
+	}
+	var rows int
+	var by string
+	if err := s.pool.QueryRow(ctx, "select count(*), max(updated_by) from site_content").Scan(&rows, &by); err != nil || rows != 1 || by != "admin-2" {
+		t.Fatalf("site_content rows=%d by=%q err=%v", rows, by, err)
+	}
+
+	// แถวที่ถูกแก้ด้วยมือจนผิดรูปต้องไม่ถูกส่งออกไป
+	if _, err := s.pool.Exec(ctx, `update site_content set data = '{"people":[{"id":"x","name":"X","bg":"red"}]}' where key = 'credits'`); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := c.Credits(ctx); err == nil {
+		t.Fatalf("tampered credits were returned: %+v", got)
+	}
+
+	id := "0123456789abcdef0123456789abcdef"
+	if _, err := c.Image(ctx, id); !errors.Is(err, content.ErrNotFound) {
+		t.Fatalf("missing image: %v", err)
+	}
+	if err := c.SaveImage(ctx, id, content.Image{ContentType: "image/png", Data: []byte{1, 2, 3}}, "admin-1"); err != nil {
+		t.Fatal(err)
+	}
+	img, err := c.Image(ctx, id)
+	if err != nil || img.ContentType != "image/png" || len(img.Data) != 3 {
+		t.Fatalf("stored image: %+v %v", img, err)
+	}
+	// ฐานข้อมูลปฏิเสธชนิดไฟล์และรหัสที่ไม่อยู่ในรูปแบบ
+	if err := c.SaveImage(ctx, "fedcba9876543210fedcba9876543210", content.Image{ContentType: "image/svg+xml", Data: []byte{1}}, ""); err == nil {
+		t.Fatal("svg content type was accepted")
+	}
+	if err := c.SaveImage(ctx, "not-an-id", content.Image{ContentType: "image/png", Data: []byte{1}}, ""); err == nil {
+		t.Fatal("bad image id was accepted")
 	}
 }

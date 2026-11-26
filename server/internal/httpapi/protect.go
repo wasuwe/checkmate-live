@@ -22,6 +22,10 @@ type Limits struct {
 	Profile ratelimit.Rule
 	// Avatar: อัปโหลดรูป ต่อผู้ใช้ (งานหนักสุด เพราะต้องถอดรหัสและเข้ารหัสรูปใหม่)
 	Avatar ratelimit.Rule
+	// Admin: บันทึกเนื้อหาจากหน้าจัดการ ต่อ admin หนึ่งคน
+	Admin ratelimit.Rule
+	// AdminImage: อัปโหลดรูปจากหน้าจัดการ ต่อ admin หนึ่งคน
+	AdminImage ratelimit.Rule
 }
 
 // DefaultLimits คือโควตาที่ใช้จริง เผื่อไว้สำหรับหลายคนที่ใช้อินเทอร์เน็ตเดียวกัน
@@ -32,11 +36,13 @@ var DefaultLimits = Limits{
 	CreateRoom: ratelimit.Rule{Every: 10 * time.Second, Burst: 5},
 	Profile:    ratelimit.Rule{Every: 10 * time.Second, Burst: 5},
 	Avatar:     ratelimit.Rule{Every: time.Minute, Burst: 3},
+	Admin:      ratelimit.Rule{Every: 2 * time.Second, Burst: 20},
+	AdminImage: ratelimit.Rule{Every: 5 * time.Second, Burst: 30},
 }
 
 // limiters คือ Limiter ที่สร้างจาก Limits ตัวที่เป็น nil ไม่จำกัด
 type limiters struct {
-	guest, write, read, createRoom, profile, avatar *ratelimit.Limiter
+	guest, write, read, createRoom, profile, avatar, admin, adminImage *ratelimit.Limiter
 }
 
 func newLimiters(l *Limits) limiters {
@@ -56,6 +62,8 @@ func newLimiters(l *Limits) limiters {
 		createRoom: mk(l.CreateRoom),
 		profile:    mk(l.Profile),
 		avatar:     mk(l.Avatar),
+		admin:      mk(l.Admin),
+		adminImage: mk(l.AdminImage),
 	}
 }
 

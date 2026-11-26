@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/wasuwe/checkmate-live/server/internal/auth"
+	"github.com/wasuwe/checkmate-live/server/internal/content"
 	"github.com/wasuwe/checkmate-live/server/internal/game"
 	"github.com/wasuwe/checkmate-live/server/internal/hub"
 	"github.com/wasuwe/checkmate-live/server/internal/profile"
@@ -32,6 +33,11 @@ type Config struct {
 	// Profiles เก็บชื่อและรูปของผู้ใช้ที่ login ถ้าเป็น nil จะไม่เปิด route ของโปรไฟล์
 	Profiles profile.Store
 
+	// Content เก็บเนื้อหาที่ admin แก้ได้ (หน้าเครดิต) ถ้าเป็น nil จะไม่เปิด route ของเนื้อหา
+	Content content.Store
+	// Admins คืออีเมลของผู้ดูแลที่แก้เนื้อหาได้ (จาก ADMIN_EMAILS) ว่าง = ไม่มีใครแก้ได้
+	Admins []string
+
 	// Limits คือโควตาของ API ถ้าเป็น nil จะไม่จำกัด (ใช้ใน test) ตัวจริงใช้ &DefaultLimits
 	Limits *Limits
 	// ClientIP คืนตัวระบุเครื่องของผู้ส่งคำขอ ถ้าเป็น nil ใช้ที่อยู่ของ connection
@@ -43,6 +49,7 @@ type Config struct {
 type api struct {
 	cfg    Config
 	limits limiters
+	admins map[string]struct{} // อีเมลตัวพิมพ์เล็ก
 }
 
 // New สร้าง http.Handler หลักของเซิร์ฟเวอร์
@@ -53,7 +60,12 @@ func New(cfg Config) http.Handler {
 	if cfg.ClientIP == nil {
 		cfg.ClientIP = func(r *http.Request) string { return ratelimit.ClientIP(r, "") }
 	}
-	a := &api{cfg: cfg, limits: newLimiters(cfg.Limits)}
+	a := &api{cfg: cfg, limits: newLimiters(cfg.Limits), admins: map[string]struct{}{}}
+	for _, email := range cfg.Admins {
+		if email = strings.ToLower(strings.TrimSpace(email)); email != "" {
+			a.admins[email] = struct{}{}
+		}
+	}
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -73,6 +85,13 @@ func New(cfg Config) http.Handler {
 			mux.HandleFunc("PUT /api/profile/avatar", a.putAvatar)
 			mux.HandleFunc("DELETE /api/profile/avatar", a.deleteAvatar)
 			mux.HandleFunc("GET /api/avatars/{id}", a.getAvatar)
+		}
+		if cfg.Content != nil {
+			mux.HandleFunc("GET /api/credits", a.getCredits)
+			mux.HandleFunc("GET /api/content-images/{id}", a.getContentImage)
+			mux.HandleFunc("GET /api/admin/me", a.getAdminMe)
+			mux.HandleFunc("PUT /api/admin/credits", a.putCredits)
+			mux.HandleFunc("POST /api/admin/images", a.postContentImage)
 		}
 		// path ใต้ /api ที่ไม่มีจริงต้องได้ 404 ไม่ใช่หน้าเว็บ
 		mux.HandleFunc("/api/", http.NotFound)

@@ -157,6 +157,7 @@ describe('pages', () => {
       ['/profile', 'profile'],
       ['/profile/', 'profile'],
       ['/credits', 'credits'],
+      ['/admin', 'admin'],
     ]) {
       expect(parseRoute(path).page, path).toBe(page)
     }
