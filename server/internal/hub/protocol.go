@@ -194,7 +194,7 @@ type stateMsg struct {
 	Type   string `json:"type"` // "state"
 	Room   string `json:"room"`
 	Status Status `json:"status"`
-	// Game คือชนิดของเกม ("chess", "makruk", "checkers")
+	// Game คือชนิดของเกม ("chess", "makruk", "checkers", "neeb")
 	Game     game.Variant               `json:"game"`
 	FEN      string                     `json:"fen"`
 	Turn     game.Color                 `json:"turn"`

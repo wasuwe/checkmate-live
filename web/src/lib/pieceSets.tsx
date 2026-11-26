@@ -18,21 +18,22 @@ export const GLYPH_FONT =
 
 /**
  * ชนิดหมาก: หกตัวแรกของหมากรุกสากล, M เม็ด S โคน F เบี้ยหงาย ของหมากรุกไทย,
- * C เบี้ย H ฮอส ของหมากฮอส
+ * C เบี้ย H ฮอส ของหมากฮอส, O หมากของหมากหนีบ
  */
-export type Kind = 'K' | 'Q' | 'R' | 'B' | 'N' | 'P' | 'M' | 'S' | 'F' | 'C' | 'H'
+export type Kind = 'K' | 'Q' | 'R' | 'B' | 'N' | 'P' | 'M' | 'S' | 'F' | 'C' | 'H' | 'O'
 export const KINDS: Kind[] = ['K', 'Q', 'R', 'B', 'N', 'P']
 export const MAKRUK_KINDS: Kind[] = ['K', 'M', 'S', 'N', 'R', 'P', 'F']
 export const CHECKERS_KINDS: Kind[] = ['C', 'H']
-const ALL_KINDS: Kind[] = ['K', 'Q', 'R', 'B', 'N', 'P', 'M', 'S', 'F', 'C', 'H']
+export const NEEB_KINDS: Kind[] = ['O']
+const ALL_KINDS: Kind[] = ['K', 'Q', 'R', 'B', 'N', 'P', 'M', 'S', 'F', 'C', 'H', 'O']
 
 /** สัญลักษณ์ทึบ ใช้เป็นตัวหมาก (เบี้ยหงายใช้เบี้ยกลับหัว) */
 export const GLYPH: Record<Kind, string> = {
-  K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟', M: '♛', S: '♝', F: '♟', C: '●', H: '◉',
+  K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟', M: '♛', S: '♝', F: '♟', C: '●', H: '◉', O: '●',
 }
 /** สัญลักษณ์โปร่ง ใช้เป็นป้ายบอกชนิดหมาก (เบี้ยหงายเดินแบบเม็ด จึงใช้ป้ายเดียวกับเม็ด) */
 export const BADGE: Record<Kind, string> = {
-  K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙', M: '♕', S: '♗', F: '♕', C: '○', H: '◎',
+  K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙', M: '♕', S: '♗', F: '♕', C: '○', H: '◎', O: '○',
 }
 /** หมากที่วาดกลับหัว */
 export const FLIPPED: Partial<Record<Kind, boolean>> = { F: true }
@@ -101,7 +102,7 @@ export function pieceSvg(
   kind: Kind,
   opts: { badge?: boolean; className?: string; style?: CSSProperties; key?: string | number } = {},
 ): JSX.Element {
-  if (kind === 'C' || kind === 'H') return discSvg(set, color, kind === 'H', opts)
+  if (kind === 'C' || kind === 'H' || kind === 'O') return discSvg(set, color, kind === 'H', opts)
   return (
     <svg key={opts.key} viewBox="0 0 45 45" className={opts.className ?? 'piece'} style={opts.style}>
       <text
@@ -141,7 +142,7 @@ export function pieceSvg(
 }
 
 /**
- * หมากฮอสเป็นเหรียญกลม ฮอสคือเหรียญสองชั้นซ้อนกันและมีมงกุฎ
+ * หมากฮอสและหมากหนีบเป็นเหรียญกลม ฮอสคือเหรียญสองชั้นซ้อนกันและมีมงกุฎ
  * รูปทรงบอกชนิดได้เอง จึงไม่มีป้ายที่มุม
  */
 function discSvg(

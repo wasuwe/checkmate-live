@@ -5,6 +5,7 @@ import { Chess, type Square } from 'chess.js'
 import { gameOf } from './games'
 import { checkersApply, checkersPosition } from './checkers'
 import { makrukApply, makrukPosition } from './makruk'
+import { neebApply, neebPosition } from './neeb'
 import type { BoardPosition } from './placement'
 import type { Color, GameId, Promo, StateMsg } from './protocol'
 
@@ -74,7 +75,7 @@ export function pieceColor(pieceType: string): Color | null {
 
 // ---------- ตัวช่วยที่เลือกวิธีตามชนิดของเกม ----------
 // หมากรุกสากล: คำนวณในหน้าเว็บด้วย chess.js
-// หมากรุกไทย หมากฮอส: ใช้ตาเดินที่ถูกกติกาและช่องที่ถูกรุกซึ่งเซิร์ฟเวอร์ส่งมากับ state
+// หมากรุกไทย หมากฮอส หมากหนีบ: ใช้ตาเดินที่ถูกกติกาและช่องที่ถูกรุกซึ่งเซิร์ฟเวอร์ส่งมากับ state
 
 /** ช่องที่หมากบน `square` เดินไปได้ */
 export function targetsFor(state: StateMsg, square: string): string[] {
@@ -92,7 +93,9 @@ export function previewFor(state: StateMsg, from: string, to: string, promo: Pro
   const game = gameOf(state)
   if (game === 'chess') return applyMove(state.fen, from, to, promo)
   if (!targetsFor(state, from).includes(to)) return null
-  return game === 'checkers' ? checkersApply(state.fen, from, to) : makrukApply(state.fen, from, to)
+  if (game === 'checkers') return checkersApply(state.fen, from, to)
+  if (game === 'neeb') return neebApply(state.fen, from, to)
+  return makrukApply(state.fen, from, to)
 }
 
 /**
@@ -107,7 +110,9 @@ export function checkSquareFor(state: StateMsg, fen: string): string | null {
 /** ตำแหน่งในรูปที่ react-chessboard รับ */
 export function boardPosition(game: GameId, fen: string): string | BoardPosition {
   if (game === 'chess') return fen
-  return game === 'checkers' ? checkersPosition(fen) : makrukPosition(fen)
+  if (game === 'checkers') return checkersPosition(fen)
+  if (game === 'neeb') return neebPosition(fen)
+  return makrukPosition(fen)
 }
 
 /**

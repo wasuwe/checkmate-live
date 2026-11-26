@@ -134,3 +134,41 @@ func TestCheckersMultiJumpKeepsTheClock(t *testing.T) {
 		t.Fatalf("after the chain: turn=%q clock=%q forced=%v", end.Turn, end.Clock.Running, end.Forced)
 	}
 }
+
+func TestNeebRoomCapturesByCustodian(t *testing.T) {
+	st := &fakeStore{}
+	h := newTestHub(t, Config{Store: st})
+	id, err := h.CreateGameRoom(game.VariantNeeb, TimeControl{}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := h.room(id)
+	alice, bob := newFakeClient(t, "alice"), newFakeClient(t, "bob")
+	alice.join(r)
+	bob.join(r)
+	start := alice.untilState("playing", isStatus(StatusPlaying))
+	if start.Game != game.VariantNeeb || start.FEN != "oooooooo/8/8/8/8/8/8/OOOOOOOO w" || len(start.Legal) != 8 || start.Forced {
+		t.Fatalf("start state: game=%q fen=%q legal=%d forced=%v", start.Game, start.FEN, len(start.Legal), start.Forced)
+	}
+
+	// หมากหนีบเดินแนวตรงเท่านั้น
+	alice.move(r, 0, "a1b2")
+	alice.expectError(errCodeIllegalMove)
+	alice.move(r, 0, "a1a7")
+	after := bob.untilState("ply 1", atPly(1))
+	if after.Turn != game.Black || after.Clock.Running != game.Black || after.FEN != "oooooooo/O7/8/8/8/8/8/1OOOOOOO b" {
+		t.Fatalf("state after a1a7: %+v", after)
+	}
+	// ดำเดิน b8-b7 มาอยู่ข้างหมากขาวที่ a7 (การเดินเข้าไปเองไม่กินใคร)
+	bob.move(r, 1, "b8b7")
+	alice.untilState("ply 2", atPly(2))
+	// ขาว c1-c7: หนีบ b7 ระหว่าง a7 กับ c7
+	alice.move(r, 2, "c1c7")
+	captured := bob.untilState("ply 3", atPly(3))
+	if captured.FEN != "o1oooooo/O1O5/8/8/8/8/8/1O1OOOOO b" {
+		t.Fatalf("after the custodian capture: %q", captured.FEN)
+	}
+	if snap := st.lastRoom(t); snap.Variant != "neeb" || len(snap.Moves) != 3 {
+		t.Fatalf("snapshot = %+v", snap)
+	}
+}

@@ -9,6 +9,7 @@ const (
 	VariantChess    Variant = "chess"
 	VariantMakruk   Variant = "makruk"
 	VariantCheckers Variant = "checkers"
+	VariantNeeb     Variant = "neeb"
 )
 
 // ParseVariant แปลงชื่อเกมจากภายนอก ค่าว่างคือหมากรุกสากล (ห้องที่สร้างก่อนมีหลายเกม)
@@ -20,6 +21,8 @@ func ParseVariant(s string) (Variant, bool) {
 		return VariantMakruk, true
 	case VariantCheckers:
 		return VariantCheckers, true
+	case VariantNeeb:
+		return VariantNeeb, true
 	}
 	return "", false
 }
@@ -68,6 +71,8 @@ func NewVariant(v Variant) Engine {
 		return NewMakruk()
 	case VariantCheckers:
 		return NewCheckers()
+	case VariantNeeb:
+		return NewNeeb()
 	}
 	return New()
 }
