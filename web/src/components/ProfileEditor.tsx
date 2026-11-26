@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { setMyProfile, useMe } from '../lib/me'
+import { GLYPH_FONT, VS } from '../lib/pieceSets'
 import {
+  AVATAR_PRESETS,
   deleteAvatar,
-  fetchProfile,
   NAME_MAX,
   NAME_MIN,
+  presetAvatarBlob,
   ProfileError,
   saveName,
   uploadAvatar,
@@ -13,28 +16,16 @@ import { Avatar } from './Avatar'
 
 /** ฟอร์มตั้งชื่อที่แสดงและรูปโปรไฟล์ ใช้ได้เมื่อ login แล้วเท่านั้น */
 export function ProfileEditor() {
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [name, setName] = useState('')
+  const me = useMe()
+  const profile = me.profile
+  // ชื่อที่กำลังพิมพ์ null = ยังไม่ได้แก้ ใช้ชื่อที่บันทึกไว้
+  const [draft, setDraft] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    let cancelled = false
-    fetchProfile()
-      .then((p) => {
-        if (cancelled) return
-        setProfile(p)
-        setName(p.name)
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setError(message(err))
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const name = draft ?? profile.name
 
   /** รันคำสั่งที่เปลี่ยนโปรไฟล์ แล้วแสดงผลลัพธ์ */
   async function run(action: () => Promise<Profile>, done: string) {
@@ -42,12 +33,11 @@ export function ProfileEditor() {
     setError(null)
     setNotice(null)
     try {
-      const next = await action()
-      setProfile(next)
-      setName(next.name)
+      setMyProfile(await action())
+      setDraft(null)
       setNotice(done)
     } catch (err) {
-      setError(message(err))
+      setError(err instanceof ProfileError ? err.message : 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง')
     }
     setBusy(false)
   }
@@ -63,23 +53,54 @@ export function ProfileEditor() {
     if (file) void run(() => uploadAvatar(file), 'เปลี่ยนรูปแล้ว')
   }
 
-  if (profile === null) {
-    return error ? (
-      <p className="error" role="alert">
-        โหลดโปรไฟล์ไม่ได้: {error}
-      </p>
-    ) : (
-      <p role="status">กำลังโหลดโปรไฟล์…</p>
-    )
-  }
-
-  const trimmed = name.trim()
-  const unchanged = trimmed === profile.name
   return (
-    <div className="profile">
-      <div className="profile-avatar">
-        <Avatar avatar={profile.avatar} name={profile.name || '?'} size={72} />
-        <div className="profile-avatar-actions">
+    <section className="card profile-top profile" aria-label="ชื่อและรูปโปรไฟล์">
+      <Avatar avatar={profile.avatar} size={110} className="profile-photo" />
+      <div className="profile-fields">
+        <form onSubmit={onSubmit} className="stack" style={{ gap: 6 }}>
+          <label className="field" htmlFor="profile-name">
+            ชื่อที่แสดง
+          </label>
+          <div className="row">
+            <input
+              id="profile-name"
+              className="input"
+              value={name}
+              onChange={(e) => {
+                setDraft(e.target.value)
+                setNotice(null)
+              }}
+              maxLength={NAME_MAX}
+              placeholder={`${NAME_MIN}–${NAME_MAX} ตัวอักษร`}
+              autoComplete="nickname"
+            />
+            <button type="submit" className="btn mini" disabled={busy || name.trim() === profile.name}>
+              บันทึกชื่อ
+            </button>
+          </div>
+        </form>
+
+        <div className="field" id="avatar-label">
+          รูปโปรไฟล์
+        </div>
+        <div className="row wrap" role="group" aria-labelledby="avatar-label" style={{ gap: 10 }}>
+          {AVATAR_PRESETS.map((a) => (
+            <button
+              key={a.glyph}
+              type="button"
+              className="avatar-choice"
+              style={{ background: a.bg }}
+              aria-label={`ใช้รูป${a.name}`}
+              disabled={busy}
+              onClick={() =>
+                void run(async () => uploadAvatar(await presetAvatarBlob(a.glyph, a.bg, GLYPH_FONT)), 'เปลี่ยนรูปแล้ว')
+              }
+            >
+              {a.glyph + VS}
+            </button>
+          ))}
+        </div>
+        <div className="row wrap">
           <input
             ref={fileRef}
             type="file"
@@ -88,53 +109,28 @@ export function ProfileEditor() {
             aria-label="เลือกรูปโปรไฟล์"
             onChange={onFile}
           />
-          <button type="button" disabled={busy} onClick={() => fileRef.current?.click()}>
-            {profile.avatar ? 'เปลี่ยนรูป' : 'ใส่รูป'}
+          <button type="button" className="btn mini" disabled={busy} onClick={() => fileRef.current?.click()}>
+            อัปโหลดรูปเอง
           </button>
           {profile.avatar && (
-            <button
-              type="button"
-              className="link"
-              disabled={busy}
-              onClick={() => void run(deleteAvatar, 'ลบรูปแล้ว')}
-            >
+            <button type="button" className="link small" disabled={busy} onClick={() => void run(deleteAvatar, 'ลบรูปแล้ว')}>
               ลบรูป
             </button>
           )}
         </div>
+        <p className="tiny pretty">คู่แข่งและผู้ชมเห็นชื่อและรูปนี้ รูปที่อัปโหลดจะถูกตัดเป็นสี่เหลี่ยมจัตุรัสตรงกลาง</p>
+
+        {error && (
+          <p className="error anim-shake" role="alert">
+            {error}
+          </p>
+        )}
+        {notice && (
+          <p className="notice" role="status">
+            {notice}
+          </p>
+        )}
       </div>
-
-      <form onSubmit={onSubmit} className="join">
-        <label htmlFor="profile-name">ชื่อที่แสดงในห้อง</label>
-        <div className="row">
-          <input
-            id="profile-name"
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value)
-              setNotice(null)
-            }}
-            maxLength={NAME_MAX}
-            placeholder={`${NAME_MIN}–${NAME_MAX} ตัวอักษร`}
-            autoComplete="nickname"
-          />
-          <button type="submit" disabled={busy || unchanged}>
-            บันทึกชื่อ
-          </button>
-        </div>
-      </form>
-      <p className="hint">คู่แข่งและผู้ชมเห็นชื่อและรูปนี้ รูปจะถูกตัดเป็นสี่เหลี่ยมจัตุรัสตรงกลาง</p>
-
-      {error && (
-        <p className="error" role="alert">
-          {error}
-        </p>
-      )}
-      {notice && <p role="status">{notice}</p>}
-    </div>
+    </section>
   )
-}
-
-function message(err: unknown): string {
-  return err instanceof ProfileError ? err.message : 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง'
 }

@@ -1,114 +1,131 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type ClipboardEvent, type FormEvent } from 'react'
 import { AccountPanel } from '../components/AccountPanel'
-import { PiecePicker } from '../components/PiecePicker'
-import { createRoom, CreateRoomError } from '../lib/api'
-import { APP_NAME } from '../lib/appInfo'
-import { DEFAULT_TIME_CONTROL, TIME_CONTROLS } from '../lib/clock'
-import { extractRoomId } from '../lib/protocol'
+import { VS } from '../lib/pieceSets'
+import { extractRoomId, isRoomId } from '../lib/protocol'
 import { roomPath } from '../lib/router'
 
 interface Props {
   navigate: (to: string) => void
 }
 
-export function HomePage({ navigate }: Props) {
-  const [creating, setCreating] = useState(false)
-  const [timeControl, setTimeControl] = useState(DEFAULT_TIME_CONTROL)
-  const [createError, setCreateError] = useState<string | null>(null)
-  const [code, setCode] = useState('')
-  const [codeError, setCodeError] = useState(false)
+const CODE_LENGTH = 12
 
-  async function onCreate() {
-    setCreating(true)
-    setCreateError(null)
-    try {
-      navigate(roomPath(await createRoom(timeControl)))
-    } catch (err) {
-      setCreateError(
-        err instanceof CreateRoomError ? err.message : 'สร้างห้องไม่สำเร็จ ตรวจการเชื่อมต่อแล้วลองใหม่',
-      )
-      setCreating(false)
-    }
-  }
+/**
+ * เหลือเฉพาะอักขระที่ใช้ในรหัสห้อง
+ * ช่องกรอกไม่ตั้ง maxLength เพราะรหัสที่คัดลอกมาอาจมีช่องว่างคั่น (เช่น "abcd efgh jkmn") ซึ่งจะถูกตัดท้ายก่อนถึงตรงนี้
+ */
+function cleanCode(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z2-9]/g, '')
+    .slice(0, CODE_LENGTH)
+}
+
+export function HomePage({ navigate }: Props) {
+  const [joinOpen, setJoinOpen] = useState(false)
+  const [code, setCode] = useState('')
+  const ready = isRoomId(code)
 
   function onJoin(e: FormEvent) {
     e.preventDefault()
-    const roomId = extractRoomId(code)
-    if (roomId === null) {
-      setCodeError(true)
-      return
+    if (ready) navigate(roomPath(code))
+  }
+
+  // วางทั้งลิงก์ก็ได้ ระบบดึงรหัสห้องออกมาให้
+  function onPaste(e: ClipboardEvent<HTMLInputElement>) {
+    const roomId = extractRoomId(e.clipboardData.getData('text'))
+    if (roomId !== null) {
+      e.preventDefault()
+      setCode(roomId)
     }
-    navigate(roomPath(roomId))
   }
 
   return (
-    <main className="page home">
-      <h1>{APP_NAME}</h1>
-      <p className="lead">เล่นหมากรุกกับเพื่อนผ่านลิงก์ ไม่ต้องสมัครสมาชิก</p>
+    <main className="screen home">
+      <div className="hero">
+        <div className="hero-pieces" aria-hidden="true">
+          <span style={{ color: '#FFB8CC', transform: 'rotate(-14deg) translateY(6px)' }}>{'♜' + VS}</span>
+          <span className="tall" style={{ color: '#FFDC85', transform: 'rotate(-4deg)' }}>
+            {'♚' + VS}
+          </span>
+          <span className="tall" style={{ color: '#9FE3C9', transform: 'rotate(5deg)' }}>
+            {'♛' + VS}
+          </span>
+          <span style={{ color: '#C9BDFF', transform: 'rotate(14deg) translateY(6px)' }}>{'♞' + VS}</span>
+        </div>
+        <h1 className="hero-name">
+          CheckMate <em>Live</em>
+        </h1>
+        <p className="center pretty">เล่นหมากรุกกับเพื่อนผ่านลิงก์ ไม่ต้องสมัครสมาชิก</p>
+      </div>
 
-      <section className="card">
-        <h2>เริ่มเกมใหม่</h2>
-        <p>สร้างห้องแล้วส่งลิงก์ให้เพื่อน คนแรกที่เข้ามาจะเป็นคู่แข่ง คนถัดไปเป็นผู้ชม</p>
-        <fieldset className="time-controls">
-          <legend>เวลาเล่นต่อฝั่ง</legend>
-          {TIME_CONTROLS.map((tc) => (
-            <label key={tc.value} className={tc.value === timeControl ? 'selected' : undefined}>
-              <input
-                type="radio"
-                name="time-control"
-                value={tc.value}
-                checked={tc.value === timeControl}
-                onChange={() => setTimeControl(tc.value)}
-              />
-              <span className="tc-label">{tc.label}</span>
-              <span className="tc-hint">{tc.hint}</span>
-            </label>
-          ))}
-        </fieldset>
-        <button type="button" className="primary" onClick={onCreate} disabled={creating}>
-          {creating ? 'กำลังสร้างห้อง…' : 'สร้างห้อง'}
+      <div className="menu">
+        <button type="button" className="btn big pink block" onClick={() => navigate('/play')}>
+          ▶ เล่นเลย
         </button>
-        {createError && (
-          <p className="error" role="alert">
-            {createError}
-          </p>
+
+        {joinOpen ? (
+          <form className="join-panel anim-pop" onSubmit={onJoin}>
+            <div className="row">
+              <div className="card-title grow">ใส่รหัสห้อง หรือวางลิงก์</div>
+              <button
+                type="button"
+                className="close"
+                aria-label="ปิด"
+                onClick={() => {
+                  setJoinOpen(false)
+                  setCode('')
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="code-boxes">
+              {Array.from({ length: CODE_LENGTH }, (_, i) => (
+                <div
+                  key={i}
+                  className={`code-box${code[i] ? ' filled' : ''}${i === code.length ? ' cursor' : ''}`}
+                  aria-hidden="true"
+                >
+                  <span>{code[i] ?? ''}</span>
+                </div>
+              ))}
+              <input
+                value={code}
+                onChange={(e) => setCode(cleanCode(e.target.value))}
+                onPaste={onPaste}
+                autoFocus
+                autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                aria-label="รหัสห้อง 12 ตัว"
+              />
+            </div>
+            <button type="submit" className={`btn strong${ready ? ' pink' : ''}`} disabled={!ready}>
+              เข้าห้อง
+            </button>
+          </form>
+        ) : (
+          <button type="button" className="btn mint block" onClick={() => setJoinOpen(true)}>
+            เข้าห้องด้วยรหัส
+          </button>
         )}
-      </section>
 
-      <section className="card">
-        <h2>เข้าห้องที่มีอยู่</h2>
-        <form onSubmit={onJoin} className="join">
-          <label htmlFor="room-code">รหัสห้องหรือลิงก์</label>
-          <div className="row">
-            <input
-              id="room-code"
-              value={code}
-              onChange={(e) => {
-                setCode(e.target.value)
-                setCodeError(false)
-              }}
-              placeholder="เช่น abcdefghjkmn"
-              autoComplete="off"
-              spellCheck={false}
-              aria-invalid={codeError}
-              aria-describedby={codeError ? 'room-code-error' : undefined}
-            />
-            <button type="submit">เข้าห้อง</button>
-          </div>
-          {codeError && (
-            <p className="error" id="room-code-error" role="alert">
-              รหัสห้องต้องเป็นตัวอักษร 12 ตัว ลองคัดลอกลิงก์มาวางทั้งหมด
-            </p>
-          )}
-        </form>
-      </section>
+        <button type="button" className="btn lavender block" onClick={() => navigate('/profile')}>
+          โปรไฟล์ &amp; ชุดหมากรุก
+        </button>
 
-      <section className="card">
-        <h2>การแสดงผล</h2>
-        <PiecePicker />
-      </section>
+        <AccountPanel navigate={navigate} />
+      </div>
 
-      <AccountPanel />
+      <nav className="footer-links">
+        <button type="button" className="link" onClick={() => navigate('/rules')}>
+          กฎการเล่น
+        </button>
+        <button type="button" className="link" onClick={() => navigate('/terms')}>
+          ข้อตกลงการใช้งาน
+        </button>
+      </nav>
     </main>
   )
 }

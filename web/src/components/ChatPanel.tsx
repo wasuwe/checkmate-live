@@ -60,8 +60,8 @@ export function ChatPanel({
   }
 
   return (
-    <section className="card chat" aria-label="แชทในห้อง">
-      <h2>แชท</h2>
+    <section className="card side chat" aria-label="แชทในห้อง" style={{ gap: 10 }}>
+      <h2 className="card-title">แชท</h2>
       {muted.length > 0 && (
         <p className="chat-muted" role="status">
           ซ่อนข้อความจาก {muted.length} คน{' '}
@@ -76,10 +76,8 @@ export function ChatPanel({
         <ol className="chat-list" ref={listRef} aria-live="polite">
           {visible.map((m) => (
             <li key={m.id} className={m.mine ? 'mine' : undefined}>
-              <span className="chat-body">
-                <span className="chat-from">{sender(m, players)}</span>
-                <span className="chat-text">{m.text}</span>
-              </span>
+              <span className="chat-from">{sender(m, players)}</span>
+              <span className="chat-text">{m.text}</span>
               {!m.mine && (
                 <span className="chat-actions">
                   <button
@@ -109,8 +107,9 @@ export function ChatPanel({
           ))}
         </ol>
       )}
-      <form className="row" onSubmit={onSubmit}>
+      <form className="chat-form" onSubmit={onSubmit}>
         <input
+          className="input"
           aria-label="ข้อความ"
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -118,7 +117,7 @@ export function ChatPanel({
           placeholder="พิมพ์ข้อความ"
           autoComplete="off"
         />
-        <button type="submit" disabled={!online || text.trim() === ''}>
+        <button type="submit" className="btn mini pink" disabled={!online || text.trim() === ''}>
           ส่ง
         </button>
       </form>

@@ -38,6 +38,18 @@ export function useSession(): SessionState {
   return state
 }
 
+/** เรียก callback ทุกครั้งที่สถานะ login เปลี่ยน (รวมค่าเริ่มต้น) คืนฟังก์ชันเลิกฟัง */
+export function onSessionChange(callback: (email: string | null) => void): () => void {
+  if (!supabase) {
+    callback(null)
+    return () => {}
+  }
+  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    callback(session ? (session.user.email ?? '') : null)
+  })
+  return () => data.subscription.unsubscribe()
+}
+
 export type AuthResult = { ok: true; needsEmailConfirm: boolean } | { ok: false; message: string }
 
 const MESSAGES: Record<string, string> = {
