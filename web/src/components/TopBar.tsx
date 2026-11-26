@@ -2,6 +2,7 @@ import { APP_NAME } from '../lib/appInfo'
 import { myName, useMe } from '../lib/me'
 import { VS } from '../lib/pieceSets'
 import { goBack } from '../lib/router'
+import { ArrowIcon } from './ArrowIcon'
 import { Avatar } from './Avatar'
 
 interface Props {
@@ -13,8 +14,8 @@ export function TopBar({ navigate }: Props) {
   const me = useMe()
   return (
     <header className="topbar">
-      <button type="button" className="btn icon" aria-label="ย้อนกลับ" onClick={() => goBack(navigate)}>
-        ←
+      <button type="button" className="btn icon back" aria-label="ย้อนกลับ" onClick={() => goBack(navigate)}>
+        <ArrowIcon direction="left" />
       </button>
       <button type="button" className="brand" onClick={() => navigate('/')}>
         <span className="glyph" aria-hidden="true">

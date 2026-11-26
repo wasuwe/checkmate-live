@@ -34,10 +34,28 @@
 
 body {
   margin: 0;
+  /* ห้ามลากคลุมข้อความทั้งระบบ (เจ้าของโปรเจกต์กำหนด) ยกเว้นช่องกรอกด้านล่าง ที่ต้องเลือกข้อความเพื่อแก้ไขได้ */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
   background: var(--cream);
   background-image: radial-gradient(#f3dfc6 1.5px, transparent 1.5px);
   background-size: 22px 22px;
   color: var(--ink);
+}
+
+input,
+textarea,
+select,
+[contenteditable='true'] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* รูปก็ลากออกไปไม่ได้ เพื่อให้พฤติกรรมตรงกับข้อความ */
+img,
+svg {
+  -webkit-user-drag: none;
 }
 
 h1,
@@ -457,6 +475,21 @@ input::placeholder {
   border-radius: 14px;
   --depth: 3px;
   font-size: 20px;
+}
+
+/* ปุ่มย้อนกลับ: พื้นสีเนยและลูกศรเส้นหนา ให้เป็นสติกเกอร์แบบเดียวกับปุ่มอื่น */
+.btn.icon.back {
+  background: var(--butter);
+}
+
+.btn.icon.back:hover:not(:disabled) .arrow-icon {
+  translate: -2px 0;
+}
+
+.arrow-icon {
+  display: block;
+  flex: none;
+  transition: translate 0.25s var(--bounce);
 }
 
 .btn.pink {
