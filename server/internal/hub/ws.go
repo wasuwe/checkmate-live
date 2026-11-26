@@ -16,6 +16,8 @@ const (
 	writeTimeout = 5 * time.Second
 	pingInterval = 30 * time.Second
 	pingTimeout  = 10 * time.Second
+	// profileTimeout คือเวลาที่รอฐานข้อมูลตอนหาชื่อผู้เล่น
+	profileTimeout = 2 * time.Second
 )
 
 // ServeWS รับ connection WebSocket หนึ่งเส้น
@@ -39,6 +41,7 @@ func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := newClient(userID, cancel)
+	client.Profile = h.lookupProfile(ctx, userID)
 	go writePump(ctx, conn, client)
 	client.Send(mustJSON(authOKMsg{Type: "auth_ok", UserID: userID}))
 
@@ -102,6 +105,16 @@ func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 			client.Send(encodeError(errCodeBadMessage))
 		}
 	}
+}
+
+// lookupProfile หาชื่อและรูปของผู้ใช้ ถ้าหาไม่ได้ทันเวลาก็เล่นต่อได้โดยไม่มีชื่อ
+func (h *Hub) lookupProfile(ctx context.Context, userID string) PlayerProfile {
+	if h.cfg.Profiles == nil {
+		return PlayerProfile{}
+	}
+	lookupCtx, cancel := context.WithTimeout(ctx, profileTimeout)
+	defer cancel()
+	return h.cfg.Profiles(lookupCtx, userID)
 }
 
 // authenticate รอข้อความ auth เป็นข้อความแรก ถ้าไม่มาทันเวลาหรือ token ไม่ผ่านจะตัดการเชื่อมต่อ

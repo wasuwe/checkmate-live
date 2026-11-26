@@ -13,6 +13,7 @@ import (
 
 	"github.com/wasuwe/checkmate-live/server/internal/auth"
 	"github.com/wasuwe/checkmate-live/server/internal/hub"
+	"github.com/wasuwe/checkmate-live/server/internal/profile"
 )
 
 // Config คือค่าที่ต้องใช้สร้าง handler
@@ -26,6 +27,8 @@ type Config struct {
 	Auth auth.Authenticator
 	// Guest ออก token ให้ผู้เล่นที่ไม่ได้ login (เฟส 4 จะแทนด้วย Supabase Auth)
 	Guest *auth.Guest
+	// Profiles เก็บชื่อและรูปของผู้ใช้ที่ login ถ้าเป็น nil จะไม่เปิด route ของโปรไฟล์
+	Profiles profile.Store
 }
 
 type api struct {
@@ -50,6 +53,13 @@ func New(cfg Config) http.Handler {
 		mux.HandleFunc("GET /ws", cfg.Hub.ServeWS)
 		if cfg.Guest != nil {
 			mux.HandleFunc("POST /api/guest", a.createGuest)
+		}
+		if cfg.Profiles != nil {
+			mux.HandleFunc("GET /api/profile", a.getProfile)
+			mux.HandleFunc("PUT /api/profile", a.putProfile)
+			mux.HandleFunc("PUT /api/profile/avatar", a.putAvatar)
+			mux.HandleFunc("DELETE /api/profile/avatar", a.deleteAvatar)
+			mux.HandleFunc("GET /api/avatars/{id}", a.getAvatar)
 		}
 		// path ใต้ /api ที่ไม่มีจริงต้องได้ 404 ไม่ใช่หน้าเว็บ
 		mux.HandleFunc("/api/", http.NotFound)

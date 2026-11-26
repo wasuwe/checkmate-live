@@ -16,6 +16,7 @@ import (
 	"github.com/wasuwe/checkmate-live/server/internal/envfile"
 	"github.com/wasuwe/checkmate-live/server/internal/httpapi"
 	"github.com/wasuwe/checkmate-live/server/internal/hub"
+	"github.com/wasuwe/checkmate-live/server/internal/profile"
 	"github.com/wasuwe/checkmate-live/server/internal/store"
 )
 
@@ -102,6 +103,27 @@ func main() {
 	}
 	log.Info("storage configured", "database", db != nil)
 
+	// โปรไฟล์ (ชื่อและรูป) มีเฉพาะเมื่อเปิดการ login ถ้าไม่มีฐานข้อมูลจะเก็บใน memory
+	var profiles profile.Store
+	if authn.User != nil {
+		if db != nil {
+			profiles = db.Profiles()
+		} else {
+			profiles = profile.NewMemory()
+		}
+		hubCfg.Profiles = func(ctx context.Context, userID string) hub.PlayerProfile {
+			if auth.IsGuest(userID) {
+				return hub.PlayerProfile{}
+			}
+			p, err := profiles.Get(ctx, userID)
+			if err != nil {
+				log.Warn("profile lookup failed", "err", err)
+				return hub.PlayerProfile{}
+			}
+			return hub.PlayerProfile{Name: p.Name, Avatar: p.AvatarID}
+		}
+	}
+
 	h := hub.New(hubCfg, authn)
 	restored := 0
 	for _, snap := range saved {
@@ -121,6 +143,7 @@ func main() {
 		Logger:    log,
 		Hub:       h,
 		Auth:      authn,
+		Profiles:  profiles,
 	}
 	if guestEnabled {
 		apiCfg.Guest = guest // เปิด POST /api/guest

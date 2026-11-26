@@ -7,6 +7,7 @@ import (
 
 	"golang.org/x/time/rate"
 
+	"github.com/wasuwe/checkmate-live/server/internal/auth"
 	"github.com/wasuwe/checkmate-live/server/internal/game"
 )
 
@@ -40,11 +41,13 @@ type Room struct {
 	onClose   func(id string)
 
 	// ---- ด้านล่างนี้เป็นของ goroutine run เท่านั้น ----
-	game       *game.Game
-	status     Status
-	pending    string                // user ID ของผู้เล่นคนแรกที่รอคู่ (ช่วง waiting)
-	players    map[game.Color]string // สี → user ID (หลังเริ่มเกม)
-	clients    map[*Client]struct{}
+	game    *game.Game
+	status  Status
+	pending string                // user ID ของผู้เล่นคนแรกที่รอคู่ (ช่วง waiting)
+	players map[game.Color]string // สี → user ID (หลังเริ่มเกม)
+	clients map[*Client]struct{}
+	// profiles คือชื่อและรูปล่าสุดของผู้ใช้ที่เคยเข้าห้อง (user ID → โปรไฟล์)
+	profiles   map[string]PlayerProfile
 	emptySince time.Time // เวลาที่ห้องเริ่มว่าง (zero = มีคนอยู่)
 	startedAt  time.Time // เวลาที่เกมเริ่ม
 	// abandonAt คือเส้นตายของผู้เล่นที่หลุดระหว่างเกม ถ้าไม่กลับมาทันจะแพ้ด้วยเหตุ abandon
@@ -71,6 +74,7 @@ func newRoom(id string, cfg Config, tc TimeControl, createdBy string, onClose fu
 		status:     StatusWaiting,
 		players:    map[game.Color]string{},
 		clients:    map[*Client]struct{}{},
+		profiles:   map[string]PlayerProfile{},
 		emptySince: time.Now(),
 		abandonAt:  map[game.Color]time.Time{},
 		clock:      newClock(tc),
@@ -227,6 +231,7 @@ func (r *Room) handle(ev event) {
 func (r *Room) handleJoin(c *Client) {
 	r.clients[c] = struct{}{}
 	r.emptySince = time.Time{}
+	r.profiles[c.UserID] = c.Profile // connection ล่าสุดมีข้อมูลใหม่สุด
 
 	if r.status == StatusWaiting && !r.isSeated(c.UserID) {
 		if r.pending == "" {
@@ -392,7 +397,13 @@ func (r *Room) broadcastState() {
 	if r.status != StatusWaiting {
 		base.Players = map[game.Color]*playerInfo{}
 		for color, id := range r.players {
-			info := &playerInfo{Connected: r.connected(id)}
+			profile := r.profiles[id]
+			info := &playerInfo{
+				Connected: r.connected(id),
+				Name:      profile.Name,
+				Avatar:    profile.Avatar,
+				Guest:     auth.IsGuest(id),
+			}
 			if at, ok := r.abandonAt[color]; ok {
 				// ปัดขึ้น เพื่อไม่ให้ client เห็น 0 ทั้งที่ยังเหลือเวลา
 				info.GraceLeft = max(1, int(math.Ceil(at.Sub(now).Seconds())))

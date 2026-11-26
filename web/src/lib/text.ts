@@ -1,6 +1,6 @@
 // ข้อความภาษาไทยที่แสดงให้ผู้เล่นเห็น
 
-import type { Color, StateMsg } from './protocol'
+import type { Color, PlayerInfo, StateMsg } from './protocol'
 
 const REASONS: Record<string, string> = {
   checkmate: 'รุกจน',
@@ -22,6 +22,13 @@ const ERRORS: Record<string, string> = {
 
 export function colorName(color: Color): string {
   return color === 'w' ? 'ขาว' : 'ดำ'
+}
+
+/** ชื่อที่ใช้เรียกผู้เล่นฝั่งหนึ่ง: ชื่อจากโปรไฟล์ถ้ามี ไม่งั้นบอกว่าเป็นผู้เล่นแบบไหน */
+export function playerName(info: PlayerInfo | undefined, color: Color): string {
+  if (!info) return colorName(color) // ยังไม่มีผู้เล่นนั่งฝั่งนี้
+  if (info.name) return info.name
+  return info.guest ? 'ผู้เล่นรับเชิญ' : 'ผู้เล่น'
 }
 
 export function errorText(code: string): string {

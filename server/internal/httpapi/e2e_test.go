@@ -20,15 +20,20 @@ const e2eTimeout = 5 * time.Second
 
 // msg คือข้อความจากเซิร์ฟเวอร์เท่าที่ test ต้องใช้
 type msg struct {
-	Type   string `json:"type"`
-	Code   string `json:"code"`
-	UserID string `json:"userId"`
-	Status string `json:"status"`
-	Turn   string `json:"turn"`
-	Ply    int    `json:"ply"`
-	Result string `json:"result"`
-	Reason string `json:"reason"`
-	You    struct {
+	Type    string `json:"type"`
+	Code    string `json:"code"`
+	UserID  string `json:"userId"`
+	Status  string `json:"status"`
+	Turn    string `json:"turn"`
+	Ply     int    `json:"ply"`
+	Result  string `json:"result"`
+	Reason  string `json:"reason"`
+	Players map[string]struct {
+		Name   string `json:"name"`
+		Avatar string `json:"avatar"`
+		Guest  bool   `json:"guest"`
+	} `json:"players"`
+	You struct {
 		Role  string `json:"role"`
 		Color string `json:"color"`
 	} `json:"you"`
