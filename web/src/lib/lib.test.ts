@@ -12,6 +12,7 @@ import { extractRoomId, isRoomId, parseServerMsg, type StateMsg } from './protoc
 import { parseRoute, roomPath } from './router'
 import { centerSquare } from './profile'
 import { errorText, playerName, resultText, statusText } from './text'
+import { becameMyTurn } from './turnAlert'
 
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 const PROMO = '8/P6k/8/8/8/8/8/K7 w - - 0 1'
@@ -251,5 +252,35 @@ describe('avatar crop', () => {
     expect(centerSquare(600, 400)).toEqual({ x: 100, y: 0, side: 400 })
     expect(centerSquare(300, 900)).toEqual({ x: 0, y: 300, side: 300 })
     expect(centerSquare(256, 256)).toEqual({ x: 0, y: 0, side: 256 })
+  })
+})
+
+describe('turn alert', () => {
+  const base = (patch: Partial<StateMsg>): StateMsg => ({
+    type: 'state',
+    room: '482915',
+    status: 'playing',
+    fen: '8/8/8/8/8/8/8/8 w',
+    turn: 'w',
+    ply: 0,
+    you: { role: 'player', color: 'w' },
+    tc: '10+0',
+    clock: { w: 1, b: 1, running: 'w' },
+    ...patch,
+  })
+
+  test('fires when the turn passes to me, not on my own move or a checkers chain', () => {
+    expect(becameMyTurn(base({ turn: 'b', ply: 3 }), base({ turn: 'w', ply: 4 }))).toBe(true)
+    expect(becameMyTurn(base({ turn: 'w', ply: 4 }), base({ turn: 'b', ply: 5 }))).toBe(false)
+    // กินต่อ: ตายังเป็นของเราเหมือนเดิม
+    expect(becameMyTurn(base({ turn: 'w', ply: 4 }), base({ turn: 'w', ply: 5 }))).toBe(false)
+  })
+
+  test('fires at the start when I move first, never after a reconnect or for spectators', () => {
+    expect(becameMyTurn(base({ status: 'waiting', turn: 'w' }), base({ turn: 'w' }))).toBe(true)
+    expect(becameMyTurn(null, base({ turn: 'w', ply: 6 }))).toBe(false)
+    const spectator = { role: 'spectator' as const, color: '' as const }
+    expect(becameMyTurn(base({ turn: 'b', ply: 3, you: spectator }), base({ turn: 'w', ply: 4, you: spectator }))).toBe(false)
+    expect(becameMyTurn(base({ turn: 'b', ply: 3 }), base({ turn: 'w', ply: 4, status: 'finished' }))).toBe(false)
   })
 })

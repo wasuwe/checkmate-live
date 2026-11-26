@@ -14,6 +14,7 @@ import { chatNames } from '../lib/lobby'
 import { VS } from '../lib/pieceSets'
 import { absences } from '../lib/presence'
 import type { ChatItem, Color, StateMsg } from '../lib/protocol'
+import { becameMyTurn, playChime, setTurnSound, turnSoundOn, useTurnSound } from '../lib/turnAlert'
 import { shouldToss, tossView, type TossView } from '../lib/toss'
 import {
   colorName,
@@ -38,6 +39,7 @@ export function RoomPage({ roomId, navigate }: Props) {
   // ระหว่างเกมแชทปิดไว้ เปิดด้วยการกดรูปฝ่ายตรงข้าม ข้อความใหม่เด้งขึ้นข้างรูป
   const inGame = !!state && !(state.status === 'waiting' && state.lobby)
   const pop = useChatPopup(game.chat, inGame)
+  const [turnSeq, turnToast] = useTurnAlert(state)
 
   if (game.fatal) {
     return (
@@ -115,6 +117,7 @@ export function RoomPage({ roomId, navigate }: Props) {
                     ออกไปหน้าแรก
                   </button>
                 </div>
+                <TurnSoundToggle />
                 <div className="set-details">
                   <b className="small">ชุดหมากรุก</b>
                   <PiecePicker />
@@ -151,8 +154,13 @@ export function RoomPage({ roomId, navigate }: Props) {
             </p>
           )}
           <AbsenceNotice state={state} stateAt={game.stateAt} />
-          <Clocks state={state} stateAt={game.stateAt} pop={pop} names={chatNames(state)}>
+          <Clocks state={state} stateAt={game.stateAt} pop={pop} names={chatNames(state)} turnSeq={turnSeq}>
             <ChatPopover pop={pop}>{chat}</ChatPopover>
+            {turnToast && (
+              <div key={turnSeq} className="turn-toast" role="status">
+                ถึงตาคุณแล้ว!
+              </div>
+            )}
             <GameBoard state={state} online={online} errorSeq={game.errorSeq} session={game.session} sendMove={game.sendMove} />
           </Clocks>
         </div>
@@ -197,12 +205,15 @@ function Clocks({
   stateAt,
   pop,
   names,
+  turnSeq,
   children,
 }: {
   state: StateMsg
   stateAt: number
   pop: ChatPopup
   names: Record<string, string>
+  /** เพิ่มทุกครั้งที่ถึงตาผู้ดู (0 = ยังไม่เคย) ใช้เล่นการกะพริบของแถบตัวเอง */
+  turnSeq: number
   children: React.ReactNode
 }) {
   const [now, setNow] = useState(() => Date.now())
@@ -220,8 +231,11 @@ function Clocks({
   const row = (color: Color) => {
     const info = state.players?.[color]
     const mine = state.you.color === color
+    const alert = mine && turnSeq > 0 && running === color
     return (
       <ClockRow
+        key={alert ? `${color}-${turnSeq}` : color}
+        alert={alert}
         label={info ? playerName(info, color) + (mine ? ' (คุณ)' : '') : mine ? 'คุณ' : `ฝั่ง${colorName(color)}`}
         detail={info || mine ? `ฝั่ง${colorName(color)}` : 'ยังไม่มีผู้เล่น'}
         avatar={info ? (info.avatar ?? '') : undefined}
@@ -289,6 +303,69 @@ function ChatPopover({ pop, children }: { pop: ChatPopup; children: React.ReactN
         {children}
       </div>
     </div>
+  )
+}
+
+/**
+ * เตือนเมื่อถึงตาผู้เล่น: เสียง (ถ้าเปิดไว้) สั่นบนมือถือ และชื่อแท็บเปลี่ยนเมื่ออยู่หน้าต่างอื่น
+ * คืนเลขที่เพิ่มทุกครั้งที่ถึงตา (ให้แถบผู้เล่นกะพริบ) และว่าป้ายบนกระดานยังแสดงอยู่หรือไม่ (หายเองหลังเล่นจบ)
+ */
+function useTurnAlert(state: StateMsg | null): [number, boolean] {
+  const prev = useRef<StateMsg | null>(null)
+  const [seq, setSeq] = useState(0)
+  const [toastSeq, setToastSeq] = useState(0)
+
+  useEffect(() => {
+    const before = prev.current
+    prev.current = state
+    if (!state || !becameMyTurn(before, state)) return
+    const next = seq + 1
+    setSeq(next)
+    setToastSeq(next)
+    if (turnSoundOn()) playChime()
+    navigator.vibrate?.(80)
+    const timer = setTimeout(() => setToastSeq((t) => (t === next ? 0 : t)), TOAST_MS)
+    return () => clearTimeout(timer)
+    // seq อ่านค่าปัจจุบันเพื่อสร้างเลขถัดไปเท่านั้น ไม่ใช่เหตุให้ต้องเตือนใหม่
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state])
+
+  // ชื่อแท็บ: เห็นได้แม้ผู้เล่นสลับไปหน้าต่างอื่น (เช่น ระหว่างคุยใน Discord)
+  const myTurn = !!state && state.status === 'playing' && state.you.color !== '' && state.turn === state.you.color
+  useEffect(() => {
+    const base = 'CheckMate Live'
+    const apply = () => {
+      document.title = myTurn && document.hidden ? '● ถึงตาคุณแล้ว! · ' + base : base
+    }
+    apply()
+    document.addEventListener('visibilitychange', apply)
+    return () => {
+      document.removeEventListener('visibilitychange', apply)
+      document.title = base
+    }
+  }, [myTurn])
+
+  return [seq, toastSeq !== 0 && toastSeq === seq]
+}
+
+/** ป้าย "ถึงตาคุณแล้ว!" แสดงนานเท่ากับการเคลื่อนไหวของมัน (turnToast ใน index.css) */
+const TOAST_MS = 1800
+
+/** ปุ่มเปิด/ปิดเสียงเตือนเมื่อถึงตา */
+function TurnSoundToggle() {
+  const on = useTurnSound()
+  return (
+    <button
+      type="button"
+      className={`btn mini${on ? ' mint' : ''}`}
+      aria-pressed={on}
+      onClick={() => {
+        setTurnSound(!on)
+        if (!on) playChime() // ให้ได้ยินตัวอย่างตอนเปิด
+      }}
+    >
+      {on ? 'เสียงเตือนเมื่อถึงตา: เปิด' : 'เสียงเตือนเมื่อถึงตา: ปิด'}
+    </button>
   )
 }
 

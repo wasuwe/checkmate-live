@@ -11,6 +11,8 @@ interface Props {
   ms: number
   /** นาฬิกาของฝั่งนี้กำลังเดิน */
   running: boolean
+  /** เล่นการกะพริบบอกว่าเพิ่งถึงตาของแถบนี้ (เปลี่ยน key ของแถบเพื่อเล่นซ้ำ) */
+  alert?: boolean
   /** ถ้าระบุ รูปผู้เล่นจะเป็นปุ่มเปิดแชท */
   chat?: {
     onOpen: () => void
@@ -23,10 +25,10 @@ interface Props {
 }
 
 /** แถบผู้เล่นและเวลาที่เหลือ วางเหนือและใต้กระดาน แถบของฝั่งที่ถึงตาเดินเป็นสีเหลือง */
-export function ClockRow({ label, detail, avatar, ms, running, chat }: Props) {
+export function ClockRow({ label, detail, avatar, ms, running, chat, alert = false }: Props) {
   const low = ms < LOW_TIME_MS
   return (
-    <div className={`clock-row${running ? ' running' : ''}`}>
+    <div className={`clock-row${running ? ' running' : ''}${alert ? ' turn-alert' : ''}`}>
       <span className="clock-player">
         {chat ? (
           <button
