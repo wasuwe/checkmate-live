@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { CropDialog } from '../components/CropDialog'
 import { useIsAdmin } from '../lib/admin'
 import {
   createStyle,
@@ -261,12 +262,28 @@ function PieceSlot({
   image: string | undefined
   busy: boolean
   disabled: boolean
-  onPick: (file: File) => void
+  onPick: (file: Blob) => void
   onRemove: () => void
 }) {
   const input = useRef<HTMLInputElement>(null)
+  /** ไฟล์ที่เลือกไว้และกำลังครอป */
+  const [cropping, setCropping] = useState<File | null>(null)
   return (
     <div className="studio-slot">
+      {cropping && (
+        <CropDialog
+          file={cropping}
+          aspect={1}
+          allowWhole
+          maxSide={640}
+          title={`ครอปรูป${label}`}
+          onCancel={() => setCropping(null)}
+          onDone={(picked) => {
+            setCropping(null)
+            onPick(picked)
+          }}
+        />
+      )}
       <b className="tiny">{label}</b>
       <div className={`studio-preview${dark ? ' dark' : ''}`}>{image ? <img src={image} alt={`รูป${label}`} draggable={false} /> : <span aria-hidden="true">?</span>}</div>
       <input
@@ -276,7 +293,7 @@ function PieceSlot({
         hidden
         onChange={(e) => {
           const file = e.target.files?.[0]
-          if (file) onPick(file)
+          if (file) setCropping(file)
           e.target.value = ''
         }}
       />

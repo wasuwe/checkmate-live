@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { ArrowIcon } from '../components/ArrowIcon'
+import { CropDialog } from '../components/CropDialog'
 import {
   applyOp,
   initCredits,
@@ -688,6 +689,8 @@ function OcImage({ oc, pale, locked, accept, kind = 'ocs' }: { oc: Pick<Oc, 'id'
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const image = safeImage(oc.image)
+  /** ไฟล์ที่เลือกไว้และกำลังครอป */
+  const [cropping, setCropping] = useState<Blob | null>(null)
 
   async function apply(action: Promise<Result>) {
     setBusy(true)
@@ -710,9 +713,24 @@ function OcImage({ oc, pale, locked, accept, kind = 'ocs' }: { oc: Pick<Oc, 'id'
         hidden
         onChange={(e) => {
           const file = e.target.files?.[0]
-          if (file) void apply(setOcImage(oc, file, kind))
+          if (file) setCropping(file)
+          e.target.value = ''
         }}
       />
+      {cropping && (
+        <CropDialog
+          file={cropping}
+          aspect={kind === 'people' ? 1 : 3 / 4}
+          round={kind === 'people'}
+          allowWhole={kind === 'ocs'}
+          title={`ครอปรูปของ ${oc.name}`}
+          onCancel={() => setCropping(null)}
+          onDone={(picked) => {
+            setCropping(null)
+            void apply(setOcImage(oc, picked, kind))
+          }}
+        />
+      )}
       <button type="button" className="btn mini butter" disabled={busy || locked} onClick={() => input.current?.click()}>
         {busy ? 'กำลังทำ…' : image ? 'เปลี่ยนรูป' : 'ใส่รูป'}
       </button>
