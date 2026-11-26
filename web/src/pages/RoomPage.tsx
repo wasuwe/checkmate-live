@@ -111,6 +111,9 @@ export function RoomPage({ roomId, navigate }: Props) {
                   <a className="btn mini" href={`/rules?game=${gameId}`} target="_blank" rel="noopener">
                     กฎ
                   </a>
+                  <button type="button" className="btn mini" onClick={() => navigate('/')}>
+                    ออกไปหน้าแรก
+                  </button>
                 </div>
                 <div className="set-details">
                   <b className="small">ชุดหมากรุก</b>
