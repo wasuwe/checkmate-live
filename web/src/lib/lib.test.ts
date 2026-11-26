@@ -284,3 +284,30 @@ describe('turn alert', () => {
     expect(becameMyTurn(base({ turn: 'b', ply: 3 }), base({ turn: 'w', ply: 4, status: 'finished' }))).toBe(false)
   })
 })
+
+describe('mixed letter and number room codes', () => {
+  test('six letters and digits without look-alikes, with at least one of each', () => {
+    for (const ok of ['K7Q2XM', 'AB2CD3', '2ABCDE', '482915']) expect(isRoomId(ok), ok).toBe(true)
+    // ตัวที่สับสนง่าย ตัวเล็ก ตัวอักษรล้วน ความยาวผิด
+    for (const bad of ['K7Q2X0', 'K7Q2XO', 'K7Q2X1', 'K7Q2XI', 'K7Q2XL', 'k7q2xm', 'ABCDEF', 'K7Q2X', 'K7Q2XMM', '']) {
+      expect(isRoomId(bad), bad).toBe(false)
+    }
+  })
+
+  test('codes are read in any letter case, with spaces, or from a link or a sentence', () => {
+    expect(extractRoomId('k7q2xm')).toBe('K7Q2XM')
+    expect(extractRoomId('K7Q 2XM')).toBe('K7Q2XM')
+    expect(extractRoomId('k7q-2xm')).toBe('K7Q2XM')
+    expect(extractRoomId('https://checkmate-live.fly.dev/room/K7Q2XM')).toBe('K7Q2XM')
+    expect(extractRoomId('http://localhost:5173/room/k7q2xm?x=1')).toBe('K7Q2XM')
+    expect(extractRoomId('ห้อง K7Q2XM นะ')).toBe('K7Q2XM')
+    expect(extractRoomId('ห้อง K7Q 2XM นะ')).toBe('K7Q2XM')
+    // คำภาษาอังกฤษ 6 ตัวทั่วไปไม่ถูกนับเป็นรหัส (ไม่มีตัวเลข)
+    expect(extractRoomId('please play')).toBeNull()
+  })
+
+  test('a lower-case room link opens the same room', () => {
+    expect(parseRoute('/room/k7q2xm')).toEqual({ page: 'room', roomId: 'K7Q2XM' })
+    expect(parseRoute('/room/K7Q2X0')).toEqual({ page: 'not_found' })
+  })
+})

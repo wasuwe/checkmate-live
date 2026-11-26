@@ -1,7 +1,7 @@
 // router ขนาดเล็ก: แอปมีไม่กี่หน้า จึงไม่ใช้ไลบรารี
 
 import { useCallback, useSyncExternalStore } from 'react'
-import { isRoomId } from './protocol'
+import { normalizeRoomId } from './protocol'
 
 export type Route =
   | { page: 'home' }
@@ -42,7 +42,9 @@ export function parseRoute(pathname: string): Route {
   if (path === '') return { page: 'home' }
   if (Object.hasOwn(STATIC, path)) return STATIC[path]
   const match = /^\/room\/([^/]+)$/.exec(path)
-  if (match && isRoomId(match[1])) return { page: 'room', roomId: match[1] }
+  // ลิงก์ที่พิมพ์ตัวเล็กก็เข้าห้องเดียวกันได้
+  const roomId = match ? normalizeRoomId(match[1]) : null
+  if (roomId) return { page: 'room', roomId }
   return { page: 'not_found' }
 }
 

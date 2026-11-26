@@ -114,7 +114,7 @@ export function resultParts(state: StateMsg): {
     : { headline: 'คุณแพ้', reason, outcome: 'loss' }
 }
 
-/** รหัสห้อง 6 หลักแบ่งเป็นสองกลุ่ม เช่น "482 915" ให้อ่านและบอกต่อง่าย */
+/** รหัสห้อง 6 ตัวแบ่งเป็นสองกลุ่ม เช่น "K7Q 2XM" ให้อ่านและบอกต่อง่าย */
 export function formatRoomCode(roomId: string): string {
   return roomId.replace(/(.{3})(?=.)/g, '$1 ')
 }

@@ -208,6 +208,7 @@ describe('result popup', () => {
 
   test('room codes are shown as two groups of three', () => {
     expect(formatRoomCode('482915')).toBe('482 915')
+    expect(formatRoomCode('K7Q2XM')).toBe('K7Q 2XM')
   })
 })
 

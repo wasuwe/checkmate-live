@@ -164,24 +164,40 @@ export function parseServerMsg(data: string): ServerMsg | null {
   return value as ServerMsg
 }
 
-/** รหัสห้อง: ตัวเลข 6 หลัก ตั้งแต่ 100000 ถึง 999999 (ต้องตรงกับ roomIDRe ฝั่งเซิร์ฟเวอร์) */
+/**
+ * รหัสห้อง: ตัวอักษรผสมตัวเลข 6 ตัว เช่น "K7Q2XM" (ต้องตรงกับ roomIDRe ฝั่งเซิร์ฟเวอร์)
+ * ไม่มีตัวที่สับสนกันง่าย (0 O 1 I L) ต้องมีทั้งตัวอักษรและตัวเลข และยังรับรหัสตัวเลข 6 หลักแบบเดิม
+ * ผู้ใช้พิมพ์ตัวเล็กได้ หน้าเว็บแปลงเป็นตัวใหญ่ก่อนใช้เสมอ
+ */
 export const ROOM_ID_LENGTH = 6
-const ROOM_ID = /^[1-9]\d{5}$/
-const ROOM_ID_IN_LINK = /\/room\/([1-9]\d{5})(?:\D|$)/
-const ROOM_ID_IN_TEXT = /(?:^|\D)([1-9]\d{5})(?:$|\D)/
+export const ROOM_ID_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+const MIXED = /^[A-HJKMNP-Z2-9]{6}$/
+const LEGACY = /^[1-9]\d{5}$/
 
 export function isRoomId(value: string): boolean {
-  return ROOM_ID.test(value)
+  if (LEGACY.test(value)) return true
+  return MIXED.test(value) && /\d/.test(value) && /[A-Z]/.test(value)
 }
 
-/** ดึงรหัสห้องจากสิ่งที่ผู้ใช้วาง ซึ่งอาจเป็นรหัสล้วนหรือทั้งลิงก์ */
+/** รหัสห้องในรูปที่ใช้จริง (ตัวพิมพ์ใหญ่) หรือ null ถ้าไม่ใช่รหัสห้อง */
+export function normalizeRoomId(value: string): string | null {
+  const up = value.toUpperCase()
+  return isRoomId(up) ? up : null
+}
+
+/** ดึงรหัสห้องจากสิ่งที่ผู้ใช้วาง ซึ่งอาจเป็นรหัสล้วน รหัสที่มีช่องว่างคั่น หรือทั้งลิงก์ */
 export function extractRoomId(input: string): string | null {
   const text = input.trim()
-  // ลิงก์ห้อง: เอาเลขหลัง /room/ (ส่วนอื่นของลิงก์ เช่น เลขพอร์ต ไม่นับ)
-  const linked = ROOM_ID_IN_LINK.exec(text)?.[1]
-  if (linked) return linked
-  // รหัสที่พิมพ์หรือคัดลอกมาแบบมีช่องว่างหรือขีดคั่น เช่น "482 915"
-  const compact = text.replace(/[\s-]/g, '')
-  if (isRoomId(compact)) return compact
-  return ROOM_ID_IN_TEXT.exec(text)?.[1] ?? null
+  // ลิงก์ห้อง: เอารหัสหลัง /room/ (ส่วนอื่นของลิงก์ เช่น เลขพอร์ต ไม่นับ)
+  const linked = /\/room\/([A-Za-z0-9]{6})(?:[^A-Za-z0-9]|$)/.exec(text)?.[1]
+  if (linked) return normalizeRoomId(linked)
+  // รหัสที่พิมพ์หรือคัดลอกมาแบบมีช่องว่างหรือขีดคั่น เช่น "K7Q 2XM"
+  const compact = normalizeRoomId(text.replace(/[\s-]/g, ''))
+  if (compact) return compact
+  // รหัสที่อยู่ในประโยค เช่น "ห้อง K7Q2XM นะ" หรือ "ห้อง K7Q 2XM นะ"
+  for (const m of text.matchAll(/(?:^|[^A-Za-z0-9])([A-Za-z0-9]{3}[\s-]?[A-Za-z0-9]{3})(?=$|[^A-Za-z0-9])/g)) {
+    const found = normalizeRoomId(m[1].replace(/[\s-]/g, ''))
+    if (found) return found
+  }
+  return null
 }

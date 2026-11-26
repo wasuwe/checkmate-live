@@ -42,7 +42,9 @@ var (
 
 	squareRe = regexp.MustCompile(`^[a-h][1-8]$`)
 	promoRe  = regexp.MustCompile(`^[qrbn]?$`)
-	roomIDRe = regexp.MustCompile(`^[1-9][0-9]{5}$`)
+	// ตัวอักษรผสมตัวเลข 6 ตัว (ดู newRoomID) หรือรหัสตัวเลข 6 หลักแบบเดิม ซึ่งยังรับไว้ให้ห้องที่เปิดค้างก่อนเปลี่ยน
+	// กู้คืนและเข้าได้จนกว่าจะปิดไปเอง
+	roomIDRe = regexp.MustCompile(`^(?:[A-HJKMNP-Z2-9]{6}|[1-9][0-9]{5})$`)
 )
 
 // decodeInbound แปลงและตรวจรูปแบบข้อความ ห้ามมี field แปลกปลอมหรือข้อมูลต่อท้าย
