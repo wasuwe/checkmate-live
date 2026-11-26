@@ -432,6 +432,8 @@ func (g *Makruk) Count() *Count {
 	return &c
 }
 
+func (g *Makruk) Forced() bool { return false }
+
 func (g *Makruk) Resign(c Color) { g.Forfeit(c, ReasonResign) }
 
 func (g *Makruk) Forfeit(c Color, reason string) {

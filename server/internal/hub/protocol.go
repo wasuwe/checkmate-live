@@ -194,7 +194,7 @@ type stateMsg struct {
 	Type   string `json:"type"` // "state"
 	Room   string `json:"room"`
 	Status Status `json:"status"`
-	// Game คือชนิดของเกม ("chess", "makruk")
+	// Game คือชนิดของเกม ("chess", "makruk", "checkers")
 	Game     game.Variant               `json:"game"`
 	FEN      string                     `json:"fen"`
 	Turn     game.Color                 `json:"turn"`
@@ -212,6 +212,8 @@ type stateMsg struct {
 	Legal map[string][]string `json:"legal,omitempty"`
 	Check string              `json:"check,omitempty"`
 	Count *game.Count         `json:"count,omitempty"`
+	// Forced คือฝ่ายที่ถึงตาต้องกิน (หมากฮอสบังคับกิน)
+	Forced bool `json:"forced,omitempty"`
 }
 
 func mustJSON(v any) []byte {

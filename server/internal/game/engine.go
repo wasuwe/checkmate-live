@@ -6,8 +6,9 @@ import "fmt"
 type Variant string
 
 const (
-	VariantChess  Variant = "chess"
-	VariantMakruk Variant = "makruk"
+	VariantChess    Variant = "chess"
+	VariantMakruk   Variant = "makruk"
+	VariantCheckers Variant = "checkers"
 )
 
 // ParseVariant แปลงชื่อเกมจากภายนอก ค่าว่างคือหมากรุกสากล (ห้องที่สร้างก่อนมีหลายเกม)
@@ -17,6 +18,8 @@ func ParseVariant(s string) (Variant, bool) {
 		return VariantChess, true
 	case VariantMakruk:
 		return VariantMakruk, true
+	case VariantCheckers:
+		return VariantCheckers, true
 	}
 	return "", false
 }
@@ -54,12 +57,17 @@ type Engine interface {
 	Check() string
 	// Count คืนการนับศักดิ์ที่กำลังเดินอยู่ หรือ nil
 	Count() *Count
+	// Forced บอกว่าฝ่ายที่ถึงตาถูกบังคับให้กิน (หมากฮอส)
+	Forced() bool
 }
 
 // NewVariant สร้างเกมใหม่ของชนิดที่กำหนดจากตำแหน่งเริ่มต้น
 func NewVariant(v Variant) Engine {
-	if v == VariantMakruk {
+	switch v {
+	case VariantMakruk:
 		return NewMakruk()
+	case VariantCheckers:
+		return NewCheckers()
 	}
 	return New()
 }
@@ -81,3 +89,4 @@ func (g *Game) Variant() Variant           { return VariantChess }
 func (g *Game) Legal() map[string][]string { return nil }
 func (g *Game) Check() string              { return "" }
 func (g *Game) Count() *Count              { return nil }
+func (g *Game) Forced() bool               { return false }

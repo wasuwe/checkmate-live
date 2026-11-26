@@ -31,6 +31,7 @@ type serverMsg struct {
 	Legal    map[string][]string        `json:"legal"`
 	Check    string                     `json:"check"`
 	Count    *game.Count                `json:"count"`
+	Forced   bool                       `json:"forced"`
 	// แชท
 	ID       int        `json:"id"`
 	From     game.Color `json:"from"`

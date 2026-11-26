@@ -10,7 +10,16 @@ import { gameName, gameOf } from '../lib/games'
 import { VS } from '../lib/pieceSets'
 import { absences } from '../lib/presence'
 import type { Color, StateMsg } from '../lib/protocol'
-import { colorName, countText, errorText, formatRoomCode, playerName, resultParts, statusText } from '../lib/text'
+import {
+  colorName,
+  countText,
+  errorText,
+  forcedText,
+  formatRoomCode,
+  playerName,
+  resultParts,
+  statusText,
+} from '../lib/text'
 
 interface Props {
   roomId: string
@@ -45,7 +54,7 @@ export function RoomPage({ roomId, navigate }: Props) {
 
   const online = game.connection === 'open'
   const gameId = gameOf(state)
-  const counting = countText(state)
+  const counting = countText(state) || forcedText(state)
   return (
     <main className="screen wide room">
       {!online && (

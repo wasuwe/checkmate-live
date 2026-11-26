@@ -2,7 +2,15 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Chessboard } from 'react-chessboard'
 import { fxEventFor, squarePosition, useFxPrefs, type FxEvent } from '../lib/fx'
 import { checkWords, gameOf } from '../lib/games'
-import { boardPosition, checkSquareFor, needsPromotion, pieceColor, previewFor, targetsFor } from '../lib/moves'
+import {
+  boardPosition,
+  chainSquare,
+  checkSquareFor,
+  needsPromotion,
+  pieceColor,
+  previewFor,
+  targetsFor,
+} from '../lib/moves'
 import { piecesFor, useSetPrefs } from '../lib/pieceSets'
 import type { GameId, Promo, StateMsg } from '../lib/protocol'
 import { FxBurst } from './Fx'
@@ -48,7 +56,7 @@ export function GameBoard({ state, online, errorSeq, sendMove }: Props) {
   // ค่าที่ผูกกับ ply เก่าหรือถูกเซิร์ฟเวอร์ปฏิเสธแล้วถือว่าหมดอายุ ไม่ต้องล้างด้วย effect
   const activePending =
     pending && pending.ply === state.ply && pending.errorSeq === errorSeq ? pending : null
-  const activeSelected = selected && selected.ply === state.ply ? selected.square : null
+  const pickedSquare = selected && selected.ply === state.ply ? selected.square : null
   const activePromotion = promotion && promotion.ply === state.ply ? promotion : null
 
   const myColor = state.you.color
@@ -63,6 +71,8 @@ export function GameBoard({ state, online, errorSeq, sendMove }: Props) {
   const fen = activePending?.fen ?? state.fen
   const lastMove = activePending ?? state.lastMove ?? null
   const game = gameOf(state)
+  // หมากฮอสระหว่างกินหลายต่อ: เลือกหมากที่ต้องกินต่อให้เอง
+  const activeSelected = pickedSquare ?? (canMove ? chainSquare(state) : null)
   const targets = canMove && activeSelected ? targetsFor(state, activeSelected) : []
   const fx = useBoardFx(state)
 
