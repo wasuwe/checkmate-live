@@ -3790,6 +3790,62 @@ a.cb-card:focus-visible {
   }
 }
 
+/* ---------- ครอปรูปก่อนอัปโหลด ---------- */
+
+/* อยู่เหนือทุกอย่าง รวมถึงหน้าต่างอื่นที่อาจเปิดอยู่ */
+.crop-overlay {
+  z-index: 60;
+}
+
+.crop-dialog {
+  gap: 12px;
+}
+
+.crop-dialog .btn {
+  min-height: 44px;
+}
+
+.crop-frame {
+  position: relative;
+  /* ความกว้างสูงที่ตั้งจากโค้ดคือพื้นที่ด้านใน (ไม่รวมขอบ) ต้องตรงกับที่ใช้คำนวณส่วนที่ครอป */
+  box-sizing: content-box;
+  flex: none;
+  overflow: hidden;
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  /* ลายตารางให้เห็นส่วนที่โปร่งของรูป */
+  background: repeating-conic-gradient(#f3e6d6 0 25%, #fff 0 50%) 0 0 / 20px 20px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.crop-frame:active {
+  cursor: grabbing;
+}
+
+.crop-frame.round {
+  border-radius: 50%;
+}
+
+.crop-frame img {
+  position: absolute;
+  max-width: none;
+  pointer-events: none;
+}
+
+.crop-zoom {
+  width: 100%;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.crop-zoom input {
+  flex: 1;
+  min-height: 44px;
+  accent-color: var(--pink-strong);
+}
+
 /* ---------- รูปแบบตัวหมากรุก (เลือกเป็นรายตัว) ---------- */
 
 .chip.style-all {

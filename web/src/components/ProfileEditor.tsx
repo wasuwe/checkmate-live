@@ -13,6 +13,7 @@ import {
   type Profile,
 } from '../lib/profile'
 import { Avatar } from './Avatar'
+import { CropDialog } from './CropDialog'
 
 /** ฟอร์มตั้งชื่อที่แสดงและรูปโปรไฟล์ ใช้ได้เมื่อ login แล้วเท่านั้น */
 export function ProfileEditor() {
@@ -47,14 +48,31 @@ export function ProfileEditor() {
     void run(() => saveName(name), 'บันทึกชื่อแล้ว')
   }
 
+  /** ไฟล์ที่เลือกไว้และกำลังครอป */
+  const [cropping, setCropping] = useState<Blob | null>(null)
+
   function onFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = '' // เลือกไฟล์เดิมซ้ำได้
-    if (file) void run(() => uploadAvatar(file), 'เปลี่ยนรูปแล้ว')
+    if (file) setCropping(file)
   }
 
   return (
     <section className="card profile-top profile" aria-label="ชื่อและรูปโปรไฟล์">
+      {cropping && (
+        <CropDialog
+          file={cropping}
+          aspect={1}
+          round
+          maxSide={512}
+          title="ครอปรูปโปรไฟล์"
+          onCancel={() => setCropping(null)}
+          onDone={(image) => {
+            setCropping(null)
+            void run(() => uploadAvatar(image), 'เปลี่ยนรูปแล้ว')
+          }}
+        />
+      )}
       <Avatar avatar={profile.avatar} size={110} className="profile-photo" />
       <div className="profile-fields">
         <form onSubmit={onSubmit} className="stack" style={{ gap: 6 }}>
@@ -118,7 +136,7 @@ export function ProfileEditor() {
             </button>
           )}
         </div>
-        <p className="tiny pretty">คู่แข่งและผู้ชมเห็นชื่อและรูปนี้ รูปที่อัปโหลดจะถูกตัดเป็นสี่เหลี่ยมจัตุรัสตรงกลาง</p>
+        <p className="tiny pretty">คู่แข่งและผู้ชมเห็นชื่อและรูปนี้ รูปที่อัปโหลดเลือกส่วนที่จะใช้ (ครอป) ได้</p>
 
         {error && (
           <p className="error anim-shake" role="alert">
