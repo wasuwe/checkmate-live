@@ -11,7 +11,7 @@ import { forcedText, resultParts } from './text'
 function state(patch: Partial<StateMsg> = {}): StateMsg {
   return {
     type: 'state',
-    room: 'abcdefghjkmn',
+    room: '482915',
     status: 'playing',
     game: 'checkers',
     fen: CHECKERS_START,

@@ -40,7 +40,7 @@ var (
 
 	squareRe = regexp.MustCompile(`^[a-h][1-8]$`)
 	promoRe  = regexp.MustCompile(`^[qrbn]?$`)
-	roomIDRe = regexp.MustCompile(`^[a-z2-9]{12}$`)
+	roomIDRe = regexp.MustCompile(`^[1-9][0-9]{5}$`)
 )
 
 // decodeInbound แปลงและตรวจรูปแบบข้อความ ห้ามมี field แปลกปลอมหรือข้อมูลต่อท้าย

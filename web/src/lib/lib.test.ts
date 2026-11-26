@@ -71,36 +71,48 @@ describe('protocol', () => {
   })
 
   test('extractRoomId reads a bare code or a pasted link', () => {
-    expect(extractRoomId('abcdefghjkmn')).toBe('abcdefghjkmn')
-    expect(extractRoomId('  ABCDEFGHJKMN ')).toBe('abcdefghjkmn')
-    expect(extractRoomId('https://chess.example.com/room/abcdefghjkmn')).toBe('abcdefghjkmn')
-    expect(extractRoomId('http://localhost:5173/room/abcdefghjkmn/')).toBe('abcdefghjkmn')
+    expect(extractRoomId('482915')).toBe('482915')
+    expect(extractRoomId('  482915 ')).toBe('482915')
+    expect(extractRoomId('https://chess.example.com/room/482915')).toBe('482915')
+    expect(extractRoomId('http://localhost:5173/room/482915/')).toBe('482915')
+    // ตัวเลขอื่นในลิงก์ (เช่น เลขพอร์ต) ไม่ถูกเข้าใจผิดว่าเป็นรหัสห้อง
+    expect(extractRoomId('http://localhost:517300/room/482915')).toBe('482915')
+    expect(extractRoomId('http://192.168.100.200:8080/room/482915?x=1')).toBe('482915')
+    // รหัสที่บอกต่อกันแบบมีช่องว่างหรือขีดคั่น
+    expect(extractRoomId('482 915')).toBe('482915')
+    expect(extractRoomId('482-915')).toBe('482915')
+    expect(extractRoomId('รหัสห้อง 482915 นะ')).toBe('482915')
     expect(extractRoomId('abc')).toBeNull()
-    expect(extractRoomId('abcdefghjkmnp')).toBeNull() // 13 ตัว
+    expect(extractRoomId('4829150')).toBeNull() // 7 หลัก
+    expect(extractRoomId('48291')).toBeNull() // 5 หลัก
+    expect(extractRoomId('082915')).toBeNull() // ขึ้นต้นด้วย 0 ไม่ใช่รหัสที่ระบบออกให้
     expect(extractRoomId('')).toBeNull()
   })
 
-  test('isRoomId rejects ambiguous characters', () => {
-    expect(isRoomId('abcdefghjkmn')).toBe(true)
-    expect(isRoomId('abcdefghjk10')).toBe(false)
+  test('isRoomId accepts only six digits that do not start with zero', () => {
+    expect(isRoomId('482915')).toBe(true)
+    expect(isRoomId('100000')).toBe(true)
+    expect(isRoomId('999999')).toBe(true)
+    for (const bad of ['48291', '4829150', '082915', '48291a', '482 915', 'abcdefghjkmn', '']) expect(isRoomId(bad), bad).toBe(false)
   })
 })
 
 describe('router', () => {
   test('parseRoute', () => {
     expect(parseRoute('/')).toEqual({ page: 'home' })
-    expect(parseRoute('/room/abcdefghjkmn')).toEqual({ page: 'room', roomId: 'abcdefghjkmn' })
-    expect(parseRoute('/room/abcdefghjkmn/')).toEqual({ page: 'room', roomId: 'abcdefghjkmn' })
+    expect(parseRoute('/room/482915')).toEqual({ page: 'room', roomId: '482915' })
+    expect(parseRoute('/room/482915/')).toEqual({ page: 'room', roomId: '482915' })
     expect(parseRoute('/room/short')).toEqual({ page: 'not_found' })
+    expect(parseRoute('/room/abcdefghjkmn')).toEqual({ page: 'not_found' }) // รหัสรูปแบบเก่า
     expect(parseRoute('/elsewhere')).toEqual({ page: 'not_found' })
-    expect(parseRoute(roomPath('abcdefghjkmn'))).toEqual({ page: 'room', roomId: 'abcdefghjkmn' })
+    expect(parseRoute(roomPath('482915'))).toEqual({ page: 'room', roomId: '482915' })
   })
 })
 
 describe('clock', () => {
   const base: StateMsg = {
     type: 'state',
-    room: 'abcdefghjkmn',
+    room: '482915',
     status: 'playing',
     fen: START,
     turn: 'w',
@@ -158,7 +170,7 @@ describe('clock', () => {
 describe('presence', () => {
   const playing: StateMsg = {
     type: 'state',
-    room: 'abcdefghjkmn',
+    room: '482915',
     status: 'playing',
     fen: START,
     turn: 'w',
@@ -191,7 +203,7 @@ describe('presence', () => {
 describe('text', () => {
   const base: StateMsg = {
     type: 'state',
-    room: 'abcdefghjkmn',
+    room: '482915',
     status: 'playing',
     fen: START,
     turn: 'w',

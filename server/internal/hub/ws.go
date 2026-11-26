@@ -101,6 +101,11 @@ func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 				client.Send(encodeError(errCodeAlreadyJoined))
 				continue
 			}
+			// นับทุกครั้งที่ขอเข้าห้อง ก่อนจะบอกว่ามีห้องนั้นหรือไม่ คนที่ไล่เดารหัสจึงไม่ได้คำตอบเมื่อเกินโควตา
+			if !h.joins.Allow(ip) {
+				client.Send(encodeError(errCodeRateLimited))
+				continue
+			}
 			target := h.room(msg.Room)
 			if target == nil || !target.post(event{kind: evJoin, client: client}) {
 				client.Send(encodeError(errCodeRoomNotFound))

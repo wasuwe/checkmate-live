@@ -369,7 +369,7 @@ func TestWebSocketRequiresAuthFirst(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c.send(map[string]string{"type": "join", "room": "abcdefghjkmn"})
+	c.send(map[string]string{"type": "join", "room": "482915"})
 	c.expectClosed("join before auth")
 }
 
@@ -411,7 +411,7 @@ func TestWebSocketProtocolErrors(t *testing.T) {
 	c.move(0, "e2", "e4")
 	c.expectError("not_joined")
 
-	c.send(map[string]string{"type": "join", "room": "abcdefghjkmn"})
+	c.send(map[string]string{"type": "join", "room": "482915"})
 	c.expectError("room_not_found")
 
 	c.sendRaw(`{"type":"move","ply":0,"from":"e2","to":"e4","winner":"w"}`)

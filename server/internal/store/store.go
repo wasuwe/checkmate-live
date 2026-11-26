@@ -77,7 +77,7 @@ func (s *Store) insertGame(ctx context.Context, g hub.GameRecord) error {
 	_, err := s.pool.Exec(ctx, `
 		insert into games (room_id, white_id, black_id, pgn, result, reason, time_control, started_at, ended_at, variant)
 		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		on conflict (room_id) do nothing`,
+		on conflict (room_id, started_at) do nothing`,
 		g.RoomID, accountID(g.WhiteID), accountID(g.BlackID), g.PGN, g.Result, g.Reason, g.TimeControl, g.StartedAt, g.EndedAt,
 		cmp.Or(g.Variant, "chess"))
 	return err

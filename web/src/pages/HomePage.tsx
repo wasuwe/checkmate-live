@@ -2,24 +2,21 @@ import { useIsAdmin } from '../lib/admin'
 import { useState, type ClipboardEvent, type FormEvent } from 'react'
 import { AccountPanel } from '../components/AccountPanel'
 import { VS } from '../lib/pieceSets'
-import { extractRoomId, isRoomId } from '../lib/protocol'
+import { extractRoomId, isRoomId, ROOM_ID_LENGTH } from '../lib/protocol'
 import { roomPath, ADMIN_PATH } from '../lib/router'
 
 interface Props {
   navigate: (to: string) => void
 }
 
-const CODE_LENGTH = 12
+const CODE_LENGTH = ROOM_ID_LENGTH
 
 /**
- * เหลือเฉพาะอักขระที่ใช้ในรหัสห้อง
- * ช่องกรอกไม่ตั้ง maxLength เพราะรหัสที่คัดลอกมาอาจมีช่องว่างคั่น (เช่น "abcd efgh jkmn") ซึ่งจะถูกตัดท้ายก่อนถึงตรงนี้
+ * เหลือเฉพาะตัวเลขของรหัสห้อง
+ * ช่องกรอกไม่ตั้ง maxLength เพราะรหัสที่คัดลอกมาอาจมีช่องว่างคั่น (เช่น "482 915") ซึ่งจะถูกตัดท้ายก่อนถึงตรงนี้
  */
 function cleanCode(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z2-9]/g, '')
-    .slice(0, CODE_LENGTH)
+  return value.replace(/\D/g, '').slice(0, CODE_LENGTH)
 }
 
 export function HomePage({ navigate }: Props) {
@@ -98,9 +95,10 @@ export function HomePage({ navigate }: Props) {
                 onPaste={onPaste}
                 autoFocus
                 autoComplete="off"
-                autoCapitalize="none"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 spellCheck={false}
-                aria-label="รหัสห้อง 12 ตัว"
+                aria-label="รหัสห้อง 6 หลัก"
               />
             </div>
             <button type="submit" className={`btn strong${ready ? ' pink' : ''}`} disabled={!ready}>

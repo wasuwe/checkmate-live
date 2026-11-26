@@ -310,7 +310,7 @@ func TestRestoreWaitingRoom(t *testing.T) {
 
 func TestRestoreRejectsBadSnapshots(t *testing.T) {
 	good := RoomSnapshot{
-		ID: "abcdefghjkmn", Status: StatusPlaying, TimeControl: "10+0",
+		ID: "482915", Status: StatusPlaying, TimeControl: "10+0",
 		White: "alice", Black: "bob", Moves: []string{"e2e4", "e7e5"},
 		ClockWhite: 600_000, ClockBlack: 600_000, StartedAt: time.Now(),
 	}
@@ -337,7 +337,7 @@ func TestRestoreRejectsBadSnapshots(t *testing.T) {
 	}
 	for name, edit := range bad {
 		snap := good
-		snap.ID = "zzzzzzzzzzzz"
+		snap.ID = "999999"
 		edit(&snap)
 		if err := h.RestoreRoom(snap); !errors.Is(err, ErrBadSnapshot) {
 			t.Errorf("%s: err = %v, want ErrBadSnapshot", name, err)
@@ -351,7 +351,7 @@ func TestRestoreRejectsBadSnapshots(t *testing.T) {
 func TestRestoreAfterCloseFails(t *testing.T) {
 	h := newTestHub(t, Config{})
 	h.Close()
-	err := h.RestoreRoom(RoomSnapshot{ID: "abcdefghjkmn", Status: StatusWaiting, TimeControl: "10+0"})
+	err := h.RestoreRoom(RoomSnapshot{ID: "482915", Status: StatusWaiting, TimeControl: "10+0"})
 	if !errors.Is(err, ErrClosed) {
 		t.Fatalf("err = %v, want ErrClosed", err)
 	}

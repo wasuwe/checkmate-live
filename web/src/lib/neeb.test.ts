@@ -9,7 +9,7 @@ import { reach, RULES } from './rules'
 function state(patch: Partial<StateMsg> = {}): StateMsg {
   return {
     type: 'state',
-    room: 'abcdefghjkmn',
+    room: '482915',
     status: 'playing',
     game: 'neeb',
     fen: NEEB_START,

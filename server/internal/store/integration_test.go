@@ -89,12 +89,12 @@ func TestIntegrationRoomsRoundTrip(t *testing.T) {
 	started := time.Now().UTC().Truncate(time.Millisecond)
 
 	playing := hub.RoomSnapshot{
-		ID: "abcdefghjkmn", Status: hub.StatusPlaying, CreatedBy: "guest_abc", TimeControl: "5+3",
+		ID: "482915", Status: hub.StatusPlaying, CreatedBy: "guest_abc", TimeControl: "5+3",
 		White: "guest_abc", Black: "3f2b8a1e-7c4d-4e9a-b1f0-2d6c5a9e8b77",
 		Moves: []string{"e2e4", "e7e5"}, ClockWhite: 299_000, ClockBlack: 301_500, StartedAt: started,
 	}
-	waiting := hub.RoomSnapshot{ID: "zzzzzzzzzzzz", Status: hub.StatusWaiting, TimeControl: "10+0", Pending: "guest_abc", ClockWhite: 600_000, ClockBlack: 600_000}
-	finished := hub.RoomSnapshot{ID: "yyyyyyyyyyyy", Status: hub.StatusFinished, TimeControl: "10+0"}
+	waiting := hub.RoomSnapshot{ID: "999999", Status: hub.StatusWaiting, TimeControl: "10+0", Pending: "guest_abc", ClockWhite: 600_000, ClockBlack: 600_000}
+	finished := hub.RoomSnapshot{ID: "888888", Status: hub.StatusFinished, TimeControl: "10+0"}
 
 	for _, snap := range []hub.RoomSnapshot{playing, waiting, finished} {
 		if err := s.upsertRoom(ctx, snap); err != nil {
@@ -156,7 +156,7 @@ func TestIntegrationGames(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Millisecond)
 
 	rec := hub.GameRecord{
-		RoomID: "abcdefghjkmn", WhiteID: "guest_aaa", BlackID: "guest_bbb",
+		RoomID: "482915", WhiteID: "guest_aaa", BlackID: "guest_bbb",
 		PGN: "1. f3 e5 2. g4 Qh4# 0-1", Result: "0-1", Reason: "checkmate", TimeControl: "10+0",
 		StartedAt: now.Add(-time.Minute), EndedAt: now,
 	}
@@ -165,6 +165,19 @@ func TestIntegrationGames(t *testing.T) {
 	}
 	if err := s.insertGame(ctx, rec); err != nil { // ลองซ้ำหลังเขียนสำเร็จแล้ว
 		t.Fatalf("repeated insert: %v", err)
+	}
+	// รหัสห้อง 6 หลักถูกนำกลับมาใช้ใหม่ได้: เกมของห้องใหม่ที่ได้รหัสเดิมต้องถูกบันทึกเป็นอีกแถว
+	later := rec
+	later.StartedAt, later.EndedAt, later.Result = now.Add(time.Hour), now.Add(2*time.Hour), "1-0"
+	if err := s.insertGame(ctx, later); err != nil {
+		t.Fatalf("insert a later game with a reused room code: %v", err)
+	}
+	var sameRoom int
+	if err := s.pool.QueryRow(ctx, "select count(*) from games where room_id = $1", rec.RoomID).Scan(&sameRoom); err != nil || sameRoom != 2 {
+		t.Fatalf("%d games stored for the reused room code (err %v), want 2", sameRoom, err)
+	}
+	if _, err := s.pool.Exec(ctx, "delete from games where room_id = $1 and started_at = $2", later.RoomID, later.StartedAt); err != nil {
+		t.Fatal(err)
 	}
 
 	var (
@@ -240,7 +253,7 @@ func TestIntegrationSQLInjectionIsInert(t *testing.T) {
 	ctx := context.Background()
 	evil := "'); drop table games; --"
 
-	if err := s.upsertRoom(ctx, hub.RoomSnapshot{ID: "abcdefghjkmn", Status: hub.StatusWaiting, CreatedBy: evil, TimeControl: evil, Pending: evil}); err != nil {
+	if err := s.upsertRoom(ctx, hub.RoomSnapshot{ID: "482915", Status: hub.StatusWaiting, CreatedBy: evil, TimeControl: evil, Pending: evil}); err != nil {
 		t.Fatalf("upsert with hostile text: %v", err)
 	}
 	if err := s.deleteRoom(ctx, evil); err != nil {
@@ -379,7 +392,7 @@ func TestIntegrationChatReports(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now().UTC().Truncate(time.Millisecond)
 	report := hub.ChatReport{
-		RoomID: "abcdefghjkmn", MessageID: 7, Text: "ข้อความหยาบ", SenderID: "guest_aaa",
+		RoomID: "482915", MessageID: 7, Text: "ข้อความหยาบ", SenderID: "guest_aaa",
 		ReporterID: "11111111-1111-4111-8111-111111111111", SentAt: now.Add(-time.Minute), ReportedAt: now,
 	}
 

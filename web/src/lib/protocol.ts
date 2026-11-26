@@ -140,9 +140,11 @@ export function parseServerMsg(data: string): ServerMsg | null {
   return value as ServerMsg
 }
 
-/** รหัสห้อง: 12 ตัวจากชุดอักษรที่ไม่มีตัวสับสน (ไม่มี 0, 1, l, o) */
-const ROOM_ID = /^[a-z2-9]{12}$/
-const ROOM_ID_IN_TEXT = /(?:^|[^a-z0-9])([a-z2-9]{12})(?:$|[^a-z0-9])/
+/** รหัสห้อง: ตัวเลข 6 หลัก ตั้งแต่ 100000 ถึง 999999 (ต้องตรงกับ roomIDRe ฝั่งเซิร์ฟเวอร์) */
+export const ROOM_ID_LENGTH = 6
+const ROOM_ID = /^[1-9]\d{5}$/
+const ROOM_ID_IN_LINK = /\/room\/([1-9]\d{5})(?:\D|$)/
+const ROOM_ID_IN_TEXT = /(?:^|\D)([1-9]\d{5})(?:$|\D)/
 
 export function isRoomId(value: string): boolean {
   return ROOM_ID.test(value)
@@ -150,7 +152,12 @@ export function isRoomId(value: string): boolean {
 
 /** ดึงรหัสห้องจากสิ่งที่ผู้ใช้วาง ซึ่งอาจเป็นรหัสล้วนหรือทั้งลิงก์ */
 export function extractRoomId(input: string): string | null {
-  const text = input.trim().toLowerCase()
-  if (isRoomId(text)) return text
+  const text = input.trim()
+  // ลิงก์ห้อง: เอาเลขหลัง /room/ (ส่วนอื่นของลิงก์ เช่น เลขพอร์ต ไม่นับ)
+  const linked = ROOM_ID_IN_LINK.exec(text)?.[1]
+  if (linked) return linked
+  // รหัสที่พิมพ์หรือคัดลอกมาแบบมีช่องว่างหรือขีดคั่น เช่น "482 915"
+  const compact = text.replace(/[\s-]/g, '')
+  if (isRoomId(compact)) return compact
   return ROOM_ID_IN_TEXT.exec(text)?.[1] ?? null
 }

@@ -13,7 +13,7 @@ const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 function state(patch: Partial<StateMsg> = {}): StateMsg {
   return {
     type: 'state',
-    room: 'abcdefghjkmn',
+    room: '482915',
     status: 'playing',
     fen: START,
     turn: 'w',
@@ -162,7 +162,7 @@ describe('pages', () => {
     ]) {
       expect(parseRoute(path).page, path).toBe(page)
     }
-    expect(parseRoute('/room/abcdefghjkmn')).toEqual({ page: 'room', roomId: 'abcdefghjkmn' })
+    expect(parseRoute('/room/482915')).toEqual({ page: 'room', roomId: '482915' })
     expect(parseRoute('/constructor').page).toBe('not_found')
     expect(parseRoute('/play/extra').page).toBe('not_found')
   })
@@ -186,7 +186,7 @@ describe('result popup', () => {
     })
   })
 
-  test('room codes are grouped in fours', () => {
-    expect(formatRoomCode('abcdefghjkmn')).toBe('abcd efgh jkmn')
+  test('room codes are shown as two groups of three', () => {
+    expect(formatRoomCode('482915')).toBe('482 915')
   })
 })
