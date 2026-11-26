@@ -32,11 +32,12 @@ type event struct {
 // Room คือห้องเกมหนึ่งห้อง state ทั้งหมดถูกแตะจาก goroutine เดียว (run)
 // จึงไม่ต้องใช้ mutex ทุกอย่างจากภายนอกเข้ามาทาง inbox เท่านั้น
 type Room struct {
-	id      string
-	cfg     Config
-	inbox   chan event
-	done    chan struct{}
-	onClose func(id string)
+	id        string
+	createdBy string
+	cfg       Config
+	inbox     chan event
+	done      chan struct{}
+	onClose   func(id string)
 
 	// ---- ด้านล่างนี้เป็นของ goroutine run เท่านั้น ----
 	game       *game.Game
@@ -45,6 +46,7 @@ type Room struct {
 	players    map[game.Color]string // สี → user ID (หลังเริ่มเกม)
 	clients    map[*Client]struct{}
 	emptySince time.Time // เวลาที่ห้องเริ่มว่าง (zero = มีคนอยู่)
+	startedAt  time.Time // เวลาที่เกมเริ่ม
 	// abandonAt คือเส้นตายของผู้เล่นที่หลุดระหว่างเกม ถ้าไม่กลับมาทันจะแพ้ด้วยเหตุ abandon
 	abandonAt map[game.Color]time.Time
 	clock     *clock
@@ -54,12 +56,13 @@ type Room struct {
 	chatLimiters map[string]*rate.Limiter // ต่อ user ID ไม่ใช่ต่อ connection เปิดหลายแท็บก็ไม่ได้โควตาเพิ่ม
 }
 
-func newRoom(id string, cfg Config, tc TimeControl, onClose func(string)) *Room {
+func newRoom(id string, cfg Config, tc TimeControl, createdBy string, onClose func(string)) *Room {
 	if tc.Initial <= 0 {
 		tc = DefaultTimeControl
 	}
 	return &Room{
 		id:         id,
+		createdBy:  createdBy,
 		cfg:        cfg,
 		inbox:      make(chan event, 64),
 		done:       make(chan struct{}),
@@ -94,7 +97,10 @@ func (r *Room) post(ev event) bool {
 
 // run คือ game loop ของห้อง ทำงานจนห้องถูกปิด
 func (r *Room) run(stop <-chan struct{}) {
-	defer r.shutdown()
+	// expired = ห้องปิดเองเพราะว่างนาน จึงลบออกจากที่เก็บถาวรด้วย
+	// ถ้าปิดเพราะเซิร์ฟเวอร์หยุด ต้องเก็บไว้เพื่อกู้คืนตอนเริ่มใหม่
+	expired := false
+	defer func() { r.shutdown(expired) }()
 
 	for {
 		var timerC <-chan time.Time
@@ -109,11 +115,16 @@ func (r *Room) run(stop <-chan struct{}) {
 			r.handle(ev)
 		case <-timerC:
 			if r.onTimer(time.Now()) {
+				expired = true
 				return
 			}
 		case <-stop:
 			if timer != nil {
 				timer.Stop()
+			}
+			// เซิร์ฟเวอร์กำลังหยุด: บันทึกสถานะล่าสุด (รวมเวลาบนนาฬิกา ณ ตอนนี้) ไว้กู้คืน
+			if r.status != StatusFinished {
+				r.persist()
 			}
 			return
 		}
@@ -123,7 +134,10 @@ func (r *Room) run(stop <-chan struct{}) {
 	}
 }
 
-func (r *Room) shutdown() {
+func (r *Room) shutdown(expired bool) {
+	if expired && r.cfg.Store != nil {
+		r.cfg.Store.DeleteRoom(r.id)
+	}
 	close(r.done)
 	for c := range r.clients {
 		c.Kick()
@@ -169,7 +183,11 @@ func (r *Room) onTimer(now time.Time) bool {
 		return false
 	}
 	// ถ้าหลุดทั้งคู่ คนที่หลุดก่อนเป็นฝ่ายแพ้
+	// ถ้าเส้นตายตรงกันพอดี (ห้องที่กู้คืนหลังรีสตาร์ต) ฝั่งที่ถึงตาเดินเป็นฝ่ายแพ้
 	if color, ok := r.firstAbandon(); ok && !now.Before(r.abandonAt[color]) {
+		if other, both := r.abandonAt[color.Other()]; both && other.Equal(r.abandonAt[color]) {
+			color = r.game.Turn()
+		}
 		r.game.Forfeit(color, game.ReasonAbandon)
 		r.finish()
 		return false
@@ -216,6 +234,7 @@ func (r *Room) handleJoin(c *Client) {
 		} else {
 			r.start(r.pending, c.UserID)
 		}
+		r.persist()
 	}
 	// ที่นั่งผูกกับ user ID ไม่ใช่ connection: คนเดิมเข้ามาใหม่ได้ที่นั่งเดิม
 	// ส่วนคนที่ 3 เป็นต้นไปเป็นคนดู
@@ -235,7 +254,8 @@ func (r *Room) start(a, b string) {
 	r.players[game.Black] = b
 	r.pending = ""
 	r.status = StatusPlaying
-	r.clock.start(game.White, time.Now())
+	r.startedAt = time.Now()
+	r.clock.start(game.White, r.startedAt)
 }
 
 func (r *Room) handleLeave(c *Client) {
@@ -303,14 +323,18 @@ func (r *Room) handleMove(c *Client, ply int, m game.Move) {
 		r.finish()
 		return
 	}
+	r.persist()
 	r.broadcastState()
 }
 
 // finish ปิดเกมและแจ้งผลทั้งห้อง เรียกหลังจาก r.game จบแล้วเท่านั้น
 func (r *Room) finish() {
+	now := time.Now()
 	r.status = StatusFinished
-	r.clock.stop(time.Now())
+	r.clock.stop(now)
 	clear(r.abandonAt)
+	r.persistGame(now)
+	r.persist()
 	result, reason := r.game.Result()
 	over := mustJSON(gameOverMsg{Type: "game_over", Result: result, Reason: reason})
 	for c := range r.clients {

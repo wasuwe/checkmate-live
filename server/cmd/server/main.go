@@ -13,12 +13,20 @@ import (
 	"time"
 
 	"github.com/wasuwe/checkmate-live/server/internal/auth"
+	"github.com/wasuwe/checkmate-live/server/internal/envfile"
 	"github.com/wasuwe/checkmate-live/server/internal/httpapi"
 	"github.com/wasuwe/checkmate-live/server/internal/hub"
+	"github.com/wasuwe/checkmate-live/server/internal/store"
 )
 
 func main() {
 	log := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+	// ตอนพัฒนาในเครื่อง ค่าต่าง ๆ อ่านจากไฟล์ .env ได้ บนเซิร์ฟเวอร์จริงมาจาก environment
+	if err := envfile.Load(".env"); err != nil {
+		log.Error("read .env", "err", err)
+		os.Exit(1)
+	}
 
 	addr := envOr("ADDR", ":8080")
 
@@ -62,12 +70,51 @@ func main() {
 		}
 	}
 
-	h := hub.New(hub.Config{
+	hubCfg := hub.Config{
 		OriginPatterns: splitList(os.Getenv("ALLOWED_ORIGINS")),
 		AbandonGrace:   abandonGrace,
 		Logger:         log,
-	}, authn)
-	defer h.Close()
+	}
+
+	// ฐานข้อมูล: ถ้าไม่ตั้ง DATABASE_URL ทุกอย่างอยู่ใน memory และหายเมื่อรีสตาร์ต
+	var (
+		db     *store.Store
+		writer *store.Writer
+		saved  []hub.RoomSnapshot
+	)
+	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
+		startCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		db, err = store.Open(startCtx, dbURL, "")
+		if err == nil {
+			err = db.Migrate(startCtx)
+		}
+		if err == nil {
+			saved, err = db.LoadActiveRooms(startCtx)
+		}
+		cancel()
+		if err != nil {
+			// เริ่มต่อโดยไม่มีฐานข้อมูลจะทำให้เกมหายเงียบ ๆ จึงหยุดดีกว่า
+			log.Error("database unavailable", "err", err)
+			os.Exit(1)
+		}
+		writer = store.NewWriter(db, log)
+		hubCfg.Store = writer
+	}
+	log.Info("storage configured", "database", db != nil)
+
+	h := hub.New(hubCfg, authn)
+	restored := 0
+	for _, snap := range saved {
+		if err := h.RestoreRoom(snap); err != nil {
+			log.Warn("room not restored", "room", snap.ID, "err", err)
+			writer.DeleteRoom(snap.ID) // กู้ไม่ได้แล้ว ไม่ต้องลองอีกทุกครั้งที่เริ่ม
+			continue
+		}
+		restored++
+	}
+	if db != nil {
+		log.Info("rooms restored", "count", restored, "skipped", len(saved)-restored)
+	}
 
 	apiCfg := httpapi.Config{
 		StaticDir: os.Getenv("STATIC_DIR"),
@@ -100,6 +147,15 @@ func main() {
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Error("shutdown failed", "err", err)
+	}
+
+	// ลำดับสำคัญ: ปิดห้องก่อน (แต่ละห้องบันทึกสถานะสุดท้าย) แล้วรอให้เขียนลงฐานข้อมูลเสร็จ
+	h.Close()
+	if writer != nil {
+		if left := writer.Close(shutdownCtx); left > 0 {
+			log.Error("some data was not saved before shutdown", "jobs", left)
+		}
+		db.Close()
 	}
 }
 

@@ -191,6 +191,53 @@ func TestForfeitKeepsReason(t *testing.T) {
 	}
 }
 
+func TestMovesAndReplay(t *testing.T) {
+	g := New()
+	play(t, g, "e2e4", "d7d5", "e4d5", "d8d5")
+	moves := g.Moves()
+	if len(moves) != 4 || moves[2] != (Move{From: "e4", To: "d5"}) {
+		t.Fatalf("moves = %+v", moves)
+	}
+	moves[0].From = "a2" // แก้สำเนาต้องไม่กระทบเกม
+	if g.Moves()[0].From != "e2" {
+		t.Fatal("Moves returned internal storage")
+	}
+
+	again, err := Replay(g.Moves())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.FEN() != g.FEN() || again.Ply() != 4 || again.Turn() != g.Turn() {
+		t.Fatalf("replayed fen %s, want %s", again.FEN(), g.FEN())
+	}
+	if lm := again.LastMove(); lm == nil || *lm != (Move{From: "d8", To: "d5"}) {
+		t.Fatalf("last move after replay = %+v", lm)
+	}
+}
+
+func TestReplayPromotionAndCastling(t *testing.T) {
+	g := New()
+	play(t, g, "g1f3", "g8f6", "g2g3", "g7g6", "f1g2", "f8g7", "e1g1", "e8g8",
+		"a2a4", "b7b5", "a4b5", "a7a6", "b5a6", "c7c6", "a6a7", "d7d6", "a7b8q")
+	again, err := Replay(g.Moves())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.FEN() != g.FEN() {
+		t.Fatalf("replayed fen %s, want %s", again.FEN(), g.FEN())
+	}
+}
+
+func TestReplayRejectsIllegalHistory(t *testing.T) {
+	_, err := Replay([]Move{{From: "e2", To: "e4"}, {From: "e2", To: "e4"}})
+	if !errors.Is(err, ErrIllegalMove) {
+		t.Fatalf("err = %v, want ErrIllegalMove", err)
+	}
+	if g, err := Replay(nil); err != nil || g.Ply() != 0 {
+		t.Fatalf("empty history: %v", err)
+	}
+}
+
 func TestPGNContainsMoves(t *testing.T) {
 	g := New()
 	play(t, g, "e2e4", "e7e5")

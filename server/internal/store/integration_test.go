@@ -1,0 +1,277 @@
+package store
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"os"
+	"testing"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+
+	"github.com/wasuwe/checkmate-live/server/internal/envfile"
+	"github.com/wasuwe/checkmate-live/server/internal/hub"
+)
+
+// test ในไฟล์นี้ต่อฐานข้อมูลจริง และถูกข้ามถ้าไม่มี DATABASE_URL (เช่นใน CI)
+// ทุก test ทำงานใน schema ชั่วคราวของตัวเอง จึงไม่แตะตารางจริงใน public
+func openTestStore(t *testing.T) (*Store, string) {
+	t.Helper()
+	_ = envfile.Load("../../.env")
+	url := os.Getenv("DATABASE_URL")
+	if url == "" {
+		t.Skip("DATABASE_URL is not set; skipping database integration test")
+	}
+
+	raw := make([]byte, 6)
+	if _, err := rand.Read(raw); err != nil {
+		t.Fatal(err)
+	}
+	schema := "cmtest_" + hex.EncodeToString(raw)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	admin, err := pgx.Connect(ctx, url)
+	if err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	// ชื่อ schema มาจากเลขสุ่มฐานสิบหกที่สร้างเอง จึงต่อ string ได้ปลอดภัย
+	if _, err := admin.Exec(ctx, "create schema "+schema); err != nil {
+		t.Fatalf("create test schema: %v", err)
+	}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if _, err := admin.Exec(ctx, "drop schema "+schema+" cascade"); err != nil {
+			t.Errorf("drop test schema %s: %v", schema, err)
+		}
+		_ = admin.Close(ctx)
+	})
+
+	s, err := Open(ctx, url, schema)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	t.Cleanup(s.Close)
+	if err := s.Migrate(ctx); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	return s, schema
+}
+
+func TestIntegrationMigrateIsRepeatable(t *testing.T) {
+	s, _ := openTestStore(t)
+	ctx := context.Background()
+	if err := s.Migrate(ctx); err != nil {
+		t.Fatalf("second migrate: %v", err)
+	}
+	var n int
+	if err := s.pool.QueryRow(ctx, "select count(*) from schema_migrations").Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Fatalf("schema_migrations has %d rows, want 1", n)
+	}
+}
+
+func TestIntegrationRoomsRoundTrip(t *testing.T) {
+	s, _ := openTestStore(t)
+	ctx := context.Background()
+	started := time.Now().UTC().Truncate(time.Millisecond)
+
+	playing := hub.RoomSnapshot{
+		ID: "abcdefghjkmn", Status: hub.StatusPlaying, CreatedBy: "guest_abc", TimeControl: "5+3",
+		White: "guest_abc", Black: "3f2b8a1e-7c4d-4e9a-b1f0-2d6c5a9e8b77",
+		Moves: []string{"e2e4", "e7e5"}, ClockWhite: 299_000, ClockBlack: 301_500, StartedAt: started,
+	}
+	waiting := hub.RoomSnapshot{ID: "zzzzzzzzzzzz", Status: hub.StatusWaiting, TimeControl: "10+0", Pending: "guest_abc", ClockWhite: 600_000, ClockBlack: 600_000}
+	finished := hub.RoomSnapshot{ID: "yyyyyyyyyyyy", Status: hub.StatusFinished, TimeControl: "10+0"}
+
+	for _, snap := range []hub.RoomSnapshot{playing, waiting, finished} {
+		if err := s.upsertRoom(ctx, snap); err != nil {
+			t.Fatalf("upsert %s: %v", snap.ID, err)
+		}
+	}
+	// อัปเดตห้องเดิม: ต้องทับแถวเดิม ไม่เกิดแถวใหม่
+	playing.Moves = append(playing.Moves, "g1f3")
+	playing.ClockWhite = 290_000
+	if err := s.upsertRoom(ctx, playing); err != nil {
+		t.Fatal(err)
+	}
+
+	rooms, err := s.LoadActiveRooms(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rooms) != 2 {
+		t.Fatalf("loaded %d rooms, want 2 (finished rooms are not restored)", len(rooms))
+	}
+	got := rooms[0]
+	if got.ID != playing.ID || got.Status != hub.StatusPlaying || got.CreatedBy != "guest_abc" || got.TimeControl != "5+3" ||
+		got.White != playing.White || got.Black != playing.Black || len(got.Moves) != 3 || got.Moves[2] != "g1f3" ||
+		got.ClockWhite != 290_000 || got.ClockBlack != 301_500 || !got.StartedAt.Equal(started) {
+		t.Fatalf("loaded playing room = %+v", got)
+	}
+	if rooms[1].ID != waiting.ID || rooms[1].Pending != "guest_abc" || rooms[1].Status != hub.StatusWaiting {
+		t.Fatalf("loaded waiting room = %+v", rooms[1])
+	}
+
+	// snapshot ที่โหลดมาต้องกู้เป็นห้องได้จริง
+	h := hub.New(hub.Config{}, nil)
+	defer h.Close()
+	for _, snap := range rooms {
+		if err := h.RestoreRoom(snap); err != nil {
+			t.Fatalf("restore %s: %v", snap.ID, err)
+		}
+	}
+
+	var finishedLeft int
+	if err := s.pool.QueryRow(ctx, "select count(*) from rooms where status = 'finished'").Scan(&finishedLeft); err != nil {
+		t.Fatal(err)
+	}
+	if finishedLeft != 0 {
+		t.Fatal("finished rooms were not cleaned up on load")
+	}
+
+	if err := s.deleteRoom(ctx, playing.ID); err != nil {
+		t.Fatal(err)
+	}
+	if rooms, _ = s.LoadActiveRooms(ctx); len(rooms) != 1 {
+		t.Fatalf("after delete: %d rooms, want 1", len(rooms))
+	}
+}
+
+func TestIntegrationGames(t *testing.T) {
+	s, _ := openTestStore(t)
+	ctx := context.Background()
+	now := time.Now().UTC().Truncate(time.Millisecond)
+
+	rec := hub.GameRecord{
+		RoomID: "abcdefghjkmn", WhiteID: "guest_aaa", BlackID: "guest_bbb",
+		PGN: "1. f3 e5 2. g4 Qh4# 0-1", Result: "0-1", Reason: "checkmate", TimeControl: "10+0",
+		StartedAt: now.Add(-time.Minute), EndedAt: now,
+	}
+	if err := s.insertGame(ctx, rec); err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+	if err := s.insertGame(ctx, rec); err != nil { // ลองซ้ำหลังเขียนสำเร็จแล้ว
+		t.Fatalf("repeated insert: %v", err)
+	}
+
+	var (
+		count              int
+		pgn, result        string
+		whiteNull, blkNull bool
+		ended              time.Time
+	)
+	if err := s.pool.QueryRow(ctx, "select count(*) from games").Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("%d game rows, want 1 (insert must be idempotent)", count)
+	}
+	err := s.pool.QueryRow(ctx, "select pgn, result, white_id is null, black_id is null, ended_at from games where room_id = $1", rec.RoomID).
+		Scan(&pgn, &result, &whiteNull, &blkNull, &ended)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pgn != rec.PGN || result != "0-1" || !whiteNull || !blkNull || !ended.Equal(now) {
+		t.Fatalf("stored game: pgn=%q result=%q whiteNull=%v blackNull=%v ended=%v", pgn, result, whiteNull, blkNull, ended)
+	}
+
+	// ค่าที่ไม่อยู่ในรายการต้องถูกฐานข้อมูลปฏิเสธ
+	bad := rec
+	bad.RoomID, bad.Result = "badresult000", "2-0"
+	if err := s.insertGame(ctx, bad); err == nil {
+		t.Fatal("invalid result was accepted")
+	}
+	bad = rec
+	bad.RoomID, bad.Reason = "badreason000", "rage_quit"
+	if err := s.insertGame(ctx, bad); err == nil {
+		t.Fatal("invalid reason was accepted")
+	}
+
+	// บัญชีที่ไม่มีอยู่จริงต้องถูกปฏิเสธด้วย foreign key ไม่ใช่บันทึกเป็นผู้เล่นปลอม
+	ghost := rec
+	ghost.RoomID, ghost.WhiteID = "ghostplayer0", "3f2b8a1e-7c4d-4e9a-b1f0-2d6c5a9e8b77"
+	if err := s.insertGame(ctx, ghost); err == nil {
+		t.Fatal("game for a non-existent account was accepted")
+	}
+}
+
+func TestIntegrationSQLInjectionIsInert(t *testing.T) {
+	s, _ := openTestStore(t)
+	ctx := context.Background()
+	evil := "'); drop table games; --"
+
+	if err := s.upsertRoom(ctx, hub.RoomSnapshot{ID: "abcdefghjkmn", Status: hub.StatusWaiting, CreatedBy: evil, TimeControl: evil, Pending: evil}); err != nil {
+		t.Fatalf("upsert with hostile text: %v", err)
+	}
+	if err := s.deleteRoom(ctx, evil); err != nil {
+		t.Fatalf("delete with hostile id: %v", err)
+	}
+	rooms, err := s.LoadActiveRooms(ctx)
+	if err != nil || len(rooms) != 1 || rooms[0].CreatedBy != evil || rooms[0].Pending != evil {
+		t.Fatalf("hostile text was not stored verbatim: %+v, %v", rooms, err)
+	}
+	var n int
+	if err := s.pool.QueryRow(ctx, "select count(*) from games").Scan(&n); err != nil {
+		t.Fatalf("games table is gone: %v", err)
+	}
+	// รหัสห้องที่ไม่ตรงรูปแบบถูกปฏิเสธโดย check constraint
+	if err := s.upsertRoom(ctx, hub.RoomSnapshot{ID: evil, Status: hub.StatusWaiting, TimeControl: "10+0"}); err == nil {
+		t.Fatal("room with a malformed id was accepted")
+	}
+}
+
+func TestIntegrationTablesAreClosedToWebRoles(t *testing.T) {
+	s, schema := openTestStore(t)
+	ctx := context.Background()
+
+	for _, table := range []string{"rooms", "games", "schema_migrations"} {
+		var rls bool
+		err := s.pool.QueryRow(ctx, `
+			select c.relrowsecurity
+			from pg_class c join pg_namespace n on n.oid = c.relnamespace
+			where n.nspname = $1 and c.relname = $2`, schema, table).Scan(&rls)
+		if err != nil {
+			t.Fatalf("%s: %v", table, err)
+		}
+		if !rls {
+			t.Errorf("%s: row level security is not enabled", table)
+		}
+
+		var policies int
+		if err := s.pool.QueryRow(ctx, "select count(*) from pg_policies where schemaname = $1 and tablename = $2", schema, table).Scan(&policies); err != nil {
+			t.Fatal(err)
+		}
+		if policies != 0 {
+			t.Errorf("%s: has %d policies, want none (deny by default)", table, policies)
+		}
+	}
+
+	// role ฝั่งเว็บของ Supabase ต้องไม่มีสิทธิ์ใด ๆ บนตารางข้อมูล
+	for _, role := range []string{"anon", "authenticated"} {
+		var exists bool
+		if err := s.pool.QueryRow(ctx, "select exists (select 1 from pg_roles where rolname = $1)", role).Scan(&exists); err != nil {
+			t.Fatal(err)
+		}
+		if !exists {
+			t.Logf("role %s does not exist in this database; skipping", role)
+			continue
+		}
+		for _, table := range []string{"rooms", "games"} {
+			for _, priv := range []string{"select", "insert", "update", "delete"} {
+				var allowed bool
+				err := s.pool.QueryRow(ctx, "select has_table_privilege($1, $2, $3)", role, schema+"."+table, priv).Scan(&allowed)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if allowed {
+					t.Errorf("role %s can %s %s", role, priv, table)
+				}
+			}
+		}
+	}
+}

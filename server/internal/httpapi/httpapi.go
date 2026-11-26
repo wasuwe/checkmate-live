@@ -80,7 +80,8 @@ func (a *api) createRoom(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	if _, err := a.cfg.Auth.Authenticate(r.Context(), token); err != nil {
+	userID, err := a.cfg.Auth.Authenticate(r.Context(), token)
+	if err != nil {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
@@ -91,7 +92,7 @@ func (a *api) createRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roomID, err := a.cfg.Hub.CreateRoom(tc)
+	roomID, err := a.cfg.Hub.CreateRoomBy(tc, userID)
 	if err != nil {
 		a.cfg.Logger.Error("create room", "err", err)
 		writeError(w, http.StatusServiceUnavailable, "unavailable")
