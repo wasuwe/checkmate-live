@@ -3647,6 +3647,67 @@ a.cb-card:focus-visible {
   }
 }
 
+/* ---------- เตือนเมื่อถึงตา ---------- */
+
+.board-col {
+  position: relative;
+}
+
+/* ป้ายลอยกลางกระดานชั่วครู่ ไม่บังการเล่น (กดทะลุได้) */
+.turn-toast {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  z-index: 12;
+  padding: 10px 22px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: var(--butter);
+  box-shadow: 0 5px 0 var(--ink);
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: clamp(18px, 4cqw, 28px);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: turnToast 1.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes turnToast {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4) rotate(-6deg);
+  }
+  18% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08) rotate(2deg);
+  }
+  30% {
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  }
+  78% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -62%) scale(0.96);
+  }
+}
+
+/* แถบผู้เล่นของตัวเองกะพริบเป็นวงสีชมพูสามครั้งเมื่อเพิ่งถึงตา */
+.clock-row.turn-alert {
+  animation: turnPulse 0.6s ease-out 3;
+}
+
+@keyframes turnPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 92, 141, 0.75);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgba(255, 92, 141, 0);
+  }
+}
+
 /* ---------- รูปแบบตัวหมากรุก (เลือกเป็นรายตัว) ---------- */
 
 .chip.style-all {
