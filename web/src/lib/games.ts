@@ -37,7 +37,7 @@ export function gameName(id: GameId): string {
 
 /** คำที่ขึ้นบนกระดานเมื่อรุก และเมื่อเกมจบบนกระดาน (รุกจน กินหมด หรือปิดจนเดินไม่ได้) */
 export function checkWords(id: GameId): { check: string; mate: string } {
-  if (id === 'makruk') return { check: 'รุก!', mate: 'รุกจน!' }
-  if (id === 'chess') return { check: 'รุก!', mate: 'รุกฆาต!' }
+  // เจ้าของโปรเจกต์ให้ใช้คำภาษาอังกฤษกับการรุกทั้งหมากรุกสากลและหมากรุกไทย
+  if (id === 'makruk' || id === 'chess') return { check: 'Check!', mate: 'Checkmate!' }
   return { check: '', mate: 'จบเกม!' }
 }
