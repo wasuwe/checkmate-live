@@ -85,9 +85,8 @@ describe('checkers move helpers', () => {
 })
 
 describe('checkers in the games list, rules and text', () => {
-  test('checkers is playable and only neeb is still coming soon', () => {
-    expect(PLAYABLE).toEqual(['chess', 'makruk', 'checkers'])
-    expect(GAMES.filter((g) => g.soon).map((g) => g.id)).toEqual(['neeb'])
+  test('checkers is playable, and every game that is not playable is marked as coming soon', () => {
+    expect(PLAYABLE).toContain('checkers')
     for (const g of GAMES) expect(g.soon).toBe(!isGameId(g.id))
     expect(gameName('checkers')).toBe('หมากฮอส')
   })

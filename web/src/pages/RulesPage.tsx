@@ -88,6 +88,37 @@ export function RulesPage({ navigate }: Props) {
         ))}
       </div>
 
+      {rules.examples && (
+        <div className="piece-grid">
+          {rules.examples.map((ex) => (
+            <section key={ex.title} className="card side piece-card">
+              {/* ภาพประกอบ คำอธิบายข้าง ๆ บอกข้อมูลเดียวกันเป็นข้อความ */}
+              <div className="mini-board five" aria-hidden="true">
+                {ex.rows.flatMap((row, r) =>
+                  [...row].map((ch, c) => (
+                    <div
+                      key={`${r}-${c}`}
+                      style={{ background: (r + c) % 2 ? set.dark : set.light, color: ch === 'O' ? set.w : set.b }}
+                    >
+                      {ch !== '.' && GLYPH.O + VS}
+                      {ch === 'x' && <span className="mini-ring" />}
+                    </div>
+                  )),
+                )}
+              </div>
+              <div className="stack" style={{ gap: 6, minWidth: 0 }}>
+                <h3 className="card-title" style={{ fontWeight: 600 }}>
+                  {ex.title}
+                </h3>
+                <p className="small pretty" style={{ lineHeight: 1.55 }}>
+                  {ex.caption}
+                </p>
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+
       <div className="legend">
         <span>
           <span className="mini-dot" style={{ position: 'static', width: 14, height: 14, borderWidth: 2 }} />

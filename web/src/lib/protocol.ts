@@ -5,7 +5,7 @@ export type RoomStatus = 'waiting' | 'playing' | 'finished'
 export type Role = 'player' | 'spectator'
 export type Promo = '' | 'q' | 'r' | 'b' | 'n'
 /** ชนิดของเกมที่เซิร์ฟเวอร์มีกติกา */
-export type GameId = 'chess' | 'makruk' | 'checkers'
+export type GameId = 'chess' | 'makruk' | 'checkers' | 'neeb'
 
 /** การนับศักดิ์ของหมากรุกไทยที่กำลังเดินอยู่ */
 export interface CountInfo {
@@ -48,7 +48,7 @@ export interface StateMsg {
   result?: string
   reason?: string
   /**
-   * มีเฉพาะเกมที่หน้าเว็บไม่ได้คำนวณกติกาเอง (หมากรุกไทย หมากฮอส) และเฉพาะระหว่างเล่น
+   * มีเฉพาะเกมที่หน้าเว็บไม่ได้คำนวณกติกาเอง (หมากรุกไทย หมากฮอส หมากหนีบ) และเฉพาะระหว่างเล่น
    * legal: ช่องต้นทาง → ช่องปลายทางของฝ่ายที่ถึงตา, check: ช่องของขุนที่ถูกรุก
    */
   legal?: Record<string, string[]>
