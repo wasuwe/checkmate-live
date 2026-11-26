@@ -157,6 +157,7 @@ describe('pages', () => {
       ['/profile', 'profile'],
       ['/profile/', 'profile'],
       ['/credits', 'credits'],
+      ['/gallery', 'gallery'],
       ['/backstage', 'admin'],
       ['/admin', 'not_found'], // ชื่อที่เดาง่ายไม่ได้พาไปหน้าจัดการ
     ]) {

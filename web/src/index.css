@@ -924,10 +924,31 @@ input::placeholder {
   gap: 12px;
 }
 
+/* ลิงก์ท้ายหน้าแรก: ป้ายเล็กแบบสติกเกอร์ ไม่ตัดคำกลางลิงก์ ถ้าที่ไม่พอจะขึ้นแถวใหม่ทั้งป้าย */
 .footer-links {
   display: flex;
-  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
   font-size: 14px;
+}
+
+.footer-links button.link {
+  min-height: 44px;
+  padding: 6px 14px;
+  border: 2.5px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 700;
+  white-space: nowrap;
+  transition: translate 0.35s var(--bounce);
+}
+
+.footer-links button.link:hover:not(:disabled) {
+  translate: 0 -2px;
+  text-decoration: none;
+  background: var(--butter);
 }
 
 /* ---------- เข้าสู่ระบบ / สมัคร ---------- */
@@ -1949,6 +1970,11 @@ input::placeholder {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/* ปุ่มไปอีกหน้าหนึ่ง (เครดิต ↔ แกลเลอรี) */
+.btn.page-link {
+  min-height: 44px;
 }
 
 /* ชิปที่มีแต่ข้อความ (ไม่มีวงสีนำหน้า) เว้นขอบซ้ายขวาเท่ากัน */

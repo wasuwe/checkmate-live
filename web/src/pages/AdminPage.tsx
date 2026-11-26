@@ -79,9 +79,9 @@ export function AdminPage({ navigate }: Props) {
 type Load = { state: 'loading' } | { state: 'failed' } | { state: 'ready'; data: CreditsData | null }
 
 const TABS: { kind: Kind; label: string; add: string; hint: string }[] = [
-  { kind: 'people', label: 'คน', add: '+ เพิ่มคน', hint: 'ทุกคนที่ถูกพูดถึงในหน้าเครดิต ทั้งทีมงาน เจ้าของตัวละคร และผู้วาด' },
-  { kind: 'team', label: 'กลุ่มทีม', add: '+ เพิ่มกลุ่ม', hint: 'การ์ดด้านบนของหน้าเครดิต แยกตามบทบาท คนหนึ่งอยู่ได้หลายกลุ่ม' },
-  { kind: 'ocs', label: 'ตัวละคร OC', add: '+ เพิ่มตัวละคร', hint: 'ลำดับในรายการนี้คือเลขลำดับที่แสดงในหน้าเครดิต' },
+  { kind: 'people', label: 'คน', add: '+ เพิ่มคน', hint: 'ทุกคนที่ถูกพูดถึงในหน้าเครดิตและแกลเลอรี ทั้งทีมงาน เจ้าของตัวละคร และผู้วาด' },
+  { kind: 'team', label: 'กลุ่มทีม', add: '+ เพิ่มกลุ่ม', hint: 'การ์ดในหน้าเครดิต แยกตามบทบาท คนหนึ่งอยู่ได้หลายกลุ่ม' },
+  { kind: 'ocs', label: 'ตัวละคร OC', add: '+ เพิ่มตัวละคร', hint: 'ตัวละครในหน้าแกลเลอรี ลำดับในรายการนี้คือเลขลำดับที่แสดง' },
 ]
 
 function CreditsEditor({ navigate }: Props) {
@@ -169,7 +169,7 @@ function CreditsEditor({ navigate }: Props) {
   if (data === null) {
     return (
       <main className="screen admin">
-        <h1 className="title">จัดการข้อมูล · หน้าเครดิต</h1>
+        <h1 className="title">จัดการข้อมูล · เครดิตและแกลเลอรี</h1>
         <section className="card">
           <h2 className="card-title">ยังไม่มีข้อมูลจริง</h2>
           <p className="pretty">
@@ -230,9 +230,12 @@ function CreditsEditor({ navigate }: Props) {
   return (
     <main className="screen wide admin" style={{ gap: 16 }}>
       <div className="row wrap admin-head">
-        <h1 className="title grow">จัดการข้อมูล · หน้าเครดิต</h1>
+        <h1 className="title grow">จัดการข้อมูล · เครดิตและแกลเลอรี</h1>
         <button type="button" className="btn mini" onClick={() => navigate('/credits')}>
-          ดูหน้าเครดิต ↗
+          ดูหน้าเครดิต
+        </button>
+        <button type="button" className="btn mini" onClick={() => navigate('/gallery')}>
+          ดูแกลเลอรี
         </button>
       </div>
 
