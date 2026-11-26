@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ChatPanel } from '../components/ChatPanel'
 import { ClockRow } from '../components/ClockRow'
 import { GameBoard } from '../components/GameBoard'
+import { PiecePicker } from '../components/PiecePicker'
 import { ResignButton } from '../components/ResignButton'
 import { useGameSocket } from '../hooks/useGameSocket'
 import { clockAt, describeTimeControl } from '../lib/clock'
@@ -96,6 +97,11 @@ export function RoomPage({ roomId, navigate }: Props) {
         rateLimitedSeq={game.chatLimitedSeq}
         sendChat={game.sendChat}
       />
+
+      <details className="card display-options">
+        <summary>การแสดงผล</summary>
+        <PiecePicker />
+      </details>
     </main>
   )
 }
