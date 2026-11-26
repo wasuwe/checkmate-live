@@ -4,6 +4,18 @@ export type Color = 'w' | 'b'
 export type RoomStatus = 'waiting' | 'playing' | 'finished'
 export type Role = 'player' | 'spectator'
 export type Promo = '' | 'q' | 'r' | 'b' | 'n'
+/** ชนิดของเกมที่เซิร์ฟเวอร์มีกติกา */
+export type GameId = 'chess' | 'makruk'
+
+/** การนับศักดิ์ของหมากรุกไทยที่กำลังเดินอยู่ */
+export interface CountInfo {
+  kind: 'board' | 'pieces'
+  /** เลขที่นับถึงแล้ว และจำนวนที่ต้องนับ */
+  n: number
+  limit: number
+  /** ฝ่ายที่เป็นผู้นับ (มีเฉพาะนับศักดิ์หมาก) */
+  side?: Color
+}
 
 export interface PlayerInfo {
   connected: boolean
@@ -20,6 +32,8 @@ export interface StateMsg {
   type: 'state'
   room: string
   status: RoomStatus
+  /** ชนิดของเกม ไม่มี = หมากรุกสากล */
+  game?: GameId
   fen: string
   turn: Color
   /** จำนวนตาเดิน (ครึ่งตา) ที่เล่นไปแล้ว ต้องส่งกลับไปกับ move เพื่อกันตาเดินเก่า */
@@ -33,6 +47,13 @@ export interface StateMsg {
   clock: { w: number; b: number; running: Color | '' }
   result?: string
   reason?: string
+  /**
+   * มีเฉพาะเกมที่หน้าเว็บไม่ได้คำนวณกติกาเอง (หมากรุกไทย) และเฉพาะระหว่างเล่น
+   * legal: ช่องต้นทาง → ช่องปลายทางของฝ่ายที่ถึงตา, check: ช่องของขุนที่ถูกรุก
+   */
+  legal?: Record<string, string[]>
+  check?: string
+  count?: CountInfo
 }
 
 export interface AuthOkMsg {

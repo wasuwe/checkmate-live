@@ -191,9 +191,11 @@ type youInfo struct {
 // stateMsg คือภาพรวมทั้งหมดของห้อง ส่งทุกครั้งที่มีอะไรเปลี่ยน
 // client ที่เพิ่งเข้าหรือ reconnect ใช้ข้อความนี้ข้อความเดียวก็วาดหน้าจอได้ครบ
 type stateMsg struct {
-	Type     string                     `json:"type"` // "state"
-	Room     string                     `json:"room"`
-	Status   Status                     `json:"status"`
+	Type   string `json:"type"` // "state"
+	Room   string `json:"room"`
+	Status Status `json:"status"`
+	// Game คือชนิดของเกม ("chess", "makruk")
+	Game     game.Variant               `json:"game"`
 	FEN      string                     `json:"fen"`
 	Turn     game.Color                 `json:"turn"`
 	Ply      int                        `json:"ply"`
@@ -205,6 +207,11 @@ type stateMsg struct {
 	Clock       clockInfo `json:"clock"`
 	Result      string    `json:"result,omitempty"`
 	Reason      string    `json:"reason,omitempty"`
+	// Legal, Check, Count มีเฉพาะเกมที่หน้าเว็บไม่ได้คำนวณกติกาเอง และเฉพาะระหว่างเล่น
+	// Legal: ช่องต้นทาง → ช่องปลายทางของฝ่ายที่ถึงตา, Check: ช่องของขุนที่ถูกรุก
+	Legal map[string][]string `json:"legal,omitempty"`
+	Check string              `json:"check,omitempty"`
+	Count *game.Count         `json:"count,omitempty"`
 }
 
 func mustJSON(v any) []byte {

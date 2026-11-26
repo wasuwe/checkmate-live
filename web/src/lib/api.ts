@@ -1,5 +1,6 @@
 // เรียก HTTP API ของ Go server
 
+import type { GameId } from './protocol'
 import { getToken } from './session'
 
 /** fetch ที่แนบ token ของผู้ใช้ ถ้าเซิร์ฟเวอร์ตอบ 401 จะขอ token ใหม่แล้วลองอีกครั้งเดียว */
@@ -16,12 +17,12 @@ export async function authedFetch(path: string, init: RequestInit = {}): Promise
   return res as Response
 }
 
-/** สร้างห้องใหม่ด้วยเวลาเล่นที่เลือก (เช่น "10+0") คืนรหัสห้อง */
-export async function createRoom(timeControl: string): Promise<string> {
+/** สร้างห้องใหม่ของเกมและเวลาเล่นที่เลือก (เช่น "10+0") คืนรหัสห้อง */
+export async function createRoom(timeControl: string, game: GameId = 'chess'): Promise<string> {
   const res = await authedFetch('/api/rooms', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ timeControl }),
+    body: JSON.stringify({ timeControl, game }),
   })
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { error?: string }

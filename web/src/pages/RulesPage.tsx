@@ -1,5 +1,8 @@
-import { BADGE, GLYPH, useSetPrefs, VS } from '../lib/pieceSets'
-import { reach, RULE_BASICS, RULE_PIECES, RULE_SPECIALS } from '../lib/rules'
+import { useState } from 'react'
+import { gameName, isGameId, PLAYABLE } from '../lib/games'
+import { BADGE, FLIPPED, GLYPH, useSetPrefs, VS } from '../lib/pieceSets'
+import type { GameId } from '../lib/protocol'
+import { reach, RULES } from '../lib/rules'
 
 interface Props {
   navigate: (to: string) => void
@@ -9,13 +12,31 @@ const BASIC_BG = ['#FFE8EF', '#E8FAF2', '#F1EDFF']
 
 export function RulesPage({ navigate }: Props) {
   const { set } = useSetPrefs()
+  // ลิงก์จากห้องเปิดกฎของเกมนั้นได้ตรง ๆ ด้วย /rules?game=makruk
+  const [game, setGame] = useState<GameId>(() => {
+    const wanted = new URLSearchParams(window.location.search).get('game')
+    return isGameId(wanted) ? wanted : 'chess'
+  })
+  const rules = RULES[game]
+
+  function pick(id: GameId) {
+    setGame(id)
+    window.history.replaceState(window.history.state, '', id === 'chess' ? '/rules' : `/rules?game=${id}`)
+  }
 
   return (
     <main className="screen wide" style={{ gap: 20 }}>
-      <h1 className="title">กฎการเล่น · หมากรุกสากล</h1>
+      <h1 className="title">กฎการเล่น · {gameName(game)}</h1>
+      <div className="row wrap" role="group" aria-label="เลือกเกม" style={{ justifyContent: 'center' }}>
+        {PLAYABLE.map((id) => (
+          <button key={id} type="button" className="chip" aria-pressed={id === game} onClick={() => pick(id)}>
+            {gameName(id)}
+          </button>
+        ))}
+      </div>
 
       <div className="rule-grid">
-        {RULE_BASICS.map((b, i) => (
+        {rules.basics.map((b, i) => (
           <section key={b.title} className="rule-card" style={{ background: BASIC_BG[i % BASIC_BG.length] }}>
             <h2 className="card-title" style={{ fontWeight: 600 }}>
               {b.title}
@@ -29,17 +50,21 @@ export function RulesPage({ navigate }: Props) {
 
       <h2 className="subtitle">หมากแต่ละตัวเดินอย่างไร</h2>
       <div className="piece-grid">
-        {RULE_PIECES.map((p) => (
+        {rules.pieces.map((p) => (
           <section key={p.kind} className="card side piece-card">
             {/* กระดานตัวอย่างเป็นภาพประกอบ คำอธิบายข้าง ๆ บอกข้อมูลเดียวกันเป็นข้อความ */}
             <div className="mini-board five" aria-hidden="true">
               {Array.from({ length: 25 }, (_, i) => {
                 const r = Math.floor(i / 5)
                 const c = i % 5
-                const mark = reach(p.kind, r - 2, c - 2)
+                const mark = reach(p.kind, r - 2, c - 2, game)
                 return (
                   <div key={i} style={{ background: (r + c) % 2 ? set.dark : set.light, color: set.w }}>
-                    {i === 12 && GLYPH[p.kind] + VS}
+                    {i === 12 && (
+                      <span style={FLIPPED[p.kind] ? { transform: 'rotate(180deg)' } : undefined}>
+                        {GLYPH[p.kind] + VS}
+                      </span>
+                    )}
                     {mark === 'dot' && <span className="mini-dot" />}
                     {mark === 'ring' && <span className="mini-ring" />}
                   </div>
@@ -79,7 +104,7 @@ export function RulesPage({ navigate }: Props) {
 
       <h2 className="subtitle">กติกาพิเศษ</h2>
       <div className="card side dashed-list">
-        {RULE_SPECIALS.map((r) => (
+        {rules.specials.map((r) => (
           <div key={r.title}>
             <h3 style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 16 }}>{r.title}</h3>
             <p className="pretty" style={{ fontSize: 15, lineHeight: 1.6 }}>

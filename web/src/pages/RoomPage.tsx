@@ -6,10 +6,11 @@ import { PiecePicker } from '../components/PiecePicker'
 import { ResignButton } from '../components/ResignButton'
 import { useGameSocket } from '../hooks/useGameSocket'
 import { clockAt, describeTimeControl } from '../lib/clock'
+import { gameName, gameOf } from '../lib/games'
 import { VS } from '../lib/pieceSets'
 import { absences } from '../lib/presence'
 import type { Color, StateMsg } from '../lib/protocol'
-import { colorName, errorText, formatRoomCode, playerName, resultParts, statusText } from '../lib/text'
+import { colorName, countText, errorText, formatRoomCode, playerName, resultParts, statusText } from '../lib/text'
 
 interface Props {
   roomId: string
@@ -43,6 +44,8 @@ export function RoomPage({ roomId, navigate }: Props) {
   }
 
   const online = game.connection === 'open'
+  const gameId = gameOf(state)
+  const counting = countText(state)
   return (
     <main className="screen wide room">
       {!online && (
@@ -59,6 +62,11 @@ export function RoomPage({ roomId, navigate }: Props) {
           <p className="seat">
             {seatText(state)} · {describeTimeControl(state.tc)}
           </p>
+          {counting && (
+            <p className="count-chip" role="status">
+              {counting}
+            </p>
+          )}
           <AbsenceNotice state={state} stateAt={game.stateAt} />
           <Clocks state={state} stateAt={game.stateAt}>
             <GameBoard state={state} online={online} errorSeq={game.errorSeq} sendMove={game.sendMove} />
@@ -71,11 +79,11 @@ export function RoomPage({ roomId, navigate }: Props) {
           <section className="card side" aria-label="ห้องนี้">
             <div className="row">
               <div className="grow">
-                <div className="tiny">หมากรุกสากล · รหัสห้อง</div>
+                <div className="tiny">{gameName(gameId)} · รหัสห้อง</div>
                 <div className="room-code">{formatRoomCode(roomId)}</div>
               </div>
               {/* เปิดแท็บใหม่ เพื่อไม่ให้ออกจากห้องกลางเกม */}
-              <a className="btn mini" href="/rules" target="_blank" rel="noopener">
+              <a className="btn mini" href={`/rules?game=${gameId}`} target="_blank" rel="noopener">
                 กฎ
               </a>
             </div>

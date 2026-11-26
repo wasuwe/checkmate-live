@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/wasuwe/checkmate-live/server/internal/auth"
+	"github.com/wasuwe/checkmate-live/server/internal/game"
 	"github.com/wasuwe/checkmate-live/server/internal/hub"
 	"github.com/wasuwe/checkmate-live/server/internal/profile"
 	"github.com/wasuwe/checkmate-live/server/internal/ratelimit"
@@ -117,13 +118,13 @@ func (a *api) createRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tc, ok := readTimeControl(w, r)
-	if !ok {
-		writeError(w, http.StatusBadRequest, "bad_time_control")
+	variant, tc, problem := readRoomOptions(w, r)
+	if problem != "" {
+		writeError(w, http.StatusBadRequest, problem)
 		return
 	}
 
-	roomID, err := a.cfg.Hub.CreateRoomBy(tc, userID)
+	roomID, err := a.cfg.Hub.CreateGameRoom(variant, tc, userID)
 	switch {
 	case errors.Is(err, hub.ErrTooManyRooms):
 		// ผู้ใช้มีห้องที่ยังไม่จบค้างอยู่ครบจำนวนแล้ว
@@ -140,24 +141,30 @@ func (a *api) createRoom(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, map[string]string{"roomId": roomID})
 }
 
-// readTimeControl อ่าน body แบบ {"timeControl":"5+3"} ถ้าไม่มี body ใช้ค่าเริ่มต้น
-func readTimeControl(w http.ResponseWriter, r *http.Request) (hub.TimeControl, bool) {
+// readRoomOptions อ่าน body แบบ {"timeControl":"5+3","game":"makruk"} ค่าที่ไม่ส่งมาใช้ค่าเริ่มต้น
+// (หมากรุกสากล เวลา DefaultTimeControl) คืนรหัส error ที่ไม่ว่างถ้า body ใช้ไม่ได้
+func readRoomOptions(w http.ResponseWriter, r *http.Request) (game.Variant, hub.TimeControl, string) {
 	var body struct {
 		TimeControl string `json:"timeControl"`
+		Game        string `json:"game"`
 	}
 	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 256))
 	dec.DisallowUnknownFields()
-	if err := dec.Decode(&body); err != nil {
-		if errors.Is(err, io.EOF) {
-			return hub.DefaultTimeControl, true
-		}
-		return hub.TimeControl{}, false
+	if err := dec.Decode(&body); err != nil && !errors.Is(err, io.EOF) {
+		return "", hub.TimeControl{}, "bad_time_control"
+	}
+	variant, ok := game.ParseVariant(body.Game)
+	if !ok {
+		return "", hub.TimeControl{}, "bad_game"
 	}
 	if body.TimeControl == "" {
-		return hub.DefaultTimeControl, true
+		return variant, hub.DefaultTimeControl, ""
 	}
 	tc, err := hub.ParseTimeControl(body.TimeControl)
-	return tc, err == nil
+	if err != nil {
+		return "", hub.TimeControl{}, "bad_time_control"
+	}
+	return variant, tc, ""
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

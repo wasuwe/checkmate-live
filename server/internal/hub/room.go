@@ -45,7 +45,7 @@ type Room struct {
 	onFinish func(id string)
 
 	// ---- ด้านล่างนี้เป็นของ goroutine run เท่านั้น ----
-	game    *game.Game
+	game    game.Engine
 	status  Status
 	pending string                // user ID ของผู้เล่นคนแรกที่รอคู่ (ช่วง waiting)
 	players map[game.Color]string // สี → user ID (หลังเริ่มเกม)
@@ -68,7 +68,7 @@ type Room struct {
 	reported       map[reportKey]struct{}
 }
 
-func newRoom(id string, cfg Config, tc TimeControl, createdBy string, onClose func(string)) *Room {
+func newRoom(id string, cfg Config, variant game.Variant, tc TimeControl, createdBy string, onClose func(string)) *Room {
 	if tc.Initial <= 0 {
 		tc = DefaultTimeControl
 	}
@@ -79,7 +79,7 @@ func newRoom(id string, cfg Config, tc TimeControl, createdBy string, onClose fu
 		inbox:      make(chan event, 64),
 		done:       make(chan struct{}),
 		onClose:    onClose,
-		game:       game.New(),
+		game:       game.NewVariant(variant),
 		status:     StatusWaiting,
 		players:    map[game.Color]string{},
 		clients:    map[*Client]struct{}{},
@@ -398,6 +398,7 @@ func (r *Room) broadcastState() {
 		Type:        "state",
 		Room:        r.id,
 		Status:      r.status,
+		Game:        r.game.Variant(),
 		FEN:         r.game.FEN(),
 		Turn:        r.game.Turn(),
 		Ply:         r.game.Ply(),
@@ -429,6 +430,10 @@ func (r *Room) broadcastState() {
 		}
 	}
 	base.Result, base.Reason = r.game.Result()
+	if r.status == StatusPlaying {
+		// เกมที่หน้าเว็บไม่มีกติกาของตัวเอง: ส่งตาเดินที่ถูกกติกาไปให้ใช้ไฮไลต์ (ตาเดินจริงยังถูกตรวจที่นี่เสมอ)
+		base.Legal, base.Check, base.Count = r.game.Legal(), r.game.Check(), r.game.Count()
+	}
 
 	// ผู้ใช้คนเดียวกันได้ข้อความเหมือนกัน จึง encode ครั้งเดียวต่อ user
 	encoded := map[string][]byte{}

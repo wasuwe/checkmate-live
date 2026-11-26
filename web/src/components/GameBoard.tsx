@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Chessboard } from 'react-chessboard'
 import { fxEventFor, squarePosition, useFxPrefs, type FxEvent } from '../lib/fx'
-import { applyMove, checkedKingSquare, isPromotion, legalTargets, pieceColor } from '../lib/moves'
+import { checkWords, gameOf } from '../lib/games'
+import { boardPosition, checkSquareFor, needsPromotion, pieceColor, previewFor, targetsFor } from '../lib/moves'
 import { piecesFor, useSetPrefs } from '../lib/pieceSets'
-import type { Promo, StateMsg } from '../lib/protocol'
+import type { GameId, Promo, StateMsg } from '../lib/protocol'
 import { FxBurst } from './Fx'
 import { PromotionDialog } from './PromotionDialog'
 
@@ -61,7 +62,8 @@ export function GameBoard({ state, online, errorSeq, sendMove }: Props) {
 
   const fen = activePending?.fen ?? state.fen
   const lastMove = activePending ?? state.lastMove ?? null
-  const targets = canMove && activeSelected ? legalTargets(state.fen, activeSelected) : []
+  const game = gameOf(state)
+  const targets = canMove && activeSelected ? targetsFor(state, activeSelected) : []
   const fx = useBoardFx(state)
 
   // หมากที่เพิ่งเดินเด้งลงช่องหนึ่งครั้งต่อตาเดิน
@@ -70,7 +72,7 @@ export function GameBoard({ state, online, errorSeq, sendMove }: Props) {
   const pieces = useMemo(() => piecesFor(set, { landOn, landKey }), [set, landOn, landKey])
 
   function commit(from: string, to: string, promo: Promo): boolean {
-    const next = applyMove(state.fen, from, to, promo)
+    const next = previewFor(state, from, to, promo)
     if (next === null) return false
     if (!sendMove(from, to, promo)) return false
     setPending({ fen: next, from, to, ply: state.ply, errorSeq })
@@ -80,7 +82,7 @@ export function GameBoard({ state, online, errorSeq, sendMove }: Props) {
 
   function tryMove(from: string, to: string): boolean {
     if (!canMove) return false
-    if (isPromotion(state.fen, from, to)) {
+    if (needsPromotion(state, from, to)) {
       setPromotion({ from, to, ply: state.ply })
       setSelected(null)
       return false // หมากกลับที่เดิมก่อน รอผู้เล่นเลือกตัวที่จะเลื่อนขั้น
@@ -107,7 +109,8 @@ export function GameBoard({ state, online, errorSeq, sendMove }: Props) {
     squareStyles[lastMove.from] = LAST_MOVE
     squareStyles[lastMove.to] = LAST_MOVE
   }
-  const checked = checkedKingSquare(fen)
+  const checked = checkSquareFor(state, fen)
+  const position = useMemo(() => boardPosition(game, fen), [game, fen])
   if (checked) squareStyles[checked] = { ...squareStyles[checked], ...CHECK }
   if (activeSelected) squareStyles[activeSelected] = SELECTED
   for (const sq of targets) {
@@ -121,7 +124,7 @@ export function GameBoard({ state, online, errorSeq, sendMove }: Props) {
         <Chessboard
           options={{
             id: 'game',
-            position: fen,
+            position,
             pieces,
             boardOrientation: flipped ? 'black' : 'white',
             allowDragging: canMove,
@@ -140,7 +143,7 @@ export function GameBoard({ state, online, errorSeq, sendMove }: Props) {
         />
       </div>
 
-      {fx && <BoardFx key={fx.seq} event={fx.event} flipped={flipped} />}
+      {fx && <BoardFx key={fx.seq} event={fx.event} flipped={flipped} game={game} />}
 
       {activePromotion && myColor !== '' && (
         <PromotionDialog
@@ -183,7 +186,7 @@ function useBoardFx(state: StateMsg): { event: FxEvent; seq: number } | null {
   useEffect(() => {
     const before = prev.current
     prev.current = state
-    const event = fxEventFor(before, state, state.status === 'playing' ? checkedKingSquare(state.fen) : null)
+    const event = fxEventFor(before, state, state.status === 'playing' ? checkSquareFor(state, state.fen) : null)
     if (!event) return
     const seq = state.ply
     setFx({ event, seq })
@@ -194,11 +197,12 @@ function useBoardFx(state: StateMsg): { event: FxEvent; seq: number } | null {
   return fx
 }
 
-function BoardFx({ event, flipped }: { event: FxEvent; flipped: boolean }) {
+function BoardFx({ event, flipped, game }: { event: FxEvent; flipped: boolean; game: GameId }) {
   const prefs = useFxPrefs()
   const type = prefs[event.kind]
   const seed = (event.square ? event.square.charCodeAt(0) * 8 + event.square.charCodeAt(1) : 7) + event.kind.length
-  const banner = event.kind === 'mate' ? 'รุกฆาต!' : event.kind === 'check' ? 'รุก!' : undefined
+  const words = checkWords(game)
+  const banner = event.kind === 'mate' ? words.mate : event.kind === 'check' ? words.check : undefined
 
   return (
     <div className="fx-layer" aria-hidden="true">

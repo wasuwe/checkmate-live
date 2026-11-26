@@ -193,6 +193,24 @@ func TestIntegrationGames(t *testing.T) {
 	if err := s.insertGame(ctx, bad); err == nil {
 		t.Fatal("invalid result was accepted")
 	}
+	// เกมหมากรุกไทยที่เสมอเพราะนับศักดิ์ครบ และเกมเดิมที่ไม่ระบุชนิดถือเป็นหมากรุกสากล
+	makruk := rec
+	makruk.RoomID, makruk.Variant, makruk.Result, makruk.Reason = "makrukroom22", "makruk", "1/2-1/2", "count"
+	if err := s.insertGame(ctx, makruk); err != nil {
+		t.Fatalf("insert makruk game: %v", err)
+	}
+	var variants string
+	if err := s.pool.QueryRow(ctx, "select string_agg(variant, ',' order by variant) from games").Scan(&variants); err != nil {
+		t.Fatal(err)
+	}
+	if variants != "chess,makruk" {
+		t.Fatalf("variants = %q, want chess,makruk", variants)
+	}
+	bad = rec
+	bad.RoomID, bad.Variant = "badvariant22", "Not A Game"
+	if err := s.insertGame(ctx, bad); err == nil {
+		t.Fatal("invalid variant was accepted")
+	}
 	bad = rec
 	bad.RoomID, bad.Reason = "badreason000", "rage_quit"
 	if err := s.insertGame(ctx, bad); err == nil {

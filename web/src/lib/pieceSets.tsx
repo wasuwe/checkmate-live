@@ -16,13 +16,22 @@ export const VS = '︎'
 export const GLYPH_FONT =
   "'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Apple Symbols', 'DejaVu Sans', sans-serif"
 
-export type Kind = 'K' | 'Q' | 'R' | 'B' | 'N' | 'P'
+/** ชนิดหมาก: หกตัวแรกของหมากรุกสากล และ M เม็ด, S โคน, F เบี้ยหงาย ของหมากรุกไทย */
+export type Kind = 'K' | 'Q' | 'R' | 'B' | 'N' | 'P' | 'M' | 'S' | 'F'
 export const KINDS: Kind[] = ['K', 'Q', 'R', 'B', 'N', 'P']
+export const MAKRUK_KINDS: Kind[] = ['K', 'M', 'S', 'N', 'R', 'P', 'F']
+const ALL_KINDS: Kind[] = ['K', 'Q', 'R', 'B', 'N', 'P', 'M', 'S', 'F']
 
-/** สัญลักษณ์ทึบ ใช้เป็นตัวหมาก */
-export const GLYPH: Record<Kind, string> = { K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟' }
-/** สัญลักษณ์โปร่ง ใช้เป็นป้ายบอกชนิดหมาก */
-export const BADGE: Record<Kind, string> = { K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙' }
+/** สัญลักษณ์ทึบ ใช้เป็นตัวหมาก (เบี้ยหงายใช้เบี้ยกลับหัว) */
+export const GLYPH: Record<Kind, string> = {
+  K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟', M: '♛', S: '♝', F: '♟',
+}
+/** สัญลักษณ์โปร่ง ใช้เป็นป้ายบอกชนิดหมาก (เบี้ยหงายเดินแบบเม็ด จึงใช้ป้ายเดียวกับเม็ด) */
+export const BADGE: Record<Kind, string> = {
+  K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙', M: '♕', S: '♗', F: '♕',
+}
+/** หมากที่วาดกลับหัว */
+export const FLIPPED: Partial<Record<Kind, boolean>> = { F: true }
 
 export type SetColor = 'pink' | 'green' | 'purple' | 'yellow' | 'blue' | 'brown'
 
@@ -102,6 +111,7 @@ export function pieceSvg(
         strokeWidth="1.5"
         paintOrder="stroke"
         strokeLinejoin="round"
+        transform={FLIPPED[kind] ? 'rotate(180 22.5 22.5)' : undefined}
       >
         {GLYPH[kind] + VS}
       </text>
@@ -125,11 +135,11 @@ export function pieceSvg(
   )
 }
 
-/** ตัววาดหมากทั้ง 12 ตัวสำหรับ react-chessboard */
+/** ตัววาดหมากทุกตัวของทุกเกมสำหรับ react-chessboard (รหัสเช่น wK, bP, wM) */
 export function piecesFor(set: BoardSet, opts: PieceOptions = {}): PieceRenderers {
   const out: PieceRenderers = {}
   for (const color of ['w', 'b'] as const) {
-    for (const kind of KINDS) {
+    for (const kind of ALL_KINDS) {
       out[color + kind] = (props) => {
         const landing = props?.square !== undefined && props.square === opts.landOn
         return pieceSvg(set, color, kind, {
