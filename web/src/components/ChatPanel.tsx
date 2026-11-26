@@ -6,6 +6,10 @@ interface Props {
   messages: ChatItem[]
   /** ผู้เล่นในห้อง ใช้แสดงชื่อผู้ส่ง */
   players?: Partial<Record<Color, PlayerInfo>>
+  /** ชื่อตามเลขประจำตัวของผู้ส่ง (จาก chatNames) ใช้ก่อน players เพื่อให้ข้อความจากห้องรอมีชื่อด้วย */
+  names?: Record<string, string>
+  /** ให้รายการข้อความสูงเต็มพื้นที่ที่มี (ใช้ในห้องรอและข้างกระดาน) */
+  tall?: boolean
   online: boolean
   /** เพิ่มขึ้นทุกครั้งที่เซิร์ฟเวอร์ปฏิเสธข้อความเพราะส่งถี่เกินไป */
   rateLimitedSeq: number
@@ -17,8 +21,10 @@ interface Props {
 
 export const CHAT_MAX_LENGTH = 200
 
-function sender(item: ChatItem, players: Props['players']): string {
+function sender(item: ChatItem, players: Props['players'], names: Props['names']): string {
   if (item.mine) return 'คุณ'
+  const known = names?.[item.sender]
+  if (known) return known
   if (item.from === '') return 'ผู้ชม'
   // มีชื่อก็แสดงชื่อ พร้อมสีกำกับ เพื่อให้รู้ว่าเป็นผู้เล่นฝั่งไหน
   const name = players?.[item.from]?.name
@@ -29,6 +35,8 @@ function sender(item: ChatItem, players: Props['players']): string {
 export function ChatPanel({
   messages,
   players,
+  names,
+  tall = false,
   online,
   rateLimitedSeq,
   sendChat,
@@ -60,7 +68,7 @@ export function ChatPanel({
   }
 
   return (
-    <section className="card side chat" aria-label="แชทในห้อง" style={{ gap: 10 }}>
+    <section className={`card side chat${tall ? ' tall' : ''}`} aria-label="แชทในห้อง" style={{ gap: 10 }}>
       <h2 className="card-title">แชท</h2>
       {muted.length > 0 && (
         <p className="chat-muted" role="status">
@@ -76,14 +84,14 @@ export function ChatPanel({
         <ol className="chat-list" ref={listRef} aria-live="polite">
           {visible.map((m) => (
             <li key={m.id} className={m.mine ? 'mine' : undefined}>
-              <span className="chat-from">{sender(m, players)}</span>
+              <span className="chat-from">{sender(m, players, names)}</span>
               <span className="chat-text">{m.text}</span>
               {!m.mine && (
                 <span className="chat-actions">
                   <button
                     type="button"
                     className="link"
-                    aria-label={`ซ่อนข้อความทั้งหมดจาก${sender(m, players)}`}
+                    aria-label={`ซ่อนข้อความทั้งหมดจาก${sender(m, players, names)}`}
                     onClick={() => setMuted((list) => [...list, m.sender])}
                   >
                     ซ่อน
@@ -95,7 +103,7 @@ export function ChatPanel({
                       type="button"
                       className="link"
                       disabled={!online}
-                      aria-label={`รายงานข้อความนี้จาก${sender(m, players)}`}
+                      aria-label={`รายงานข้อความนี้จาก${sender(m, players, names)}`}
                       onClick={() => sendReport(m.id)}
                     >
                       รายงาน

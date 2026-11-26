@@ -148,6 +148,13 @@ export class GameSocket {
     return true
   }
 
+  /** บอกว่าพร้อมเริ่มเกมหรือยัง (ใช้ในห้องรอ) เซิร์ฟเวอร์เป็นผู้ตัดสินว่าเกมเริ่มเมื่อไหร่ */
+  sendReady(ready: boolean): boolean {
+    if (!this.snapshot.state || !this.ws || this.ws.readyState !== OPEN) return false
+    this.send(this.ws, { type: 'ready', ready })
+    return true
+  }
+
   /** รายงานข้อความแชท เซิร์ฟเวอร์เป็นผู้ระบุผู้ส่งและเนื้อความเองจาก id */
   sendReport(id: number): boolean {
     if (!this.snapshot.state || !this.ws || this.ws.readyState !== OPEN) return false

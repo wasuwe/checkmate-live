@@ -32,6 +32,8 @@ type serverMsg struct {
 	Check    string                     `json:"check"`
 	Count    *game.Count                `json:"count"`
 	Forced   bool                       `json:"forced"`
+	Lobby    *lobbyInfo                 `json:"lobby"`
+	Sender   string                     `json:"sender"`
 	// แชท
 	ID       int        `json:"id"`
 	From     game.Color `json:"from"`

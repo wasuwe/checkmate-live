@@ -71,14 +71,14 @@ func TestPersistLifecycle(t *testing.T) {
 	alice, bob := newFakeClient(t, "alice"), newFakeClient(t, "bob")
 	alice.join(r)
 	alice.untilState("waiting", isStatus(StatusWaiting))
-	if got := st.lastRoom(t); got.Pending != "alice" || got.Status != StatusWaiting {
+	if got := st.lastRoom(t); len(got.Seats) != 1 || got.Seats[0] != "alice" || got.Status != StatusWaiting {
 		t.Fatalf("snapshot after first join = %+v", got)
 	}
 
 	bob.join(r)
 	alice.untilState("playing", isStatus(StatusPlaying))
 	started := st.lastRoom(t)
-	if started.Status != StatusPlaying || started.White != "alice" || started.Black != "bob" || started.Pending != "" || started.StartedAt.IsZero() {
+	if started.Status != StatusPlaying || started.White != "alice" || started.Black != "bob" || len(started.Seats) != 0 || started.StartedAt.IsZero() {
 		t.Fatalf("snapshot at start = %+v", started)
 	}
 

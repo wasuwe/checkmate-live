@@ -48,6 +48,11 @@ type Config struct {
 	MaxRooms int
 	// MaxOpenRoomsPerUser คือจำนวนห้องที่ยังไม่จบซึ่งผู้ใช้หนึ่งคนสร้างค้างไว้ได้
 	MaxOpenRoomsPerUser int
+	// Lobby เปิดห้องรอก่อนเกม: ผู้เล่นสองคนต้องกด "พร้อม" ทั้งคู่ แล้วนับถอยหลัง LobbyCountdown จึงเริ่มเกม
+	// ถ้าเป็น false เกมเริ่มทันทีที่คนที่สองเข้าห้อง (พฤติกรรมเดิม ใช้ใน test ที่ไม่เกี่ยวกับห้องรอ)
+	Lobby bool
+	// LobbyCountdown คือเวลานับถอยหลังหลังทุกคนพร้อม (ค่าเริ่มต้น 3 วินาที ค่าติดลบ = ไม่นับ เริ่มทันที)
+	LobbyCountdown time.Duration
 	// JoinRate คือความถี่ที่ IP หนึ่งขอเข้าห้องได้ (นับทั้งรหัสที่ถูกและผิด) กันการไล่เดารหัสห้อง 6 หลัก
 	JoinRate ratelimit.Rule
 	// OnReport ถูกเรียกเมื่อมีคนรายงานข้อความแชท เรียกจาก goroutine ของห้อง จึงต้องคืนทันที
@@ -81,6 +86,9 @@ func (c Config) withDefaults() Config {
 	}
 	if c.MaxRooms == 0 {
 		c.MaxRooms = 1000
+	}
+	if c.LobbyCountdown == 0 {
+		c.LobbyCountdown = 3 * time.Second
 	}
 	if c.JoinRate.Every == 0 {
 		// 30 ครั้งรวด แล้ว 1 ครั้งทุก 4 วินาที (15 ครั้งต่อนาที) เผื่อหลายคนที่ใช้อินเทอร์เน็ตเดียวกัน

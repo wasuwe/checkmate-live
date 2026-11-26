@@ -20,6 +20,7 @@ const (
 	msgResign = "resign"
 	msgChat   = "chat"
 	msgReport = "report"
+	msgReady  = "ready"
 )
 
 // inbound คือข้อความขาเข้าทุกชนิดรวมกัน field ที่ไม่รู้จักจะถูกปฏิเสธ
@@ -33,6 +34,7 @@ type inbound struct {
 	Promo string `json:"promo,omitempty"`
 	Text  string `json:"text,omitempty"`
 	ID    *int   `json:"id,omitempty"`
+	Ready *bool  `json:"ready,omitempty"`
 }
 
 var (
@@ -69,6 +71,8 @@ func decodeInbound(data []byte) (inbound, error) {
 		allowed.Text = m.Text
 	case msgReport:
 		allowed.ID = m.ID
+	case msgReady:
+		allowed.Ready = m.Ready
 	}
 	if m != allowed {
 		return inbound{}, errBadMessage
@@ -98,6 +102,10 @@ func decodeInbound(data []byte) (inbound, error) {
 		m.Text = text
 	case msgReport:
 		if m.ID == nil || *m.ID < 1 {
+			return inbound{}, errBadMessage
+		}
+	case msgReady:
+		if m.Ready == nil {
 			return inbound{}, errBadMessage
 		}
 	default:
@@ -173,6 +181,27 @@ type playerInfo struct {
 	Avatar string `json:"avatar,omitempty"`
 	// Guest คือผู้เล่นที่ไม่ได้ login
 	Guest bool `json:"guest,omitempty"`
+	// Sender คือเลขประจำตัวในแชทของผู้เล่นคนนี้ ให้ฝั่งเว็บใส่ชื่อให้ข้อความที่ส่งตั้งแต่อยู่ในห้องรอ
+	Sender string `json:"sender,omitempty"`
+}
+
+// lobbySeat คือที่นั่งหนึ่งที่ในห้องรอ (ยังไม่มีสี สีถูกสุ่มตอนเริ่มเกม)
+type lobbySeat struct {
+	Name      string `json:"name,omitempty"`
+	Avatar    string `json:"avatar,omitempty"`
+	Guest     bool   `json:"guest,omitempty"`
+	Connected bool   `json:"connected"`
+	Ready     bool   `json:"ready"`
+	// You คือที่นั่งของผู้รับข้อความนี้
+	You    bool   `json:"you,omitempty"`
+	Sender string `json:"sender,omitempty"`
+}
+
+// lobbyInfo คือสถานะของห้องรอ มีเฉพาะตอน status เป็น waiting และเปิดใช้ห้องรอ
+type lobbyInfo struct {
+	Seats []lobbySeat `json:"seats"`
+	// Countdown คือมิลลิวินาทีที่เหลือก่อนเกมเริ่ม (มีเฉพาะตอนทุกคนพร้อมแล้ว)
+	Countdown int64 `json:"countdown,omitempty"`
 }
 
 // clockInfo คือเวลาที่เหลือของแต่ละฝั่งเป็นมิลลิวินาที ณ ตอนที่ส่งข้อความ
@@ -216,6 +245,8 @@ type stateMsg struct {
 	Count *game.Count         `json:"count,omitempty"`
 	// Forced คือฝ่ายที่ถึงตาต้องกิน (หมากฮอสบังคับกิน)
 	Forced bool `json:"forced,omitempty"`
+	// Lobby มีเฉพาะตอนรอเริ่มเกม
+	Lobby *lobbyInfo `json:"lobby,omitempty"`
 }
 
 func mustJSON(v any) []byte {

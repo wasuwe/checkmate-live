@@ -3,6 +3,7 @@ package hub
 import (
 	"errors"
 	"math"
+	"slices"
 	"time"
 
 	"golang.org/x/time/rate"
@@ -20,6 +21,7 @@ const (
 	evResign
 	evChat
 	evReport
+	evReady
 )
 
 // event คือสิ่งที่ส่งเข้า goroutine ของห้อง
@@ -29,7 +31,8 @@ type event struct {
 	ply    int
 	move   game.Move
 	text   string
-	id     int // รหัสข้อความแชท (evReport)
+	id     int  // รหัสข้อความแชท (evReport)
+	ready  bool // พร้อมหรือไม่ (evReady)
 }
 
 // Room คือห้องเกมหนึ่งห้อง state ทั้งหมดถูกแตะจาก goroutine เดียว (run)
@@ -45,9 +48,13 @@ type Room struct {
 	onFinish func(id string)
 
 	// ---- ด้านล่างนี้เป็นของ goroutine run เท่านั้น ----
-	game    game.Engine
-	status  Status
-	pending string                // user ID ของผู้เล่นคนแรกที่รอคู่ (ช่วง waiting)
+	game   game.Engine
+	status Status
+	// seats คือ user ID ของผู้เล่นที่นั่งรออยู่ (ช่วง waiting) สูงสุด 2 คน ตามลำดับที่เข้ามา
+	seats []string
+	// ready คือผู้เล่นที่กดพร้อมแล้ว และ startAt คือเวลาที่เกมจะเริ่มเมื่อทุกคนพร้อม (zero = ยังไม่นับถอยหลัง)
+	ready   map[string]bool
+	startAt time.Time
 	players map[game.Color]string // สี → user ID (หลังเริ่มเกม)
 	clients map[*Client]struct{}
 	// profiles คือชื่อและรูปล่าสุดของผู้ใช้ที่เคยเข้าห้อง (user ID → โปรไฟล์)
@@ -82,6 +89,7 @@ func newRoom(id string, cfg Config, variant game.Variant, tc TimeControl, create
 		game:       game.NewVariant(variant),
 		status:     StatusWaiting,
 		players:    map[game.Color]string{},
+		ready:      map[string]bool{},
 		clients:    map[*Client]struct{}{},
 		profiles:   map[string]PlayerProfile{},
 		emptySince: time.Now(),
@@ -163,6 +171,10 @@ func (r *Room) shutdown(expired bool) {
 
 // nextDeadline คืนเวลาที่ห้องต้องตื่นมาทำงานครั้งถัดไป
 func (r *Room) nextDeadline() (time.Time, bool) {
+	// ห้องรอที่ทุกคนพร้อมแล้ว: ตื่นเมื่อนับถอยหลังครบ
+	if r.status == StatusWaiting && !r.startAt.IsZero() {
+		return r.startAt, true
+	}
 	// ระหว่างเล่น: ตื่นเมื่อมีคนหมดเวลา หรือผู้เล่นที่หลุดครบเวลาผ่อนผัน แล้วแต่อย่างไหนถึงก่อน
 	flag, flagging := r.clock.flagAt()
 	if color, ok := r.firstAbandon(); ok {
@@ -195,6 +207,12 @@ func (r *Room) firstAbandon() (game.Color, bool) {
 
 // onTimer คืน true ถ้าห้องควรปิด
 func (r *Room) onTimer(now time.Time) bool {
+	if r.status == StatusWaiting && !r.startAt.IsZero() {
+		if !now.Before(r.startAt) {
+			r.begin()
+		}
+		return false
+	}
 	if r.flagIfOutOfTime(now) {
 		return false
 	}
@@ -239,6 +257,8 @@ func (r *Room) handle(ev event) {
 		r.handleChat(ev.client, ev.text)
 	case evReport:
 		r.handleReport(ev.client, ev.id)
+	case evReady:
+		r.handleReady(ev.client, ev.ready)
 	}
 }
 
@@ -247,11 +267,10 @@ func (r *Room) handleJoin(c *Client) {
 	r.emptySince = time.Time{}
 	r.profiles[c.UserID] = c.Profile // connection ล่าสุดมีข้อมูลใหม่สุด
 
-	if r.status == StatusWaiting && !r.isSeated(c.UserID) {
-		if r.pending == "" {
-			r.pending = c.UserID
-		} else {
-			r.start(r.pending, c.UserID)
+	if r.status == StatusWaiting && !r.isSeated(c.UserID) && r.takeSeat(c.UserID) {
+		// ไม่ใช้ห้องรอ: เกมเริ่มทันทีที่มีครบสองคน
+		if !r.cfg.Lobby && len(r.seats) == 2 {
+			r.start(r.seats[0], r.seats[1])
 		}
 		r.persist()
 	}
@@ -271,7 +290,9 @@ func (r *Room) start(a, b string) {
 	}
 	r.players[game.White] = a
 	r.players[game.Black] = b
-	r.pending = ""
+	r.seats = nil
+	clear(r.ready)
+	r.startAt = time.Time{}
 	r.status = StatusPlaying
 	r.startedAt = time.Now()
 	r.clock.start(game.White, r.startedAt.Add(r.cfg.StartDelay))
@@ -289,6 +310,11 @@ func (r *Room) handleLeave(c *Client) {
 	// ผู้เล่นปิดทุกแท็บระหว่างเกม: เริ่มนับถอยหลัง ถ้ายังมีแท็บอื่นเปิดอยู่ถือว่ายังอยู่
 	if color, ok := r.colorOf(c.UserID); ok && r.status == StatusPlaying && !r.connected(c.UserID) {
 		r.abandonAt[color] = now.Add(r.cfg.AbandonGrace)
+	}
+	// ออกจากห้องรอ: ถือว่าไม่พร้อม และหยุดนับถอยหลัง (ที่นั่งยังอยู่จนกว่าจะมีคนอื่นมานั่งแทน)
+	if r.status == StatusWaiting && r.ready[c.UserID] && !r.connected(c.UserID) {
+		delete(r.ready, c.UserID)
+		r.updateCountdown(now)
 	}
 	r.broadcastState()
 }
@@ -370,11 +396,67 @@ func (r *Room) finish() {
 }
 
 func (r *Room) isSeated(userID string) bool {
-	if r.pending == userID {
+	if slices.Contains(r.seats, userID) {
 		return true
 	}
 	_, ok := r.colorOf(userID)
 	return ok
+}
+
+// takeSeat ให้ที่นั่งในห้องรอแก่ผู้ใช้ คืน false ถ้าไม่มีที่ (ผู้ใช้เป็นผู้ชม)
+// ถ้าที่นั่งเต็มแต่เจ้าของที่นั่งคนหนึ่งไม่ได้เชื่อมต่ออยู่ ที่นั่งนั้นถูกยกให้คนใหม่
+func (r *Room) takeSeat(userID string) bool {
+	if len(r.seats) < 2 {
+		r.seats = append(r.seats, userID)
+		return true
+	}
+	for i, holder := range r.seats {
+		if !r.connected(holder) {
+			delete(r.ready, holder)
+			r.seats[i] = userID
+			return true
+		}
+	}
+	return false
+}
+
+// handleReady ตั้งว่าผู้เล่นในห้องรอพร้อมหรือยัง ผู้ชมและห้องที่เริ่มเกมแล้วไม่มีผล
+func (r *Room) handleReady(c *Client, ready bool) {
+	if r.status != StatusWaiting || !r.cfg.Lobby || !slices.Contains(r.seats, c.UserID) {
+		return
+	}
+	if ready {
+		r.ready[c.UserID] = true
+	} else {
+		delete(r.ready, c.UserID)
+	}
+	r.updateCountdown(time.Now())
+	if r.status == StatusWaiting {
+		r.broadcastState()
+	}
+}
+
+// updateCountdown เริ่มหรือหยุดการนับถอยหลังตามว่าทุกคนพร้อมหรือไม่ ถ้าไม่ต้องนับ เกมเริ่มทันที
+func (r *Room) updateCountdown(now time.Time) {
+	all := len(r.seats) == 2
+	for _, id := range r.seats {
+		all = all && r.ready[id] && r.connected(id)
+	}
+	switch {
+	case !all:
+		r.startAt = time.Time{}
+	case r.cfg.LobbyCountdown < 0:
+		r.begin()
+	case r.startAt.IsZero():
+		r.startAt = now.Add(r.cfg.LobbyCountdown)
+	}
+}
+
+// begin เริ่มเกมด้วยผู้เล่นสองคนที่นั่งอยู่ แล้วแจ้งทั้งห้อง
+func (r *Room) begin() {
+	r.start(r.seats[0], r.seats[1])
+	r.persist()
+	r.broadcastState()
 }
 
 func (r *Room) colorOf(userID string) (game.Color, bool) {
@@ -426,6 +508,7 @@ func (r *Room) broadcastState() {
 				Name:      profile.Name,
 				Avatar:    profile.Avatar,
 				Guest:     auth.IsGuest(id),
+				Sender:    r.chatSender(id),
 			}
 			if at, ok := r.abandonAt[color]; ok {
 				// ปัดขึ้น เพื่อไม่ให้ client เห็น 0 ทั้งที่ยังเหลือเวลา
@@ -448,6 +531,7 @@ func (r *Room) broadcastState() {
 		if !ok {
 			msg := base
 			msg.You = r.youInfo(c.UserID)
+			msg.Lobby = r.lobbyFor(c.UserID, now)
 			b = mustJSON(msg)
 			encoded[c.UserID] = b
 		}
@@ -455,11 +539,36 @@ func (r *Room) broadcastState() {
 	}
 }
 
+// lobbyFor คืนสถานะห้องรอสำหรับผู้ใช้คนหนึ่ง หรือ nil ถ้าไม่ได้อยู่ในช่วงรอ
+func (r *Room) lobbyFor(userID string, now time.Time) *lobbyInfo {
+	if r.status != StatusWaiting || !r.cfg.Lobby {
+		return nil
+	}
+	info := &lobbyInfo{Seats: make([]lobbySeat, len(r.seats))}
+	for i, id := range r.seats {
+		profile := r.profiles[id]
+		info.Seats[i] = lobbySeat{
+			Name:      profile.Name,
+			Avatar:    profile.Avatar,
+			Guest:     auth.IsGuest(id),
+			Connected: r.connected(id),
+			Ready:     r.ready[id],
+			You:       id == userID,
+			Sender:    r.chatSender(id),
+		}
+	}
+	if !r.startAt.IsZero() {
+		// ปัดขึ้นเป็นอย่างน้อย 1 เพื่อให้ฝั่งเว็บรู้ว่ากำลังนับอยู่ แม้เหลือเวลาน้อยมาก
+		info.Countdown = max(1, r.startAt.Sub(now).Milliseconds())
+	}
+	return info
+}
+
 func (r *Room) youInfo(userID string) youInfo {
 	if color, ok := r.colorOf(userID); ok {
 		return youInfo{Role: rolePlayer, Color: color}
 	}
-	if r.pending == userID {
+	if slices.Contains(r.seats, userID) {
 		return youInfo{Role: rolePlayer}
 	}
 	return youInfo{Role: roleSpectator}
