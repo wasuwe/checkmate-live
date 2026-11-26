@@ -143,13 +143,42 @@ export function removeOcImage(oc: Pick<Oc, 'id' | 'rev'>, kind: ImageKind = 'ocs
 
 /** ถามเซิร์ฟเวอร์ว่าบัญชีที่ login อยู่เป็น admin หรือไม่ (เรียกไม่สำเร็จ = ไม่ใช่) */
 export async function fetchIsAdmin(): Promise<boolean> {
+  return (await fetchRoles()).admin
+}
+
+/** บทบาทของบัญชีที่ login อยู่: admin (จัดการข้อมูลเครดิต) และ pieces (จัดการรูปแบบหมาก) แยกจากกัน */
+export interface Roles {
+  admin: boolean
+  pieces: boolean
+}
+
+export async function fetchRoles(): Promise<Roles> {
   try {
     const res = await authedFetch('/api/admin/me')
-    if (!res.ok) return false
-    return ((await res.json()) as { admin?: unknown }).admin === true
+    if (!res.ok) return { admin: false, pieces: false }
+    const body = (await res.json()) as { admin?: unknown; pieces?: unknown }
+    return { admin: body.admin === true, pieces: body.pieces === true }
   } catch {
-    return false
+    return { admin: false, pieces: false }
   }
+}
+
+/** บทบาทของผู้ใช้ปัจจุบัน: null = กำลังตรวจ ผู้เล่นรับเชิญไม่มีบทบาทใด จึงไม่ต้องถามเซิร์ฟเวอร์ */
+export function useRoles(): Roles | null {
+  const session = useSession()
+  const [result, setResult] = useState<{ email: string; roles: Roles } | null>(null)
+  const email = session.email
+  useEffect(() => {
+    if (!email) return
+    let alive = true
+    fetchRoles().then((roles) => alive && setResult({ email, roles }))
+    return () => {
+      alive = false
+    }
+  }, [email])
+  if (session.loading) return null
+  if (!email) return { admin: false, pieces: false }
+  return result && result.email === email ? result.roles : null
 }
 
 /**
@@ -157,20 +186,8 @@ export async function fetchIsAdmin(): Promise<boolean> {
  * ผู้เล่นรับเชิญไม่มีทางเป็น admin จึงไม่ต้องถามเซิร์ฟเวอร์
  */
 export function useIsAdmin(): boolean | null {
-  const session = useSession()
-  const [result, setResult] = useState<{ email: string; admin: boolean } | null>(null)
-  const email = session.email
-  useEffect(() => {
-    if (!email) return
-    let alive = true
-    fetchIsAdmin().then((admin) => alive && setResult({ email, admin }))
-    return () => {
-      alive = false
-    }
-  }, [email])
-  if (session.loading) return null
-  if (!email) return false
-  return result && result.email === email ? result.admin : null
+  const roles = useRoles()
+  return roles ? roles.admin : null
 }
 
 /** ขนาดหลังย่อให้ด้านยาวสุดไม่เกิน `max` โดยคงสัดส่วน (ไม่ขยายรูปเล็ก) */
@@ -180,10 +197,10 @@ export function fitWithin(width: number, height: number, max: number): { width: 
 }
 
 /** ย่อรูปในเบราว์เซอร์เป็น PNG (คงพื้นหลังโปร่ง) ก่อนส่ง */
-export async function resizeOcImage(file: Blob): Promise<Blob> {
+export async function resizeOcImage(file: Blob, max = OC_IMAGE_SIDE): Promise<Blob> {
   const bitmap = await createImageBitmap(file) // โยน error ถ้าไม่ใช่รูป
   try {
-    const size = fitWithin(bitmap.width, bitmap.height, OC_IMAGE_SIDE)
+    const size = fitWithin(bitmap.width, bitmap.height, max)
     const canvas = document.createElement('canvas')
     canvas.width = size.width
     canvas.height = size.height

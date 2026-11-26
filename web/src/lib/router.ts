@@ -13,12 +13,15 @@ export type Route =
   | { page: 'profile' }
   | { page: 'credits' }
   | { page: 'gallery' }
+  | { page: 'pieces' }
   | { page: 'admin' }
   | { page: 'room'; roomId: string }
   | { page: 'not_found' }
 
 /** ที่อยู่ของหน้าจัดการข้อมูลของผู้ดูแล เปลี่ยนที่นี่ที่เดียว (เจ้าของโปรเจกต์เลือกชื่อนี้แทน /admin) */
 export const ADMIN_PATH = '/backstage'
+/** หน้าจัดการรูปแบบตัวหมาก (บทบาทแยกจาก admin) */
+export const PIECE_STUDIO_PATH = '/piece-studio'
 
 const STATIC: Record<string, Route> = {
   '/': { page: 'home' },
@@ -31,6 +34,7 @@ const STATIC: Record<string, Route> = {
   '/credits': { page: 'credits' },
   '/gallery': { page: 'gallery' },
   [ADMIN_PATH]: { page: 'admin' },
+  [PIECE_STUDIO_PATH]: { page: 'pieces' },
 }
 
 export function parseRoute(pathname: string): Route {

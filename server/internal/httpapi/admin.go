@@ -61,7 +61,8 @@ func (a *api) getAdminMe(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]bool{"admin": a.isAdmin(id)})
+	// pieces = มีบทบาทผู้จัดการรูปแบบหมาก (แยกจาก admin ดู pieces.go)
+	writeJSON(w, http.StatusOK, map[string]bool{"admin": a.isAdmin(id), "pieces": a.isPieceEditor(id)})
 }
 
 // getCredits คืนข้อมูลหน้าเครดิต ไม่ต้อง login

@@ -37,6 +37,8 @@ type Config struct {
 	Content content.Store
 	// Admins คืออีเมลของผู้ดูแลที่แก้เนื้อหาได้ (จาก ADMIN_EMAILS) ว่าง = ไม่มีใครแก้ได้
 	Admins []string
+	// PieceEditors คืออีเมลของผู้มีบทบาทผู้จัดการรูปแบบหมาก (จาก PIECE_EDITOR_EMAILS) แยกจาก Admins
+	PieceEditors []string
 
 	// Limits คือโควตาของ API ถ้าเป็น nil จะไม่จำกัด (ใช้ใน test) ตัวจริงใช้ &DefaultLimits
 	Limits *Limits
@@ -47,9 +49,10 @@ type Config struct {
 }
 
 type api struct {
-	cfg    Config
-	limits limiters
-	admins map[string]struct{} // อีเมลตัวพิมพ์เล็ก
+	cfg          Config
+	limits       limiters
+	admins       map[string]struct{} // อีเมลตัวพิมพ์เล็ก
+	pieceEditors map[string]struct{} // อีเมลตัวพิมพ์เล็ก ของผู้จัดการรูปแบบหมาก
 }
 
 // New สร้าง http.Handler หลักของเซิร์ฟเวอร์
@@ -60,10 +63,15 @@ func New(cfg Config) http.Handler {
 	if cfg.ClientIP == nil {
 		cfg.ClientIP = func(r *http.Request) string { return ratelimit.ClientIP(r, "") }
 	}
-	a := &api{cfg: cfg, limits: newLimiters(cfg.Limits), admins: map[string]struct{}{}}
+	a := &api{cfg: cfg, limits: newLimiters(cfg.Limits), admins: map[string]struct{}{}, pieceEditors: map[string]struct{}{}}
 	for _, email := range cfg.Admins {
 		if email = strings.ToLower(strings.TrimSpace(email)); email != "" {
 			a.admins[email] = struct{}{}
+		}
+	}
+	for _, email := range cfg.PieceEditors {
+		if email = strings.ToLower(strings.TrimSpace(email)); email != "" {
+			a.pieceEditors[email] = struct{}{}
 		}
 	}
 	mux := http.NewServeMux()
@@ -94,6 +102,12 @@ func New(cfg Config) http.Handler {
 			mux.HandleFunc("POST /api/admin/credits/ops", a.postCreditsOp)
 			mux.HandleFunc("PUT /api/admin/credits/{kind}/{id}/image", a.putOcImage)
 			mux.HandleFunc("DELETE /api/admin/credits/{kind}/{id}/image", a.deleteOcImage)
+			mux.HandleFunc("GET /api/piece-styles", a.getPieceStyles)
+			mux.HandleFunc("POST /api/pieces/styles", a.postPieceStyle)
+			mux.HandleFunc("PUT /api/pieces/styles/{id}", a.putPieceStyle)
+			mux.HandleFunc("DELETE /api/pieces/styles/{id}", a.deletePieceStyle)
+			mux.HandleFunc("PUT /api/pieces/styles/{id}/images/{piece}", a.putPieceImage)
+			mux.HandleFunc("DELETE /api/pieces/styles/{id}/images/{piece}", a.deletePieceImage)
 		}
 		// path ใต้ /api ที่ไม่มีจริงต้องได้ 404 ไม่ใช่หน้าเว็บ
 		mux.HandleFunc("/api/", http.NotFound)

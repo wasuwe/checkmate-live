@@ -180,7 +180,9 @@ func main() {
 	// ADMIN_EMAILS คืออีเมลของผู้ดูแล คั่นด้วย comma เช่น "a@example.com, b@example.com"
 	// ใส่เฉพาะอีเมลที่สมัครบัญชีไว้แล้ว (ดูคำเตือนใน DESIGN.md) ไม่ log อีเมล แค่จำนวน
 	admins := splitList(os.Getenv("ADMIN_EMAILS"))
-	log.Info("admin configured", "admins", len(admins))
+	// PIECE_EDITOR_EMAILS คืออีเมลของผู้จัดการรูปแบบหมาก (บทบาทแยกจาก admin) รูปแบบเดียวกับ ADMIN_EMAILS
+	pieceEditors := splitList(os.Getenv("PIECE_EDITOR_EMAILS"))
+	log.Info("admin configured", "admins", len(admins), "piece_editors", len(pieceEditors))
 
 	h := hub.New(hubCfg, authn)
 	restored := 0
@@ -197,16 +199,17 @@ func main() {
 	}
 
 	apiCfg := httpapi.Config{
-		StaticDir:  os.Getenv("STATIC_DIR"),
-		Logger:     log,
-		Hub:        h,
-		Auth:       authn,
-		Profiles:   profiles,
-		Content:    siteContent,
-		Admins:     admins,
-		Limits:     &httpapi.DefaultLimits,
-		ClientIP:   clientIP,
-		ConnectSrc: connectSrc,
+		StaticDir:    os.Getenv("STATIC_DIR"),
+		Logger:       log,
+		Hub:          h,
+		Auth:         authn,
+		Profiles:     profiles,
+		Content:      siteContent,
+		Admins:       admins,
+		PieceEditors: pieceEditors,
+		Limits:       &httpapi.DefaultLimits,
+		ClientIP:     clientIP,
+		ConnectSrc:   connectSrc,
 	}
 	if guestEnabled {
 		apiCfg.Guest = guest // เปิด POST /api/guest

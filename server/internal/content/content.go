@@ -345,6 +345,10 @@ type Store interface {
 	// รูปที่ข้อมูลเลิกใช้หลังแก้จะถูกลบไปพร้อมกัน ถ้า fn คืน error จะไม่มีอะไรถูกบันทึก
 	// คืน ErrNoCredits ถ้ายังไม่เคยตั้งต้น คืนข้อมูลหลังแก้เมื่อสำเร็จ
 	UpdateCredits(ctx context.Context, by string, fn func(c *Credits) error) (*Credits, error)
+	// PieceStyles คืนรูปแบบตัวหมากที่เพิ่มไว้ (ไม่เคยเป็น nil; ยังไม่มี = รายการว่าง)
+	PieceStyles(ctx context.Context) (*PieceStyles, error)
+	// UpdatePieceStyles ทำงานแบบเดียวกับ UpdateCredits กับรูปแบบตัวหมาก (ยังไม่เคยมีข้อมูล = เริ่มจากรายการว่าง)
+	UpdatePieceStyles(ctx context.Context, by string, fn func(p *PieceStyles) error) (*PieceStyles, error)
 	SaveImage(ctx context.Context, id string, img Image, by string) error
 	DeleteImage(ctx context.Context, id string) error
 	Image(ctx context.Context, id string) (Image, error)
@@ -354,6 +358,7 @@ type Store interface {
 type Memory struct {
 	mu      sync.Mutex
 	credits *Credits
+	pieces  PieceStyles
 	images  map[string]Image
 }
 
@@ -393,6 +398,28 @@ func (m *Memory) UpdateCredits(_ context.Context, _ string, fn func(c *Credits) 
 		delete(m.images, id)
 	}
 	m.credits = &next
+	out := next.Clone()
+	return &out, nil
+}
+
+func (m *Memory) PieceStyles(context.Context) (*PieceStyles, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := m.pieces.Clone()
+	return &out, nil
+}
+
+func (m *Memory) UpdatePieceStyles(_ context.Context, _ string, fn func(p *PieceStyles) error) (*PieceStyles, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	next := m.pieces.Clone()
+	if err := fn(&next); err != nil {
+		return nil, err
+	}
+	for _, id := range UnusedPieceImages(&m.pieces, &next) {
+		delete(m.images, id)
+	}
+	m.pieces = next
 	out := next.Clone()
 	return &out, nil
 }

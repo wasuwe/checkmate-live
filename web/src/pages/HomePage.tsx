@@ -1,9 +1,9 @@
-import { useIsAdmin } from '../lib/admin'
+import { useRoles } from '../lib/admin'
 import { useState, type ClipboardEvent, type FormEvent } from 'react'
 import { AccountPanel } from '../components/AccountPanel'
 import { VS } from '../lib/pieceSets'
 import { extractRoomId, isRoomId, ROOM_ID_LENGTH } from '../lib/protocol'
-import { roomPath, ADMIN_PATH } from '../lib/router'
+import { roomPath, ADMIN_PATH, PIECE_STUDIO_PATH } from '../lib/router'
 
 interface Props {
   navigate: (to: string) => void
@@ -20,7 +20,8 @@ function cleanCode(value: string): string {
 }
 
 export function HomePage({ navigate }: Props) {
-  const isAdmin = useIsAdmin()
+  const roles = useRoles()
+  const isAdmin = roles?.admin === true
   const [joinOpen, setJoinOpen] = useState(false)
   const [code, setCode] = useState('')
   const ready = isRoomId(code)
@@ -135,6 +136,12 @@ export function HomePage({ navigate }: Props) {
         {isAdmin && (
           <button type="button" className="link" onClick={() => navigate(ADMIN_PATH)}>
             จัดการข้อมูล
+          </button>
+        )}
+        {/* บทบาทผู้จัดการรูปแบบหมาก แยกจาก admin */}
+        {roles?.pieces && (
+          <button type="button" className="link" onClick={() => navigate(PIECE_STUDIO_PATH)}>
+            จัดการรูปแบบหมาก
           </button>
         )}
       </nav>
