@@ -5,7 +5,8 @@ import type { Color, StateMsg } from './protocol'
 
 /** เวลาที่เหลือ (ms) ของแต่ละฝั่ง ณ ตอน `now` โดยนับต่อจาก state ที่ได้รับตอน `stateAt` */
 export function clockAt(state: StateMsg, stateAt: number, now: number): Record<Color, number> {
-  const elapsed = Math.max(0, now - stateAt)
+  // ช่วงโยนเหรียญตอนเริ่มเกม นาฬิกายังไม่นับจนกว่าจะพ้น delay
+  const elapsed = Math.max(0, now - stateAt - (state.clock.delay ?? 0))
   const left = (color: Color) =>
     Math.max(0, state.clock[color] - (state.clock.running === color ? elapsed : 0))
   return { w: left('w'), b: left('b') }

@@ -52,7 +52,7 @@ type clock struct {
 	tc        TimeControl
 	remaining map[game.Color]time.Duration
 	running   game.Color // "" = หยุด
-	since     time.Time  // เวลาที่ฝั่ง running เริ่มเดิน
+	since     time.Time  // เวลาที่ฝั่ง running เริ่มเดิน (อยู่ในอนาคตได้ ถ้ายังอยู่ในช่วงรอเริ่ม)
 }
 
 func newClock(tc TimeControl) *clock {
@@ -72,9 +72,17 @@ func (k *clock) start(c game.Color, now time.Time) {
 func (k *clock) left(c game.Color, now time.Time) time.Duration {
 	d := k.remaining[c]
 	if k.running == c {
-		d -= now.Sub(k.since)
+		d -= max(now.Sub(k.since), 0) // ก่อนถึงเวลาเริ่ม ยังไม่หักเวลา
 	}
 	return max(d, 0)
+}
+
+// delay คืนเวลาที่เหลือก่อนนาฬิกาของฝั่งที่กำลังเดินจะเริ่มนับ (0 ถ้าเริ่มนับแล้วหรือหยุดอยู่)
+func (k *clock) delay(now time.Time) time.Duration {
+	if k.running == "" {
+		return 0
+	}
+	return max(k.since.Sub(now), 0)
 }
 
 // flagAt คืนเวลาที่ฝั่งซึ่งกำลังเดินจะหมดเวลา

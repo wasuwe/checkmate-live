@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ChatPanel } from '../components/ChatPanel'
 import { ClockRow } from '../components/ClockRow'
+import { CoinToss } from '../components/CoinToss'
 import { GameBoard } from '../components/GameBoard'
 import { PiecePicker } from '../components/PiecePicker'
 import { ResignButton } from '../components/ResignButton'
@@ -10,6 +11,7 @@ import { gameName, gameOf } from '../lib/games'
 import { VS } from '../lib/pieceSets'
 import { absences } from '../lib/presence'
 import type { Color, StateMsg } from '../lib/protocol'
+import { shouldToss, tossView, type TossView } from '../lib/toss'
 import {
   colorName,
   countText,
@@ -29,6 +31,7 @@ interface Props {
 export function RoomPage({ roomId, navigate }: Props) {
   const game = useGameSocket(roomId)
   const { state } = game
+  const [toss, dismissToss] = useCoinToss(state)
 
   if (game.fatal) {
     return (
@@ -131,10 +134,25 @@ export function RoomPage({ roomId, navigate }: Props) {
         </div>
       </div>
 
+      {toss && <CoinToss view={toss} onDone={dismissToss} />}
       <MoveErrorToast code={game.moveError} seq={game.errorSeq} />
       {state.status === 'finished' && <GameOverDialog state={state} navigate={navigate} />}
     </main>
   )
+}
+
+/**
+ * ภาพโยนเหรียญตอนเริ่มเกม เล่นครั้งเดียวต่อห้อง เมื่อได้ state แรกของเกมที่นาฬิกายังรอเริ่มอยู่
+ * คืนสิ่งที่ต้องแสดง (หรือ null) และฟังก์ชันปิด
+ */
+function useCoinToss(state: StateMsg | null): [TossView | null, () => void] {
+  const [toss, setToss] = useState<{ view: TossView; done: boolean } | null>(null)
+
+  // ตั้งค่าระหว่าง render (ไม่ใช้ effect): เกิดครั้งเดียวเพราะหลังจากนี้ toss ไม่เป็น null อีก
+  if (toss === null && state && shouldToss(state)) setToss({ view: tossView(state), done: false })
+
+  const dismiss = useCallback(() => setToss((t) => (t ? { ...t, done: true } : t)), [])
+  return [toss && !toss.done ? toss.view : null, dismiss]
 }
 
 const FATAL_TEXT: Record<NonNullable<ReturnType<typeof useGameSocket>['fatal']>, string> = {

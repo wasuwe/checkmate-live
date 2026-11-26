@@ -44,7 +44,13 @@ export interface StateMsg {
   /** เวลาเล่น เช่น "10+0" (นาที+วินาทีที่บวกต่อตา) */
   tc: string
   /** เวลาที่เหลือ (ms) ณ ตอนที่เซิร์ฟเวอร์ส่ง และฝั่งที่นาฬิกากำลังเดิน ('' = หยุด) */
-  clock: { w: number; b: number; running: Color | '' }
+  clock: {
+    w: number
+    b: number
+    running: Color | ''
+    /** ms ที่เหลือก่อนนาฬิกาของฝั่ง running จะเริ่มนับ (มีเฉพาะช่วงโยนเหรียญตอนเริ่มเกม) */
+    delay?: number
+  }
   result?: string
   reason?: string
   /**

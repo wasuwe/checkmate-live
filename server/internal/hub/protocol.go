@@ -181,6 +181,8 @@ type clockInfo struct {
 	White   int64      `json:"w"`
 	Black   int64      `json:"b"`
 	Running game.Color `json:"running"`
+	// Delay คือมิลลิวินาทีที่เหลือก่อนนาฬิกาของฝั่ง Running จะเริ่มนับ (มีเฉพาะช่วงโยนเหรียญตอนเริ่มเกม)
+	Delay int64 `json:"delay,omitempty"`
 }
 
 type youInfo struct {

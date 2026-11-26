@@ -274,7 +274,7 @@ func (r *Room) start(a, b string) {
 	r.pending = ""
 	r.status = StatusPlaying
 	r.startedAt = time.Now()
-	r.clock.start(game.White, r.startedAt)
+	r.clock.start(game.White, r.startedAt.Add(r.cfg.StartDelay))
 }
 
 func (r *Room) handleLeave(c *Client) {
@@ -411,6 +411,7 @@ func (r *Room) broadcastState() {
 			White:   r.clock.left(game.White, now).Milliseconds(),
 			Black:   r.clock.left(game.Black, now).Milliseconds(),
 			Running: r.clock.running,
+			Delay:   r.clock.delay(now).Milliseconds(),
 		},
 	}
 	if lm := r.game.LastMove(); lm != nil {
