@@ -7,7 +7,7 @@
 
 services:
   app:
-    image: ghcr.io/OWNER/REPO:latest   # แก้เป็นชื่อ repo จริง (ตัวพิมพ์เล็ก)
+    image: ghcr.io/wasuwe/checkmate-live:latest
     restart: unless-stopped
     env_file: .env
     ports:
