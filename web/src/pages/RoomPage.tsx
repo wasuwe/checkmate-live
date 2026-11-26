@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChatPanel } from '../components/ChatPanel'
 import { ClockRow } from '../components/ClockRow'
 import { CoinToss } from '../components/CoinToss'
@@ -6,13 +6,14 @@ import { Lobby } from '../components/Lobby'
 import { GameBoard } from '../components/GameBoard'
 import { PiecePicker } from '../components/PiecePicker'
 import { ResignButton } from '../components/ResignButton'
+import { useChatPopup, type ChatPopup } from '../hooks/useChatPopup'
 import { useGameSocket } from '../hooks/useGameSocket'
 import { clockAt, describeTimeControl } from '../lib/clock'
 import { gameName, gameOf } from '../lib/games'
 import { chatNames } from '../lib/lobby'
 import { VS } from '../lib/pieceSets'
 import { absences } from '../lib/presence'
-import type { Color, StateMsg } from '../lib/protocol'
+import type { ChatItem, Color, StateMsg } from '../lib/protocol'
 import { shouldToss, tossView, type TossView } from '../lib/toss'
 import {
   colorName,
@@ -34,6 +35,9 @@ export function RoomPage({ roomId, navigate }: Props) {
   const game = useGameSocket(roomId)
   const { state } = game
   const [toss, dismissToss] = useCoinToss(state)
+  // ระหว่างเกมแชทปิดไว้ เปิดด้วยการกดรูปฝ่ายตรงข้าม ข้อความใหม่เด้งขึ้นข้างรูป
+  const inGame = !!state && !(state.status === 'waiting' && state.lobby)
+  const pop = useChatPopup(game.chat, inGame)
 
   if (game.fatal) {
     return (
@@ -66,6 +70,7 @@ export function RoomPage({ roomId, navigate }: Props) {
       players={state.players}
       names={chatNames(state)}
       tall
+      mutedState={[pop.muted, pop.setMuted]}
       online={online}
       rateLimitedSeq={game.chatLimitedSeq}
       sendChat={game.sendChat}
@@ -143,11 +148,10 @@ export function RoomPage({ roomId, navigate }: Props) {
             </p>
           )}
           <AbsenceNotice state={state} stateAt={game.stateAt} />
-          <Clocks state={state} stateAt={game.stateAt}>
+          <Clocks state={state} stateAt={game.stateAt} pop={pop} names={chatNames(state)}>
+            <ChatPopover pop={pop}>{chat}</ChatPopover>
             <GameBoard state={state} online={online} errorSeq={game.errorSeq} sendMove={game.sendMove} />
           </Clocks>
-
-          {chat}
         </div>
       </div>
 
@@ -188,10 +192,14 @@ function seatText(state: StateMsg): string {
 function Clocks({
   state,
   stateAt,
+  pop,
+  names,
   children,
 }: {
   state: StateMsg
   stateAt: number
+  pop: ChatPopup
+  names: Record<string, string>
   children: React.ReactNode
 }) {
   const [now, setNow] = useState(() => Date.now())
@@ -216,6 +224,16 @@ function Clocks({
         avatar={info ? (info.avatar ?? '') : undefined}
         ms={left[color]}
         running={running === color}
+        chat={
+          color === top
+            ? {
+                onOpen: () => pop.setOpen(!pop.open),
+                open: pop.open,
+                unread: pop.unread,
+                bubble: pop.bubble ? { who: bubbleName(pop.bubble, state, names), text: pop.bubble.text } : undefined,
+              }
+            : undefined
+        }
       />
     )
   }
@@ -226,6 +244,48 @@ function Clocks({
       {children}
       {row(bottom)}
     </>
+  )
+}
+
+/** ชื่อผู้ส่งของข้อความที่เด้งขึ้น */
+function bubbleName(item: ChatItem, state: StateMsg, names: Record<string, string>): string {
+  const known = names[item.sender]
+  if (known) return known
+  if (item.from === '') return 'ผู้ชม'
+  const info = state.players?.[item.from]
+  return info ? playerName(info, item.from) : colorName(item.from)
+}
+
+/**
+ * แชทระหว่างเกม: ลอยทับกระดานใต้แถบของฝ่ายตรงข้าม เปิดด้วยการกดรูปของฝ่ายตรงข้าม
+ * แผงแชทอยู่ในหน้าตลอด (แค่ซ่อน) ข้อความที่พิมพ์ค้างไว้จึงไม่หายเมื่อปิด
+ */
+function ChatPopover({ pop, children }: { pop: ChatPopup; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const { open, setOpen } = pop
+
+  useEffect(() => {
+    if (!open) return
+    const box = ref.current
+    const list = box?.querySelector('.chat-list')
+    if (list) list.scrollTop = list.scrollHeight
+    box?.querySelector('input')?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, setOpen])
+
+  return (
+    <div className="chat-anchor">
+      <div className="chat-pop" ref={ref} hidden={!open} role="dialog" aria-label="แชท">
+        <button type="button" className="close chat-close" aria-label="ปิดแชท" onClick={() => setOpen(false)}>
+          ✕
+        </button>
+        {children}
+      </div>
+    </div>
   )
 }
 

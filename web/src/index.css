@@ -3101,6 +3101,145 @@ a.link-card:hover {
   }
 }
 
+/* ---------- แชทระหว่างเกม: เปิดจากรูปฝ่ายตรงข้าม ข้อความใหม่เด้งข้างรูป ---------- */
+
+.chat-avatar {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  transition: translate 0.35s var(--bounce);
+}
+
+.chat-avatar:hover {
+  translate: 0 -2px;
+}
+
+.chat-avatar[aria-expanded='true'] .avatar {
+  box-shadow: var(--ring);
+}
+
+.chat-badge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  min-width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  padding: 0 3px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--mint);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.chat-badge.unread {
+  background: var(--pink-strong, #ff5c8d);
+  color: #fff;
+  animation: pop 0.45s var(--bounce) both;
+}
+
+/* ข้อความใหม่: ฟองคำพูดลอยใต้แถบผู้เล่น ชี้ไปที่รูป */
+.clock-row {
+  position: relative;
+}
+
+.chat-bubble {
+  position: absolute;
+  left: 8px;
+  top: calc(100% + 6px);
+  z-index: 15;
+  max-width: min(320px, calc(100% - 16px));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 14px;
+  border: 3px solid var(--ink);
+  border-radius: 6px 18px 18px 18px;
+  background: #fff;
+  box-shadow: 0 4px 0 var(--ink);
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+  animation: pop 0.45s var(--bounce) both;
+}
+
+.chat-bubble::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: -9px;
+  width: 12px;
+  height: 12px;
+  border-left: 3px solid var(--ink);
+  border-top: 3px solid var(--ink);
+  background: #fff;
+  transform: rotate(45deg);
+}
+
+.chat-bubble-who {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--link);
+}
+
+.chat-bubble-text {
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* จุดยึดสูง 0 ระหว่างแถบฝ่ายตรงข้ามกับกระดาน แผงแชทลอยลงมาทับกระดาน */
+.chat-anchor {
+  position: relative;
+  height: 0;
+  margin-top: -12px;
+  z-index: 18;
+}
+
+.chat-pop {
+  position: absolute;
+  top: 6px;
+  left: 0;
+  width: min(380px, 100%);
+  animation: pop 0.3s var(--bounce) both;
+}
+
+.chat-pop[hidden] {
+  display: none;
+}
+
+.chat-pop .chat {
+  box-shadow: 0 6px 0 var(--ink);
+}
+
+.chat-pop .chat-list {
+  max-height: min(300px, 40dvh);
+}
+
+.chat-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+}
+
 /* ---------- รูปแบบตัวหมากรุก (เลือกเป็นรายตัว) ---------- */
 
 .chip.style-all {
