@@ -3240,6 +3240,277 @@ a.link-card:hover {
   z-index: 2;
 }
 
+/* ---------- กระดานเครดิต: กระดานหมากรุกสามมิติมองจากด้านข้าง ---------- */
+
+.person-dot {
+  overflow: hidden;
+}
+
+.person-dot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.oc-image.round .oc-image-preview {
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+
+.oc-image.round .oc-image-preview img {
+  object-fit: cover;
+}
+
+.cb {
+  --cols: 8;
+  --rows: 4;
+  --tilt: 52deg;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  container-type: inline-size;
+}
+
+.cb-sides {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cb-side {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 14px;
+  border: 2.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--sky);
+  font-family: var(--font-head);
+  font-weight: 500;
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cb-side.right {
+  background: var(--pink);
+  text-align: right;
+}
+
+.cb-vs {
+  flex: none;
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 22px;
+  color: #fff;
+  -webkit-text-stroke: 2px var(--ink);
+  paint-order: stroke;
+  text-shadow: 0 3px 0 var(--ink);
+}
+
+/* เวที: เว้นที่ด้านบนให้คนแถวหลังยืน และตัดความสูงส่วนที่กระดานเอนหายไป */
+.cb-stage {
+  /* กระดานแคบกว่าพื้นที่เล็กน้อย เพราะขอบด้านใกล้ผู้ดูจะบานออกตามมุมมอง */
+  --w: calc(min(100cqw, 940px) * 0.84);
+  --cell: calc(var(--w) / var(--cols));
+  perspective: 1800px;
+  perspective-origin: 50% 20%;
+  width: 100%;
+  padding-top: 120px;
+  /* ความสูงที่เห็นจริงของกระดานที่เอน = ความสูง × cos(tilt) */
+  height: calc(120px + var(--cell) * var(--rows) * 0.66 + 28px);
+}
+
+.cb-plane {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  width: var(--w);
+  margin-inline: auto;
+  height: calc(var(--cell) * var(--rows));
+  transform-origin: 50% 0;
+  transform: rotateX(var(--tilt));
+  transform-style: preserve-3d;
+  border: 4px solid var(--ink);
+  border-radius: 14px;
+  background: conic-gradient(#ffe9f0 90deg, #f7a1bb 0 180deg, #ffe9f0 0 270deg, #f7a1bb 0) 0 0 / calc(200% / var(--cols)) calc(200% / var(--rows));
+  box-shadow: 0 16px 0 var(--ink);
+}
+
+/* ตำแหน่งบนกระดาน: สองฝั่งอยู่ซ้ายกับขวา (มองจากด้านข้าง) */
+.cb-piece {
+  --x: calc(var(--rank) + var(--side) * (var(--cols) - 1 - 2 * var(--rank)));
+  --y: var(--file);
+  position: absolute;
+  left: calc((var(--x) + 0.5) * 100% / var(--cols));
+  top: calc((var(--y) + 0.8) * 100% / var(--rows));
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+}
+
+/* ตัวคนตั้งฉากกับกระดาน (หมุนกลับเท่ากับที่กระดานเอน) จึงหันหน้าเข้าหาผู้ดู */
+.cb-card {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: calc(var(--cell) - 6px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transform-origin: 50% 100%;
+  transform: translateX(-50%) rotateX(calc(var(--tilt) * -1));
+  color: var(--ink);
+  text-decoration: none;
+  animation: cbDrop 0.6s var(--bounce) both;
+  animation-delay: calc(var(--i) * 70ms);
+  transition: translate 0.3s var(--bounce);
+}
+
+a.cb-card:hover,
+a.cb-card:focus-visible {
+  translate: 0 -8px;
+  text-decoration: none;
+}
+
+@keyframes cbDrop {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) rotateX(calc(var(--tilt) * -1)) translateY(-60px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) rotateX(calc(var(--tilt) * -1)) translateY(0);
+  }
+}
+
+.cb-tag {
+  /* ป้ายกว้างกว่าช่องได้ เพื่อให้เห็นชื่อและบทบาทเต็ม (ช่องข้าง ๆ มักว่างเพราะยืนแบบสลับช่อง) */
+  width: max-content;
+  max-width: 156px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 3px 0 var(--ink);
+  line-height: 1.25;
+}
+
+.cb-name {
+  max-width: 100%;
+  font-family: var(--font-head);
+  font-weight: 500;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cb-role {
+  max-width: 100%;
+  padding: 0 8px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cb-handle {
+  max-width: 100%;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cb-photo {
+  position: relative;
+  width: min(64px, calc(var(--cell) - 24px));
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 26px;
+  box-shadow: 0 4px 0 var(--ink);
+}
+
+.cb-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* สองฝั่งหันหน้าเข้าหากัน: เอียงตัวเข้าหากลางกระดานเล็กน้อย */
+.cb-piece.side-0 .cb-photo {
+  rotate: 5deg;
+}
+
+.cb-piece.side-1 .cb-photo {
+  rotate: -5deg;
+}
+
+/* คนที่ไม่มีช่องเหลือ: รายการธรรมดาใต้กระดาน */
+.cb-more {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cb-piece.flat {
+  position: static;
+  width: 120px;
+  height: auto;
+}
+
+.cb-piece.flat .cb-card {
+  position: static;
+  width: 100%;
+  transform: none;
+  animation: none;
+}
+
+/* จอแคบ: กระดานตั้ง สองฝั่งอยู่ไกลกับใกล้แทนซ้ายกับขวา เพื่อให้ช่องใหญ่พอสำหรับป้ายชื่อ */
+@media (max-width: 720px) {
+  .cb {
+    --cols: 4;
+    --rows: 8;
+    --tilt: 46deg;
+  }
+
+  .cb-stage {
+    --w: calc(100cqw * 0.8);
+    padding-top: 110px;
+    height: calc(110px + var(--cell) * var(--rows) * 0.72 + 28px);
+    perspective-origin: 50% 0%;
+  }
+
+  .cb-piece {
+    --x: var(--file);
+    --y: calc(var(--rank) + var(--side) * (var(--rows) - 1 - 2 * var(--rank)));
+  }
+
+  .cb-vs {
+    font-size: 18px;
+  }
+}
+
 /* ---------- รูปแบบตัวหมากรุก (เลือกเป็นรายตัว) ---------- */
 
 .chip.style-all {

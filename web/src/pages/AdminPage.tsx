@@ -8,6 +8,7 @@ import {
   orderAfterMove,
   problemIn,
   removeOcImage,
+  type ImageKind,
   setOcImage,
   useIsAdmin,
   type Kind,
@@ -542,12 +543,15 @@ function PersonRow({ item, accept, markDirty, ...row }: RowProps<Person>) {
       row={row}
       thumb={
         <span className="person-dot" style={{ background: safeColor(p.bg) }} aria-hidden="true">
-          {initialOf(p.name)}
+          {safeImage(item.image) ? <img src={safeImage(item.image)!} alt="" /> : initialOf(p.name)}
         </span>
       }
       title={p.name || 'ยังไม่มีชื่อ'}
-      subtitle={[p.handle, p.link ? 'มีลิงก์' : 'ไม่มีลิงก์'].filter(Boolean).join(' · ')}
+      subtitle={[p.handle, p.link ? 'มีลิงก์' : 'ไม่มีลิงก์', safeImage(item.image) ? 'มีรูป' : 'ยังไม่มีรูป'].filter(Boolean).join(' · ')}
     >
+      <div className="oc-edit">
+        {/* รูปเป็นของรุ่นล่าสุดบนเซิร์ฟเวอร์เสมอ จึงใช้ item ไม่ใช่ draft */}
+        <OcImage kind="people" oc={item} pale={p.bg} locked={d.dirty} accept={accept} />
       <div className="admin-fields">
         <label className="field">
           ชื่อ
@@ -562,6 +566,7 @@ function PersonRow({ item, accept, markDirty, ...row }: RowProps<Person>) {
           <input className="input" type="url" inputMode="url" value={p.link} maxLength={300} placeholder="https://" onChange={(e) => d.set({ link: e.target.value })} />
         </label>
         <ColorField label="สีวงกลม" value={p.bg} onChange={(bg) => d.set({ bg })} />
+      </div>
       </div>
     </ItemCard>
   )
@@ -674,7 +679,7 @@ function OcRow({ item, data, accept, markDirty, ...row }: RowProps<Oc> & { data:
  * รูปของตัวละครหนึ่งตัว: ใส่รูป เปลี่ยนรูป หรือเอารูปออก มีผลทันที และรูปเดิมถูกลบจากเซิร์ฟเวอร์
  * ปิดไว้ (locked) ระหว่างที่ฟอร์มของตัวละครยังไม่ได้บันทึก เพราะการเปลี่ยนรูปทำให้รายการได้รุ่นใหม่
  */
-function OcImage({ oc, pale, locked, accept }: { oc: Oc; pale: string; locked: boolean; accept: (result: Result) => Result }) {
+function OcImage({ oc, pale, locked, accept, kind = 'ocs' }: { oc: Pick<Oc, 'id' | 'rev' | 'name' | 'image'>; pale: string; locked: boolean; accept: (result: Result) => Result; kind?: ImageKind }) {
   const input = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -690,7 +695,7 @@ function OcImage({ oc, pale, locked, accept }: { oc: Oc; pale: string; locked: b
   }
 
   return (
-    <div className="oc-image">
+    <div className={`oc-image${kind === 'people' ? ' round' : ''}`}>
       <div className="oc-image-preview" style={{ background: safeColor(pale, '#FFF7EC') }}>
         {image ? <img src={image} alt={`รูปของ ${oc.name}`} /> : <span aria-hidden="true">{initialOf(oc.name)}</span>}
       </div>
@@ -701,14 +706,14 @@ function OcImage({ oc, pale, locked, accept }: { oc: Oc; pale: string; locked: b
         hidden
         onChange={(e) => {
           const file = e.target.files?.[0]
-          if (file) void apply(setOcImage(oc, file))
+          if (file) void apply(setOcImage(oc, file, kind))
         }}
       />
       <button type="button" className="btn mini butter" disabled={busy || locked} onClick={() => input.current?.click()}>
         {busy ? 'กำลังทำ…' : image ? 'เปลี่ยนรูป' : 'ใส่รูป'}
       </button>
       {image && (
-        <button type="button" className="btn mini" disabled={busy || locked} onClick={() => apply(removeOcImage(oc))}>
+        <button type="button" className="btn mini" disabled={busy || locked} onClick={() => apply(removeOcImage(oc, kind))}>
           เอารูปออก
         </button>
       )}

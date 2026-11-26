@@ -173,13 +173,14 @@ func (a *api) postCreditsOp(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]*content.Credits{"credits": c})
 }
 
-// ocImageTarget อ่านรหัสตัวละครจาก path และเลขรุ่นจาก query ?rev=
-func ocImageTarget(r *http.Request) (id string, rev int, ok bool) {
+// imageTarget อ่านชนิด (ocs หรือ people) และรหัสรายการจาก path และเลขรุ่นจาก query ?rev=
+func imageTarget(r *http.Request) (kind, id string, rev int, ok bool) {
 	rev, err := strconv.Atoi(r.URL.Query().Get("rev"))
-	return r.PathValue("id"), rev, err == nil && rev > 0
+	kind = r.PathValue("kind")
+	return kind, r.PathValue("id"), rev, err == nil && rev > 0 && (kind == content.KindOcs || kind == content.KindPeople)
 }
 
-// putOcImage รับไฟล์รูป (JPEG หรือ PNG) เป็น body แล้วตั้งเป็นรูปของตัวละครทันที (admin เท่านั้น)
+// putOcImage รับไฟล์รูป (JPEG หรือ PNG) เป็น body แล้วตั้งเป็นรูปของตัวละครหรือของคนทันที (admin เท่านั้น)
 // รูปเดิมของตัวละครถูกลบจากที่เก็บในขั้นตอนเดียวกัน
 func (a *api) putOcImage(w http.ResponseWriter, r *http.Request) {
 	id, ok := a.admin(w, r)
@@ -190,7 +191,7 @@ func (a *api) putOcImage(w http.ResponseWriter, r *http.Request) {
 		tooMany(w)
 		return
 	}
-	ocID, rev, ok := ocImageTarget(r)
+	kind, ocID, rev, ok := imageTarget(r)
 	if !ok {
 		writeError(w, http.StatusBadRequest, "bad_request")
 		return
@@ -220,7 +221,7 @@ func (a *api) putOcImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c, err := a.cfg.Content.UpdateCredits(r.Context(), id.UserID, func(c *content.Credits) error {
-		return c.SetOcImage(ocID, rev, content.ImagePath(imageID))
+		return c.SetImage(kind, ocID, rev, content.ImagePath(imageID))
 	})
 	if err != nil {
 		// ตั้งรูปไม่สำเร็จ (เช่น มีคนแก้ตัวละครไปก่อน): รูปที่เพิ่งเก็บไม่มีใครใช้ ต้องลบทิ้ง
@@ -241,13 +242,13 @@ func (a *api) deleteOcImage(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	ocID, rev, ok := ocImageTarget(r)
+	kind, ocID, rev, ok := imageTarget(r)
 	if !ok {
 		writeError(w, http.StatusBadRequest, "bad_request")
 		return
 	}
 	c, err := a.cfg.Content.UpdateCredits(r.Context(), id.UserID, func(c *content.Credits) error {
-		return c.SetOcImage(ocID, rev, "")
+		return c.SetImage(kind, ocID, rev, "")
 	})
 	if a.creditsFailure(w, r, err) {
 		return

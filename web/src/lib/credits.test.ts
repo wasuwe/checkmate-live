@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import {
+  boardLayout,
   initialOf,
   moveIndex,
   ocNumber,
@@ -138,7 +139,7 @@ describe('reading the server response', () => {
 
   test('missing or wrongly typed fields become empty values instead of breaking the page', () => {
     const parsed = parseCredits({ people: [{ id: 'a', name: 5 }, null], team: [{ role: 'Dev', ids: ['a', 7] }], ocs: [{ id: 'o' }] })
-    expect(parsed?.people[0]).toEqual({ id: 'a', rev: 0, name: '', handle: '', link: '', bg: '' })
+    expect(parsed?.people[0]).toEqual({ id: 'a', rev: 0, name: '', handle: '', link: '', bg: '', image: '' })
     expect(parsed?.people[1].id).toBe('')
     expect(parsed?.team[0]).toEqual({ id: '', rev: 0, role: 'Dev', bg: '', ids: ['a'] })
     expect(parsed?.ocs[0]).toMatchObject({ id: 'o', rev: 0, name: '', image: '', owner: '' })
@@ -154,5 +155,35 @@ describe('placeholder initial', () => {
     expect(initialOf('Nok')).toBe('N')
     expect(initialOf('ไ')).toBe('ไ')
     expect(initialOf('')).toBe('')
+  })
+})
+
+describe('credits board', () => {
+  const person = (id: string) => ({ id, rev: 1, name: id, handle: '', link: '', bg: '#FFFFFF', image: '' })
+  const data = (team: { role: string; ids: string[] }[], ids: string[]) => ({
+    people: ids.map(person),
+    team: team.map((g, i) => ({ id: 'g' + i, rev: 1, bg: '#FFFFFF', ...g })),
+    ocs: [],
+  })
+
+  test('groups alternate sides and each person stands on one square with all their roles', () => {
+    const b = boardLayout(data([{ role: 'Dev', ids: ['a', 'b'] }, { role: 'Art', ids: ['c', 'a'] }, { role: 'QA', ids: ['d'] }], ['a', 'b', 'c', 'd']))
+    expect(b.seats.map((s) => [s.person.id, s.side])).toEqual([['a', 0], ['b', 0], ['c', 1], ['d', 0]])
+    expect(b.seats[0].roles.map((r) => r.role)).toEqual(['Dev', 'Art'])
+    expect(b.sides).toEqual([['Dev', 'QA'], ['Art']])
+    const squares = b.seats.map((s) => `${s.side}:${s.rank}:${s.file}`)
+    expect(new Set(squares).size).toBe(squares.length)
+  })
+
+  test('a single group is split so two sides still face each other', () => {
+    const b = boardLayout(data([{ role: 'Dev', ids: ['a', 'b', 'c'] }], ['a', 'b', 'c']))
+    expect(b.seats.map((s) => s.side)).toEqual([0, 1, 0])
+  })
+
+  test('a side holds 16 people, the rest overflow, and unknown ids are skipped', () => {
+    const ids = Array.from({ length: 18 }, (_, i) => 'p' + i)
+    const b = boardLayout(data([{ role: 'Dev', ids: [...ids, 'ghost'] }, { role: 'Art', ids: [] }], ids))
+    expect(b.seats.length + b.overflow.length).toBe(18)
+    expect(b.seats.every((s) => s.rank >= 0 && s.rank <= 3 && s.file >= 0 && s.file <= 3)).toBe(true)
   })
 })
