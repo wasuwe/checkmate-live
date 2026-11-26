@@ -2,6 +2,7 @@ import { TopBar } from './components/TopBar'
 import { parseRoute, usePathname } from './lib/router'
 import { AdminPage } from './pages/AdminPage'
 import { CreditsPage } from './pages/CreditsPage'
+import { GalleryPage } from './pages/GalleryPage'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { PlayPage } from './pages/PlayPage'
@@ -39,7 +40,9 @@ function App() {
       case 'profile':
         return <ProfilePage navigate={navigate} />
       case 'credits':
-        return <CreditsPage />
+        return <CreditsPage navigate={navigate} />
+      case 'gallery':
+        return <GalleryPage navigate={navigate} />
       case 'admin':
         return <AdminPage navigate={navigate} />
       case 'room':
