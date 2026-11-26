@@ -125,6 +125,9 @@ export function HomePage({ navigate }: Props) {
         <button type="button" className="link" onClick={() => navigate('/terms')}>
           ข้อตกลงการใช้งาน
         </button>
+        <button type="button" className="link" onClick={() => navigate('/credits')}>
+          เครดิต
+        </button>
       </nav>
     </main>
   )

@@ -11,6 +11,7 @@ export type Route =
   | { page: 'terms' }
   | { page: 'rules' }
   | { page: 'profile' }
+  | { page: 'credits' }
   | { page: 'room'; roomId: string }
   | { page: 'not_found' }
 
@@ -22,6 +23,7 @@ const STATIC: Record<string, Route> = {
   '/terms': { page: 'terms' },
   '/rules': { page: 'rules' },
   '/profile': { page: 'profile' },
+  '/credits': { page: 'credits' },
 }
 
 export function parseRoute(pathname: string): Route {
