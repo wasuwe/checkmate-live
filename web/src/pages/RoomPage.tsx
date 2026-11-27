@@ -1,3 +1,5 @@
+import { PieceIcon } from '../components/PieceIcon'
+import type { Kind } from '../lib/pieceSets'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChatPanel } from '../components/ChatPanel'
 import { Emblem } from '../components/Emblem'
@@ -12,7 +14,6 @@ import { useGameSocket } from '../hooks/useGameSocket'
 import { clockAt, describeTimeControl } from '../lib/clock'
 import { gameName, gameOf } from '../lib/games'
 import { chatNames } from '../lib/lobby'
-import { VS } from '../lib/pieceSets'
 import { absences } from '../lib/presence'
 import type { ChatItem, Color, StateMsg } from '../lib/protocol'
 import { capturedSquares } from '../lib/fx'
@@ -482,7 +483,7 @@ function GameOverDialog({ state, navigate }: { state: StateMsg; navigate: (to: s
       >
         <Emblem width={170} className="gold" />
         <div className="medal result-medal" style={{ background: medal.bg }} aria-hidden="true">
-          {medal.glyph + VS}
+          <PieceIcon kind={medal.kind} color="b" />
         </div>
         <h2 className="title starred" id="result-title">
           {headline}
@@ -506,11 +507,11 @@ function GameOverDialog({ state, navigate }: { state: StateMsg; navigate: (to: s
 
 const RESULT_DELAY_MS = 4200
 
-const MEDALS: Record<'win' | 'loss' | 'draw' | 'watch', { glyph: string; bg: string }> = {
-  win: { glyph: '♚', bg: 'var(--butter)' },
-  loss: { glyph: '♟', bg: 'var(--lavender)' },
-  draw: { glyph: '♜', bg: 'var(--mint)' },
-  watch: { glyph: '♛', bg: 'var(--sky)' },
+const MEDALS: Record<'win' | 'loss' | 'draw' | 'watch', { kind: Kind; bg: string }> = {
+  win: { kind: 'K', bg: 'var(--butter)' },
+  loss: { kind: 'P', bg: 'var(--lavender)' },
+  draw: { kind: 'R', bg: 'var(--mint)' },
+  watch: { kind: 'Q', bg: 'var(--sky)' },
 }
 
 /** แจ้งเมื่อเซิร์ฟเวอร์ปฏิเสธตาเดิน แล้วหายเองใน 3 วินาที */

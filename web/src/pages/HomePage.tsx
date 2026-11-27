@@ -44,9 +44,10 @@ export function HomePage({ navigate }: Props) {
   return (
     <main className="screen home">
       {/* ฉากเวทีกลางคืน: จอกว้างอยู่ครึ่งซ้ายของหน้า จอแคบเป็นแถบด้านบน */}
-      <StageScene className="home-scene" />
-      {/* ตัวหมากจากชุดนิทานลอยกระจายอยู่ทั่วหน้า */}
-      <HomeFloaters />
+      <StageScene className="home-scene">
+        {/* ตัวหมากจากชุดนิทานลอยอยู่ในฉาก */}
+        <HomeFloaters />
+      </StageScene>
       <div className="hero">
         <Emblem />
         <h1 className="hero-name">

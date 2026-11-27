@@ -59,8 +59,7 @@ const sun: Draw = (p) => (
       )
     })}
     <circle cx="22.5" cy="21" r="9.5" fill="#FFE9A8" {...line(p.ink)} />
-    {eyes(20, 3, p.ink)}
-    <path d="M19.5 23.8 Q22.5 26.5 25.5 23.8" fill="none" {...line(p.ink, 1.2)} />
+    <circle cx="22.5" cy="21" r="5.6" fill="none" {...line('#C9973A', 1)} />
   </g>
 )
 
@@ -72,7 +71,6 @@ const wind: Draw = (p) => (
       {...line(p.ink)}
     />
     <path d="M14 27.5 Q19 24 23.5 27 T32.5 25.5" fill="none" {...line('#E6E8F7', 1.5)} />
-    {eyes(21.5, 3.2, '#FFF6DC', 1.2)}
     <path d="M3 18 H9 M2 24 H7" {...line(p.ink, 1.3)} />
   </g>
 )

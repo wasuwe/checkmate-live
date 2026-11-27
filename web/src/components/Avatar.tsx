@@ -1,5 +1,5 @@
+import { PieceIcon } from './PieceIcon'
 import { avatarUrl } from '../lib/profile'
-import { VS } from '../lib/pieceSets'
 
 interface Props {
   /** รหัสรูป ถ้าว่างจะแสดงรูปหมากแทน */
@@ -18,7 +18,7 @@ export function Avatar({ avatar, size = 36, className = '' }: Props) {
   }
   return (
     <span className={`avatar avatar-empty ${className}`} style={style} aria-hidden="true">
-      {'♞' + VS}
+      <PieceIcon kind="N" color="b" />
     </span>
   )
 }

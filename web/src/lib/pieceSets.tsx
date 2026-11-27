@@ -178,20 +178,14 @@ function discSvg(
         <>
           {disc(26)}
           {disc(20)}
-          <text
-            x="22.5"
-            y="21"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize="15"
-            fontFamily={GLYPH_FONT}
-            fill={color === 'w' ? INK : '#FFFFFF'}
+          {/* มงกุฎของฮอส วาดเป็นเวกเตอร์ให้เหมือนกันทุกเครื่อง */}
+          <path
+            d="M16 23.6 L14.8 16.4 L18.9 19.6 L22.5 14.4 L26.1 19.6 L30.2 16.4 L29 23.6 Z"
+            fill="#C9A45C"
             stroke={INK}
-            strokeWidth="0.8"
-            paintOrder="stroke"
-          >
-            {'♛' + VS}
-          </text>
+            strokeWidth="1.1"
+            strokeLinejoin="round"
+          />
         </>
       ) : (
         disc(22.5)

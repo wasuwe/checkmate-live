@@ -102,7 +102,9 @@ describe('checkers in the games list, rules and text', () => {
     }
     const pieces = piecesFor(SETS[0])
     expect(JSON.stringify(pieces.wH().props.children)).not.toBe(JSON.stringify(pieces.wC().props.children))
-    expect(JSON.stringify(pieces.wH().props.children)).toContain('♛')
+    // ฮอสมีมงกุฎทองที่วาดเป็นเวกเตอร์
+    expect(JSON.stringify(pieces.wH().props.children)).toContain('#C9A45C')
+    expect(JSON.stringify(pieces.wC().props.children)).not.toContain('#C9A45C')
   })
 
   test('the rules page shows how men and kings move', () => {

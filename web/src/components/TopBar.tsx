@@ -1,6 +1,6 @@
+import { PieceIcon } from './PieceIcon'
 import { APP_NAME } from '../lib/appInfo'
 import { myName, useMe } from '../lib/me'
-import { VS } from '../lib/pieceSets'
 import { goBack } from '../lib/router'
 import { ArrowIcon } from './ArrowIcon'
 import { Avatar } from './Avatar'
@@ -19,7 +19,7 @@ export function TopBar({ navigate }: Props) {
       </button>
       <button type="button" className="brand" onClick={() => navigate('/')}>
         <span className="glyph" aria-hidden="true">
-          {'♞' + VS}
+          <PieceIcon kind="N" />
         </span>
         <span className="brand-name">{APP_NAME}</span>
       </button>

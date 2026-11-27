@@ -1,8 +1,8 @@
+import { PieceIcon } from '../components/PieceIcon'
 import { useEffect, useState, type FormEvent } from 'react'
 import { PasswordInput } from '../components/PasswordInput'
 import { StageScene } from '../components/StageScene'
 import { useMe } from '../lib/me'
-import { VS } from '../lib/pieceSets'
 import { EMAIL_PATTERN } from '../lib/registration'
 import { loginAvailable, signIn, type AuthResult } from '../lib/session'
 
@@ -46,11 +46,13 @@ export function LoginPage({ navigate }: Props) {
     <main className="screen" style={{ maxWidth: 440, paddingTop: 12 }}>
       {/* ฉากเวทีด้านซ้าย แสดงเฉพาะจอกว้าง */}
       <StageScene className="auth-scene">
-        <span className="stage-actor">{'♚' + VS}</span>
+        <span className="stage-actor">
+          <PieceIcon kind="K" />
+        </span>
       </StageScene>
       <div className="auth-head">
         <div className="medal" style={{ background: 'var(--butter)' }} aria-hidden="true">
-          {'♚' + VS}
+          <PieceIcon kind="K" color="b" />
         </div>
         <h1 className="title">เข้าสู่ระบบ</h1>
         <p className="small center pretty">

@@ -18,33 +18,28 @@ interface Floater {
   delay: number
 }
 
-// ตัวละครจากชุดนิทานต่าง ๆ ลอยกระจายอยู่หน้าแรก
-// จอกว้าง: ทั่วฉากเวทีด้านซ้ายและขอบจอ ไม่บังปุ่มตรงกลางฝั่งขวา (ตำแหน่งเป็น % ของจอ)
+// ตัวหมากจากชุดนิทานต่าง ๆ ลอยอยู่ในฉากเวทีของหน้าแรก (ตำแหน่งเป็น % ของฉาก)
+// จัดให้มีตัวเด่นหนึ่งตัวตรงกลาง ตัวอื่นเล็กลงและกระจายรอบ ๆ เอียงเพียงเล็กน้อย
+// จอกว้าง: ฉากเป็นซุ้มสูงด้านซ้ายของหน้า
 const WIDE: Floater[] = [
-  { set: 'mint', color: 'w', kind: 'K', x: 6, y: 14, size: 104, tilt: -10, dur: 6.2, delay: 0 },
-  { set: 'mint', color: 'b', kind: 'N', x: 30, y: 8, size: 88, tilt: 8, dur: 5.4, delay: -1.2 },
-  { set: 'sky', color: 'w', kind: 'Q', x: 78, y: 7, size: 92, tilt: 6, dur: 6.8, delay: -2.4 },
-  { set: 'cocoa', color: 'b', kind: 'K', x: 33, y: 52, size: 120, tilt: -6, dur: 7.2, delay: -0.6 },
-  { set: 'cocoa', color: 'w', kind: 'P', x: 22, y: 74, size: 76, tilt: 12, dur: 5.2, delay: -3.1 },
-  { set: 'lemon', color: 'w', kind: 'B', x: 5, y: 58, size: 90, tilt: -12, dur: 6.4, delay: -1.8 },
-  { set: 'honey', color: 'w', kind: 'P', x: 40, y: 30, size: 70, tilt: 14, dur: 5.8, delay: -4.2 },
-  { set: 'grape', color: 'b', kind: 'N', x: 14, y: 36, size: 82, tilt: 10, dur: 6.6, delay: -2.9 },
-  { set: 'lavender', color: 'w', kind: 'R', x: 50, y: 82, size: 82, tilt: -8, dur: 7, delay: -1 },
-  { set: 'classic', color: 'b', kind: 'P', x: 93, y: 30, size: 72, tilt: -14, dur: 5.6, delay: -2.2 },
-  { set: 'soda', color: 'b', kind: 'B', x: 93, y: 72, size: 88, tilt: 10, dur: 6.9, delay: -3.6 },
-  { set: 'strawberry', color: 'b', kind: 'Q', x: 52, y: 12, size: 78, tilt: -6, dur: 6.1, delay: -0.3 },
-  { set: 'matcha', color: 'w', kind: 'P', x: 6, y: 88, size: 70, tilt: 8, dur: 5.5, delay: -2.6 },
-  { set: 'sakura', color: 'b', kind: 'R', x: 24, y: 92, size: 74, tilt: 6, dur: 6.3, delay: -4.8 },
+  { set: 'sky', color: 'w', kind: 'K', x: 50, y: 40, size: 168, tilt: 0, dur: 7.2, delay: 0 },
+  { set: 'sky', color: 'b', kind: 'Q', x: 24, y: 50, size: 112, tilt: -5, dur: 6.4, delay: -1.6 },
+  { set: 'honey', color: 'b', kind: 'N', x: 76, y: 52, size: 108, tilt: 5, dur: 6.8, delay: -3.1 },
+  { set: 'mint', color: 'w', kind: 'P', x: 36, y: 66, size: 92, tilt: 4, dur: 5.8, delay: -2.2 },
+  { set: 'cocoa', color: 'b', kind: 'P', x: 64, y: 68, size: 96, tilt: -4, dur: 6.1, delay: -0.8 },
+  { set: 'lavender', color: 'w', kind: 'B', x: 30, y: 27, size: 80, tilt: -6, dur: 6.6, delay: -4 },
+  { set: 'sakura', color: 'b', kind: 'R', x: 71, y: 28, size: 78, tilt: 6, dur: 5.6, delay: -2.8 },
+  { set: 'grape', color: 'b', kind: 'P', x: 14, y: 72, size: 72, tilt: 5, dur: 6.3, delay: -3.6 },
+  { set: 'lemon', color: 'w', kind: 'P', x: 86, y: 74, size: 72, tilt: -5, dur: 5.9, delay: -1.2 },
 ]
 
-// จอแคบ: อยู่ในแถบฉากเวทีด้านบนเท่านั้น (x เป็น % ของความกว้าง y เป็น % ของความสูงแถบ)
+// จอแคบ: ฉากเป็นแถบเตี้ยด้านบน
 const NARROW: Floater[] = [
-  { set: 'mint', color: 'w', kind: 'K', x: 12, y: 42, size: 64, tilt: -10, dur: 6.2, delay: 0 },
-  { set: 'mint', color: 'b', kind: 'N', x: 33, y: 20, size: 52, tilt: 8, dur: 5.4, delay: -1.2 },
-  { set: 'cocoa', color: 'b', kind: 'K', x: 54, y: 52, size: 70, tilt: -6, dur: 7.2, delay: -0.6 },
-  { set: 'sky', color: 'w', kind: 'Q', x: 76, y: 22, size: 56, tilt: 6, dur: 6.8, delay: -2.4 },
-  { set: 'honey', color: 'w', kind: 'P', x: 90, y: 58, size: 46, tilt: 14, dur: 5.8, delay: -4.2 },
-  { set: 'lemon', color: 'w', kind: 'B', x: 33, y: 66, size: 50, tilt: -12, dur: 6.4, delay: -1.8 },
+  { set: 'sky', color: 'w', kind: 'K', x: 50, y: 50, size: 92, tilt: 0, dur: 7.2, delay: 0 },
+  { set: 'sky', color: 'b', kind: 'Q', x: 27, y: 54, size: 66, tilt: -5, dur: 6.4, delay: -1.6 },
+  { set: 'honey', color: 'b', kind: 'N', x: 73, y: 54, size: 64, tilt: 5, dur: 6.8, delay: -3.1 },
+  { set: 'mint', color: 'w', kind: 'P', x: 10, y: 62, size: 50, tilt: 4, dur: 5.8, delay: -2.2 },
+  { set: 'cocoa', color: 'b', kind: 'P', x: 90, y: 62, size: 52, tilt: -4, dur: 6.1, delay: -0.8 },
 ]
 
 /** หมากรุกตัวละครลอยไปมาเป็นฉากหลังของหน้าแรก เป็นของประดับล้วน */
