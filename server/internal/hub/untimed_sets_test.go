@@ -254,7 +254,9 @@ func TestRematchNeedsBothPlayersAndDrawsSidesAgain(t *testing.T) {
 	if again.You.Color != game.White {
 		t.Fatalf("sides were not drawn again: bob is %q, want white", again.You.Color)
 	}
-	if again.Clock.White != DefaultTimeControl.Initial.Milliseconds() || again.Clock.Running != game.White {
+	// นาฬิกาเริ่มนับทันทีใน test นี้ (ไม่มี StartDelay) จึงยอมให้เดินไปแล้วเล็กน้อย
+	full := DefaultTimeControl.Initial.Milliseconds()
+	if again.Clock.White < full-1000 || again.Clock.Black != full || again.Clock.Running != game.White {
 		t.Fatalf("clock was not reset: %+v", again.Clock)
 	}
 	if snap := st.lastRoom(t); snap.Status != StatusPlaying || snap.White != "bob" || len(snap.Moves) != 0 {
