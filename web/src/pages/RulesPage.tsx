@@ -8,7 +8,8 @@ interface Props {
   navigate: (to: string) => void
 }
 
-const BASIC_BG = ['#FFE8EF', '#E8FAF2', '#F1EDFF']
+// พื้นการ์ดกติกาพื้นฐานเป็นสีจางโทนนิทาน: ทอง ฟ้าคราม มรกต
+const BASIC_BG = ['#F6EAC8', '#E6E8F7', '#E3EEE6']
 
 export function RulesPage({ navigate }: Props) {
   const { set } = useSetPrefs()
