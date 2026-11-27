@@ -24,6 +24,7 @@ export interface GameConnection extends Snapshot {
   sendReport: (id: number) => boolean
   sendReady: (ready: boolean) => boolean
   sendKick: () => boolean
+  sendSet: (set: string) => boolean
 }
 
 /**
@@ -67,5 +68,6 @@ export function useGameSocket(roomId: string): GameConnection {
     sendReport: (id) => socketRef.current?.sendReport(id) ?? false,
     sendReady: (ready) => socketRef.current?.sendReady(ready) ?? false,
     sendKick: () => socketRef.current?.sendKick() ?? false,
+    sendSet: (set) => socketRef.current?.sendSet(set) ?? false,
   }
 }

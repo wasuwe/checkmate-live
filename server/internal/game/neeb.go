@@ -88,6 +88,11 @@ func (g *Neeb) slides(from int) []int {
 	if p == 0 || colorOfPiece(p) != g.turn {
 		return nil
 	}
+	return g.slidesFrom(from)
+}
+
+// slidesFrom เหมือน slides แต่ไม่ดูว่าหมากบน from เป็นของฝ่ายที่ถึงตาหรือไม่
+func (g *Neeb) slidesFrom(from int) []int {
 	rank, file := from/8, from%8
 	var out []int
 	for _, d := range stepsRook {
@@ -156,6 +161,14 @@ func (g *Neeb) Legal() map[string][]string {
 		out[squareName(from)] = names
 	}
 	return out
+}
+
+// Reach คืนช่องที่หมากของฝ่ายที่ยังไม่ถึงตาเดินไปได้บนกระดานตอนนี้
+func (g *Neeb) Reach() map[string][]string {
+	if g.Over() {
+		return nil
+	}
+	return reachMap(&g.board, g.turn.Other(), g.slidesFrom)
 }
 
 func (g *Neeb) Check() string { return "" }

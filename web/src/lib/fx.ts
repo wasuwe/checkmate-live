@@ -61,7 +61,7 @@ export interface FxEvent {
 }
 
 /** หมากบนกระดานจาก FEN: ช่อง → ตัวอักษรของหมาก (ตัวพิมพ์ใหญ่ = ขาว) ใช้ได้กับทุกเกมในระบบ */
-function boardOf(fen: string): Map<string, string> {
+export function boardOf(fen: string): Map<string, string> {
   const out = new Map<string, string>()
   fen
     .split(' ')[0]
@@ -83,9 +83,13 @@ const isWhite = (piece: string) => piece === piece.toUpperCase()
  * ครอบคลุมการกินแบบทับช่อง (หมากรุก) กินข้าม (หมากฮอส) กินผ่าน และหนีบหลายตัว (หมากหนีบ)
  */
 export function capturedSquares(prev: StateMsg, next: StateMsg): string[] {
-  const before = boardOf(prev.fen)
-  const after = boardOf(next.fen)
-  const moverIsWhite = prev.turn === 'w'
+  return takenBetween(prev.fen, next.fen, prev.turn === 'w')
+}
+
+/** เหมือน capturedSquares แต่รับตำแหน่งก่อนและหลังตรง ๆ กับสีของฝ่ายที่เดิน */
+export function takenBetween(beforeFen: string, afterFen: string, moverIsWhite: boolean): string[] {
+  const before = boardOf(beforeFen)
+  const after = boardOf(afterFen)
   const out: string[] = []
   for (const [square, piece] of before) {
     if (isWhite(piece) === moverIsWhite) continue

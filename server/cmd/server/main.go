@@ -106,9 +106,19 @@ func main() {
 		}
 	}
 
+	// FINISHED_TTL คือเวลาที่ห้องยังเปิดอยู่หลังเกมจบก่อนปิดเอง เช่น "1m" (ค่าเริ่มต้น)
+	var finishedTTL time.Duration
+	if v := os.Getenv("FINISHED_TTL"); v != "" {
+		if finishedTTL, err = time.ParseDuration(v); err != nil || finishedTTL < time.Second || finishedTTL > time.Hour {
+			log.Error("invalid FINISHED_TTL", "value", v)
+			os.Exit(1)
+		}
+	}
+
 	hubCfg := hub.Config{
 		OriginPatterns: splitList(os.Getenv("ALLOWED_ORIGINS")),
 		AbandonGrace:   abandonGrace,
+		FinishedTTL:    finishedTTL,
 		StartDelay:     startDelay,
 		Lobby:          true, // ห้องรอ: ต้องกดพร้อมทั้งสองคนก่อนเริ่ม
 		LobbyCountdown: lobbyCountdown,

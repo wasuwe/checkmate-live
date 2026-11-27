@@ -161,6 +161,13 @@ export class GameSocket {
     return true
   }
 
+  /** บอกชุดหมากรุกที่เลือก (ใช้ในห้องรอ) เซิร์ฟเวอร์รับเฉพาะก่อนเกมเริ่ม */
+  sendSet(set: string): boolean {
+    if (!this.snapshot.state || !this.ws || this.ws.readyState !== OPEN) return false
+    this.send(this.ws, { type: 'set', set })
+    return true
+  }
+
   /** เชิญผู้เล่นอีกคนออกจากที่นั่งในห้องรอ เซิร์ฟเวอร์ตรวจเองว่าผู้ส่งเป็นเจ้าของห้อง และเป็นผู้ระบุว่าใครออก */
   sendKick(): boolean {
     if (!this.snapshot.state || !this.ws || this.ws.readyState !== OPEN) return false

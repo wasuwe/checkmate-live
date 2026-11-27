@@ -3,6 +3,7 @@ package hub
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"time"
 
@@ -32,13 +33,15 @@ type RoomSnapshot struct {
 	// Pending คือรูปแบบเก่า (ผู้เล่นคนแรกที่รอคู่) ยังอ่านได้ แต่ไม่เขียนแล้ว ใช้ Seats แทน
 	Pending string `json:"pending,omitempty"`
 	// Seats คือผู้เล่นที่นั่งรออยู่ในห้องรอ สูงสุด 2 คน (การกดพร้อมไม่ถูกเก็บ ต้องกดใหม่หลังเซิร์ฟเวอร์รีสตาร์ต)
-	Seats      []string  `json:"seats,omitempty"`
-	White      string    `json:"white,omitempty"`
-	Black      string    `json:"black,omitempty"`
-	Moves      []string  `json:"moves,omitempty"` // เช่น "e2e4", "e7e8q"
-	ClockWhite int64     `json:"clockWhiteMs"`
-	ClockBlack int64     `json:"clockBlackMs"`
-	StartedAt  time.Time `json:"startedAt,omitzero"`
+	Seats []string `json:"seats,omitempty"`
+	// Sets คือรหัสชุดหมากรุกที่ผู้เล่นแต่ละคนเลือกไว้ (user ID → รหัส)
+	Sets       map[string]string `json:"sets,omitempty"`
+	White      string            `json:"white,omitempty"`
+	Black      string            `json:"black,omitempty"`
+	Moves      []string          `json:"moves,omitempty"` // เช่น "e2e4", "e7e8q"
+	ClockWhite int64             `json:"clockWhiteMs"`
+	ClockBlack int64             `json:"clockBlackMs"`
+	StartedAt  time.Time         `json:"startedAt,omitzero"`
 }
 
 // GameRecord คือเกมที่จบแล้ว ตรงกับตาราง games
@@ -78,6 +81,7 @@ func (r *Room) snapshot(now time.Time) RoomSnapshot {
 		TimeControl: r.clock.tc.String(),
 		Variant:     string(r.game.Variant()),
 		Seats:       slices.Clone(r.seats),
+		Sets:        maps.Clone(r.sets),
 		White:       r.players[game.White],
 		Black:       r.players[game.Black],
 		Moves:       make([]string, len(moves)),
@@ -173,6 +177,11 @@ func (h *Hub) roomFromSnapshot(snap RoomSnapshot) (*Room, error) {
 
 	room := newRoom(snap.ID, h.cfg, variant, tc, snap.CreatedBy, h.removeRoom)
 	room.game = g
+	for id, set := range snap.Sets {
+		if setIDRe.MatchString(set) {
+			room.sets[id] = set
+		}
+	}
 	now := time.Now()
 
 	switch snap.Status {
@@ -193,7 +202,7 @@ func (h *Hub) roomFromSnapshot(snap RoomSnapshot) (*Room, error) {
 		if snap.White == "" || snap.Black == "" || snap.White == snap.Black || g.Over() {
 			return nil, fmt.Errorf("%w: playing room without a live game", ErrBadSnapshot)
 		}
-		if snap.ClockWhite <= 0 || snap.ClockBlack <= 0 {
+		if !tc.Unlimited && (snap.ClockWhite <= 0 || snap.ClockBlack <= 0) {
 			return nil, fmt.Errorf("%w: clock already expired", ErrBadSnapshot)
 		}
 		room.status = StatusPlaying

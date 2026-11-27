@@ -28,6 +28,15 @@ export interface PlayerInfo {
   guest?: boolean
   /** เลขประจำตัวในแชทของผู้เล่นคนนี้ ใช้ใส่ชื่อให้ข้อความแชท */
   sender?: string
+  /** รหัสชุดหมากรุกที่ผู้เล่นคนนี้เลือกในห้องรอ ครึ่งกระดานและตัวหมากของฝั่งนี้วาดด้วยชุดนี้ (ไม่มี = ไม่ได้เลือก) */
+  set?: string
+}
+
+/** ผู้ชมหนึ่งคนที่กำลังเปิดห้องอยู่ */
+export interface SpectatorInfo {
+  name?: string
+  avatar?: string
+  guest?: boolean
 }
 
 /** ที่นั่งหนึ่งที่ในห้องรอ (ยังไม่มีสี สีถูกสุ่มตอนเริ่มเกม) */
@@ -68,7 +77,7 @@ export interface StateMsg {
   lastMove?: { from: string; to: string }
   players?: Partial<Record<Color, PlayerInfo>>
   you: { role: Role; color: Color | '' }
-  /** เวลาเล่น เช่น "10+0" (นาที+วินาทีที่บวกต่อตา) */
+  /** เวลาเล่น เช่น "10+0" (นาที+วินาทีที่บวกต่อตา) หรือ "none" = ไม่จับเวลา (ค่าใน clock ไม่มีความหมาย) */
   tc: string
   /** เวลาที่เหลือ (ms) ณ ตอนที่เซิร์ฟเวอร์ส่ง และฝั่งที่นาฬิกากำลังเดิน ('' = หยุด) */
   clock: {
@@ -86,9 +95,16 @@ export interface StateMsg {
    */
   legal?: Record<string, string[]>
   check?: string
+  /** ช่องที่หมากของฝ่ายที่ยังไม่ถึงตาเดินไปได้ตามวิธีเดินของมัน ใช้แสดงเส้นทางเดินเมื่อชี้ที่หมากเท่านั้น */
+  reach?: Record<string, string[]>
   count?: CountInfo
   /** ฝ่ายที่ถึงตาต้องกิน (หมากฮอสบังคับกิน) */
   forced?: boolean
+  /** ผู้ชมที่กำลังเปิดห้องอยู่ (เซิร์ฟเวอร์ส่งรายชื่อไม่เกิน 12 คน) และจำนวนผู้ชมทั้งหมด */
+  spectators?: SpectatorInfo[]
+  watching?: number
+  /** ms ที่เหลือก่อนห้องปิดเอง ณ ตอนที่เซิร์ฟเวอร์ส่ง (มีเฉพาะหลังเกมจบ) */
+  closeIn?: number
   /** ห้องรอก่อนเกม (มีเฉพาะตอน status เป็น waiting) */
   lobby?: LobbyInfo
 }
@@ -154,6 +170,7 @@ export type ClientMsg =
   | { type: 'report'; id: number }
   | { type: 'ready'; ready: boolean }
   | { type: 'kick' }
+  | { type: 'set'; set: string }
 
 const SERVER_TYPES = new Set(['state', 'auth_ok', 'game_over', 'error', 'chat', 'chat_history', 'report_ok'])
 

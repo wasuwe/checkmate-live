@@ -56,6 +56,10 @@ type Engine interface {
 	// Legal คืนตาเดินที่ถูกกติกาของฝ่ายที่ถึงตา (ช่องต้นทาง → ช่องปลายทาง)
 	// คืน nil ถ้าเกมนั้นให้หน้าเว็บคำนวณเอง (หมากรุกสากล) หรือเกมจบแล้ว
 	Legal() map[string][]string
+	// Reach คืนช่องที่หมากของฝ่ายที่ยังไม่ถึงตาเดินไปได้ตามวิธีเดินของมันบนกระดานตอนนี้
+	// (ไม่ดูว่าขุนของตัวเองจะถูกรุกหรือไม่) ใช้แสดงเส้นทางเดินในหน้าเว็บเท่านั้น ไม่ใช้ตัดสินตาเดิน
+	// คืน nil ถ้าเกมนั้นให้หน้าเว็บคำนวณเอง (หมากรุกสากล) หรือเกมจบแล้ว
+	Reach() map[string][]string
 	// Check คืนช่องของขุนที่กำลังถูกรุก หรือ "" (หมากรุกสากลให้หน้าเว็บคำนวณเอง)
 	Check() string
 	// Count คืนการนับศักดิ์ที่กำลังเดินอยู่ หรือ nil
@@ -89,9 +93,30 @@ func ReplayVariant(v Variant, moves []Move) (Engine, error) {
 	return g, nil
 }
 
+// reachMap รวมช่องที่หมากทุกตัวของฝ่าย side ไปได้ โดย targets คืนช่องปลายทางของหมากบนช่อง from
+func reachMap(board *[64]byte, side Color, targets func(from int) []int) map[string][]string {
+	out := map[string][]string{}
+	for from, p := range board {
+		if p == 0 || colorOfPiece(p) != side {
+			continue
+		}
+		tos := targets(from)
+		if len(tos) == 0 {
+			continue
+		}
+		names := make([]string, len(tos))
+		for i, to := range tos {
+			names[i] = squareName(to)
+		}
+		out[squareName(from)] = names
+	}
+	return out
+}
+
 // Variant, Legal, Check, Count ของหมากรุกสากล: หน้าเว็บมีไลบรารีกติกาของตัวเองอยู่แล้ว
 func (g *Game) Variant() Variant           { return VariantChess }
 func (g *Game) Legal() map[string][]string { return nil }
+func (g *Game) Reach() map[string][]string { return nil }
 func (g *Game) Check() string              { return "" }
 func (g *Game) Count() *Count              { return nil }
 func (g *Game) Forced() bool               { return false }

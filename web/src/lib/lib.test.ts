@@ -5,6 +5,8 @@ import {
   DEFAULT_TIME_CONTROL,
   describeTimeControl,
   formatClock,
+  isUntimed,
+  NO_TIME,
   TIME_CONTROLS,
 } from './clock'
 import { absences } from './presence'
@@ -155,10 +157,15 @@ describe('clock', () => {
     expect(describeTimeControl('10+0')).toBe('10 นาที')
     expect(describeTimeControl('5+3')).toBe('5 นาที +3 วินาทีต่อตา')
     expect(describeTimeControl('weird')).toBe('weird')
+    expect(describeTimeControl(NO_TIME)).toBe('ไม่จับเวลา')
+    expect(isUntimed(NO_TIME)).toBe(true)
+    expect(isUntimed('10+0')).toBe(false)
   })
 
   test('every offered time control is one the server accepts', () => {
-    for (const tc of TIME_CONTROLS) {
+    // "none" = ไม่จับเวลา (hub.NoTimeControl ฝั่งเซิร์ฟเวอร์)
+    expect(TIME_CONTROLS.map((tc) => tc.value)).toContain(NO_TIME)
+    for (const tc of TIME_CONTROLS.filter((t) => t.value !== NO_TIME)) {
       const match = /^(\d{1,2})\+(\d{1,2})$/.exec(tc.value)
       expect(match, tc.value).not.toBeNull()
       const [minutes, increment] = [Number(match![1]), Number(match![2])]

@@ -219,6 +219,29 @@ func (g *Checkers) Legal() map[string][]string {
 	return out
 }
 
+// Reach คืนช่องที่หมากของฝ่ายที่ยังไม่ถึงตาเดินไปได้บนกระดานตอนนี้ ถ้าฝ่ายนั้นมีการกิน จะมีเฉพาะการกิน (บังคับกิน)
+func (g *Checkers) Reach() map[string][]string {
+	if g.Over() {
+		return nil
+	}
+	side := g.turn.Other()
+	moves := g.steps
+	for from, p := range g.board {
+		if p != 0 && colorOfPiece(p) == side && len(g.captures(from)) > 0 {
+			moves = g.captures
+			break
+		}
+	}
+	return reachMap(&g.board, side, func(from int) []int {
+		hops := moves(from)
+		tos := make([]int, len(hops))
+		for i, h := range hops {
+			tos[i] = h.to
+		}
+		return tos
+	})
+}
+
 // Forced บอกว่าฝ่ายที่ถึงตาต้องกิน (หมากฮอสบังคับกิน)
 func (g *Checkers) Forced() bool { return !g.Over() && g.mustCapture() }
 

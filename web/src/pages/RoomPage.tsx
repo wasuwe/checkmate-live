@@ -5,13 +5,14 @@ import { ChatPanel } from '../components/ChatPanel'
 import { Emblem } from '../components/Emblem'
 import { ClockRow } from '../components/ClockRow'
 import { CoinToss } from '../components/CoinToss'
+import { CurtainScreen } from '../components/CurtainScreen'
 import { Lobby } from '../components/Lobby'
 import { GameBoard } from '../components/GameBoard'
-import { PiecePicker } from '../components/PiecePicker'
 import { ResignButton } from '../components/ResignButton'
+import { Stands } from '../components/Stands'
 import { useChatPopup, type ChatPopup } from '../hooks/useChatPopup'
 import { useGameSocket } from '../hooks/useGameSocket'
-import { clockAt, describeTimeControl } from '../lib/clock'
+import { clockAt, describeTimeControl, isUntimed } from '../lib/clock'
 import { gameName, gameOf } from '../lib/games'
 import { chatNames } from '../lib/lobby'
 import { absences } from '../lib/presence'
@@ -44,11 +45,40 @@ export function RoomPage({ roomId, navigate }: Props) {
   const inGame = !!state && !(state.status === 'waiting' && state.lobby)
   const pop = useChatPopup(game.chat, inGame)
   const [turnSeq, turnToast] = useTurnAlert(state)
+  const closing = useRoomClosing(state, game.stateAt)
+
+  // เกมจบมาครบเวลาแล้ว: ม่านปิด (เซิร์ฟเวอร์ปิดห้องในเวลาเดียวกัน หลังจากนั้นการเชื่อมต่อจะได้ "ไม่พบห้อง")
+  if (closing.closed || (game.fatal === 'room_not_found' && state?.status === 'finished')) {
+    return (
+      <CurtainScreen closing title="ม่านปิดแล้ว" text="ห้องนี้ปิดหลังเกมจบครบ 1 นาที ขอบคุณที่มาเล่นด้วยกัน">
+        <button type="button" className="btn pink strong" autoFocus onClick={() => navigate('/play')}>
+          เล่นเกมใหม่
+        </button>
+        <button type="button" className="btn" onClick={() => navigate('/')}>
+          กลับหน้าแรก
+        </button>
+      </CurtainScreen>
+    )
+  }
+
+  // เปิดลิงก์ของห้องที่ไม่มีแล้ว
+  if (game.fatal === 'room_not_found') {
+    return (
+      <CurtainScreen title="ไม่พบห้องนี้" text={FATAL_TEXT.room_not_found}>
+        <button type="button" className="btn pink strong" autoFocus onClick={() => navigate('/play')}>
+          สร้างห้องใหม่
+        </button>
+        <button type="button" className="btn" onClick={() => navigate('/')}>
+          กลับหน้าแรก
+        </button>
+      </CurtainScreen>
+    )
+  }
 
   if (game.fatal) {
     return (
       <main className="screen">
-        <h1 className="title">{game.fatal === 'room_not_found' ? 'ไม่พบห้องนี้' : 'เข้าห้องไม่ได้'}</h1>
+        <h1 className="title">เข้าห้องไม่ได้</h1>
         <p className="pretty">{FATAL_TEXT[game.fatal]}</p>
         <button type="button" className="btn pink" onClick={() => navigate('/')}>
           กลับหน้าแรก
@@ -87,7 +117,7 @@ export function RoomPage({ roomId, navigate }: Props) {
 
   // ก่อนเกมเริ่ม: ห้องรอ (รอคน แชท กดพร้อม)
   if (state.status === 'waiting' && state.lobby) {
-    return <Lobby state={state} lobby={state.lobby} stateAt={game.stateAt} online={online} sendReady={game.sendReady} sendKick={game.sendKick} chat={chat} />
+    return <Lobby state={state} lobby={state.lobby} stateAt={game.stateAt} online={online} sendReady={game.sendReady} sendKick={game.sendKick} sendSet={game.sendSet} chat={chat} />
   }
 
   // ตราในแผงข้างกระดานเป็นสีทองเมื่อถึงตาของผู้ดู
@@ -107,7 +137,7 @@ export function RoomPage({ roomId, navigate }: Props) {
         <div className="game-col board-col">
           <div className="room-bar">
             <details className="room-details">
-              <summary aria-label={`ห้อง ${formatRoomCode(roomId)} กดเพื่อเชิญเพื่อนหรือเปลี่ยนชุดหมากรุก`}>
+              <summary aria-label={`ห้อง ${formatRoomCode(roomId)} กดเพื่อเชิญเพื่อนหรือดูกฎ`}>
                 <span className="tiny">ห้อง</span>
                 <b className="room-code">{formatRoomCode(roomId)}</b>
                 <span className="room-caret" aria-hidden="true" />
@@ -125,13 +155,7 @@ export function RoomPage({ roomId, navigate }: Props) {
                   </button>
                 </div>
                 <TurnSoundToggle />
-                <div className="set-details">
-                  <b className="small">ชุดหมากรุก</b>
-                  <PiecePicker />
-                  <a className="small" href="/profile" target="_blank" rel="noopener">
-                    จัดการชุด
-                  </a>
-                </div>
+                {/* ชุดหมากรุกเลือกได้เฉพาะในห้องรอ (เจ้าของโปรเจกต์กำหนด) ระหว่างเกมจึงไม่มีตัวเลือกที่นี่ */}
               </div>
             </details>
 
@@ -162,13 +186,18 @@ export function RoomPage({ roomId, navigate }: Props) {
             <p className="small">
               {gameName(gameId)} · {describeTimeControl(state.tc)}
             </p>
-            <p className="tiny game-side-tip">แตะรูปคู่แข่งเพื่อเปิดแชท</p>
+            <p className="tiny game-side-tip">กดปุ่ม "แชท" ข้างชื่อคู่แข่งเพื่อคุยกัน</p>
           </div>
 
           {state.status === 'waiting' && <WaitingCard roomId={roomId} />}
           {counting && (
             <p className="count-chip" role="status">
               {counting}
+            </p>
+          )}
+          {closing.seconds !== null && (
+            <p className="count-chip close-chip" role="status">
+              ห้องจะปิดใน {closing.seconds} วินาที
             </p>
           )}
           <AbsenceNotice state={state} stateAt={game.stateAt} />
@@ -181,6 +210,7 @@ export function RoomPage({ roomId, navigate }: Props) {
             )}
             <GameBoard state={state} online={online} errorSeq={game.errorSeq} session={game.session} sendMove={game.sendMove} />
           </Clocks>
+          <Stands spectators={state.spectators} watching={state.watching} />
         </div>
       </div>
 
@@ -205,8 +235,27 @@ function useCoinToss(state: StateMsg | null): [TossView | null, () => void] {
   return [toss && !toss.done ? toss.view : null, dismiss]
 }
 
+/**
+ * นับถอยหลังก่อนห้องปิดเองหลังเกมจบ (เซิร์ฟเวอร์ส่งเวลาที่เหลือมาใน state.closeIn)
+ * seconds = วินาทีที่เหลือ (null ถ้าเกมยังไม่จบ), closed = ครบเวลาแล้ว
+ */
+function useRoomClosing(state: StateMsg | null, stateAt: number): { seconds: number | null; closed: boolean } {
+  const [now, setNow] = useState(() => Date.now())
+  const closeAt = state?.closeIn ? stateAt + state.closeIn : null
+
+  useEffect(() => {
+    if (closeAt === null) return
+    const timer = setInterval(() => setNow(Date.now()), 250)
+    return () => clearInterval(timer)
+  }, [closeAt])
+
+  if (closeAt === null) return { seconds: null, closed: false }
+  const left = closeAt - Math.max(now, stateAt)
+  return { seconds: Math.max(0, Math.ceil(left / 1000)), closed: left <= 0 }
+}
+
 const FATAL_TEXT: Record<NonNullable<ReturnType<typeof useGameSocket>['fatal']>, string> = {
-  room_not_found: 'ห้องอาจถูกปิดไปแล้ว หรือรหัสห้องไม่ถูกต้อง',
+  room_not_found: 'การแสดงรอบนี้จบไปแล้ว หรือรหัสห้องไม่ถูกต้อง ลองตรวจลิงก์อีกครั้ง หรือสร้างห้องใหม่ได้เลย',
   unauthorized: 'ยืนยันตัวตนไม่สำเร็จ ลองโหลดหน้านี้ใหม่',
   too_many_connections: 'คุณเปิดเกมไว้หลายแท็บเกินไป ปิดแท็บอื่นแล้วโหลดหน้านี้ใหม่',
 }
@@ -236,12 +285,13 @@ function Clocks({
 }) {
   const [now, setNow] = useState(() => Date.now())
   const running = state.clock.running
+  const untimed = isUntimed(state.tc)
 
   useEffect(() => {
-    if (running === '') return
+    if (running === '' || untimed) return
     const timer = setInterval(() => setNow(Date.now()), 100)
     return () => clearInterval(timer)
-  }, [running])
+  }, [running, untimed])
 
   const left = clockAt(state, stateAt, Math.max(now, stateAt))
   const bottom: Color = state.you.color === 'b' ? 'b' : 'w'
@@ -258,6 +308,7 @@ function Clocks({
         detail={info || mine ? `ฝั่ง${colorName(color)}` : 'ยังไม่มีผู้เล่น'}
         avatar={info ? (info.avatar ?? '') : undefined}
         ms={left[color]}
+        untimed={untimed}
         running={running === color}
         chat={
           color === top

@@ -12,28 +12,31 @@ import (
 
 // serverMsg รวม field ของข้อความขาออกทุกชนิด ใช้ถอดข้อความใน test
 type serverMsg struct {
-	Type     string                     `json:"type"`
-	Code     string                     `json:"code"`
-	UserID   string                     `json:"userId"`
-	Room     string                     `json:"room"`
-	Status   Status                     `json:"status"`
-	FEN      string                     `json:"fen"`
-	Turn     game.Color                 `json:"turn"`
-	Ply      int                        `json:"ply"`
-	LastMove *moveInfo                  `json:"lastMove"`
-	Players  map[game.Color]*playerInfo `json:"players"`
-	You      youInfo                    `json:"you"`
-	Result   string                     `json:"result"`
-	Reason   string                     `json:"reason"`
-	TC       string                     `json:"tc"`
-	Clock    clockInfo                  `json:"clock"`
-	Game     game.Variant               `json:"game"`
-	Legal    map[string][]string        `json:"legal"`
-	Check    string                     `json:"check"`
-	Count    *game.Count                `json:"count"`
-	Forced   bool                       `json:"forced"`
-	Lobby    *lobbyInfo                 `json:"lobby"`
-	Sender   string                     `json:"sender"`
+	Type       string                     `json:"type"`
+	Code       string                     `json:"code"`
+	UserID     string                     `json:"userId"`
+	Room       string                     `json:"room"`
+	Status     Status                     `json:"status"`
+	FEN        string                     `json:"fen"`
+	Turn       game.Color                 `json:"turn"`
+	Ply        int                        `json:"ply"`
+	LastMove   *moveInfo                  `json:"lastMove"`
+	Players    map[game.Color]*playerInfo `json:"players"`
+	You        youInfo                    `json:"you"`
+	Result     string                     `json:"result"`
+	Reason     string                     `json:"reason"`
+	TC         string                     `json:"tc"`
+	Clock      clockInfo                  `json:"clock"`
+	Game       game.Variant               `json:"game"`
+	Legal      map[string][]string        `json:"legal"`
+	Check      string                     `json:"check"`
+	Count      *game.Count                `json:"count"`
+	Forced     bool                       `json:"forced"`
+	Lobby      *lobbyInfo                 `json:"lobby"`
+	CloseIn    int64                      `json:"closeIn"`
+	Spectators []spectatorInfo            `json:"spectators"`
+	Watching   int                        `json:"watching"`
+	Sender     string                     `json:"sender"`
 	// แชท
 	ID       int        `json:"id"`
 	From     game.Color `json:"from"`

@@ -78,6 +78,7 @@ func New(cfg Config) http.Handler {
 
 	if cfg.Hub != nil && cfg.Auth != nil {
 		mux.HandleFunc("POST /api/rooms", a.createRoom)
+		mux.HandleFunc("GET /api/rooms/{id}", a.getRoom)
 		mux.HandleFunc("GET /ws", cfg.Hub.ServeWS)
 		if cfg.Guest != nil {
 			mux.HandleFunc("POST /api/guest", a.createGuest)
@@ -173,6 +174,20 @@ func (a *api) createRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, map[string]string{"roomId": roomID})
+}
+
+// getRoom บอกว่ามีห้องรหัสนี้เปิดอยู่หรือไม่ (200 หรือ 404) ไม่ต้องมี token และไม่บอกอะไรเกี่ยวกับห้อง
+// หน้าแรกใช้ตรวจรหัสที่ผู้ใช้กรอกก่อนพาเข้าห้อง การขอถี่เกินโควตาเข้าห้องได้ 429
+func (a *api) getRoom(w http.ResponseWriter, r *http.Request) {
+	exists, allowed := a.cfg.Hub.RoomExists(r, r.PathValue("id"))
+	switch {
+	case !allowed:
+		tooMany(w)
+	case !exists:
+		writeError(w, http.StatusNotFound, "room_not_found")
+	default:
+		writeJSON(w, http.StatusOK, map[string]bool{"exists": true})
+	}
 }
 
 // readRoomOptions อ่าน body แบบ {"timeControl":"5+3","game":"makruk"} ค่าที่ไม่ส่งมาใช้ค่าเริ่มต้น

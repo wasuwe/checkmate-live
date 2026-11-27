@@ -2,6 +2,7 @@
 // เซิร์ฟเวอร์เป็นผู้ตัดสินกติกาจริง ผลจากไฟล์นี้ไม่ถูกเชื่อถือ
 
 import { Chess, type Square } from 'chess.js'
+import { boardOf, takenBetween } from './fx'
 import { gameOf } from './games'
 import { checkersApply, checkersPosition } from './checkers'
 import { makrukApply, makrukPosition } from './makruk'
@@ -123,4 +124,85 @@ export function chainSquare(state: StateMsg): string | null {
   if (gameOf(state) !== 'checkers' || !state.forced || !state.lastMove) return null
   const movable = Object.keys(state.legal ?? {})
   return movable.length === 1 && movable[0] === state.lastMove.to ? movable[0] : null
+}
+
+// ---------- เส้นทางเดินของหมากตัวหนึ่ง (ใช้ไฮไลต์ตอนเลือกหมาก และตอนชี้ที่หมาก) ----------
+
+export interface PieceReach {
+  /** ช่องที่หมากตัวนี้เดินไปได้ */
+  targets: string[]
+  /** ช่องปลายทางที่เป็นการกิน */
+  captures: string[]
+  /** ช่องของหมากฝ่ายตรงข้ามที่จะถูกกิน (ต่างจากช่องปลายทางได้: กินผ่าน กินข้ามของหมากฮอส หนีบของหมากหนีบ) */
+  victims: string[]
+}
+
+const NO_REACH: PieceReach = { targets: [], captures: [], victims: [] }
+
+/** FEN ของหมากรุกสากลที่สลับให้อีกฝ่ายเป็นผู้เดิน ใช้ดูว่าหมากของฝ่ายที่ยังไม่ถึงตาเดินไปไหนได้ */
+function withOtherTurn(fen: string): string {
+  const parts = fen.split(' ')
+  parts[1] = parts[1] === 'w' ? 'b' : 'w'
+  parts[3] = '-' // สิทธิ์กินผ่านเป็นของฝ่ายที่ถึงตาจริงเท่านั้น
+  return parts.join(' ')
+}
+
+/**
+ * ช่องที่หมากบน `square` เดินไปได้ในตำแหน่งที่เซิร์ฟเวอร์ยืนยันแล้ว และตาไหนเป็นการกิน
+ * ใช้ได้กับหมากของทั้งสองฝ่าย: ฝ่ายที่ถึงตาได้ตาเดินที่ถูกกติกาจริง ส่วนฝ่ายที่ยังไม่ถึงตาได้ช่องตามวิธีเดินของหมาก
+ * (หมากรุกสากลคำนวณเองโดยสลับฝ่าย เกมอื่นใช้ `reach` จากเซิร์ฟเวอร์) เป็นการแสดงผลเท่านั้น
+ */
+export function reachOf(state: StateMsg, square: string): PieceReach {
+  const piece = boardOf(state.fen).get(square)
+  if (!piece || state.status !== 'playing') return NO_REACH
+  const white = piece === piece.toUpperCase()
+  const mover = (white ? 'w' : 'b') === state.turn
+  const game = gameOf(state)
+
+  let fen = state.fen
+  let targets: string[]
+  if (game === 'chess') {
+    if (!mover) fen = withOtherTurn(fen)
+    targets = legalTargets(fen, square)
+  } else {
+    targets = (mover ? state.legal : state.reach)?.[square] ?? []
+  }
+  if (targets.length === 0) return NO_REACH
+
+  const captures: string[] = []
+  const victims = new Set<string>()
+  for (const to of targets) {
+    let next: string | null
+    if (game === 'chess') next = applyMove(fen, square, to, isPromotion(fen, square, to) ? 'q' : '')
+    else if (game === 'checkers') next = checkersApply(fen, square, to)
+    else if (game === 'neeb') next = neebApply(fen, square, to)
+    else next = makrukApply(fen, square, to)
+    if (next === null) continue
+    const taken = takenBetween(fen, next, white)
+    if (taken.length > 0) captures.push(to)
+    for (const sq of taken) victims.add(sq)
+  }
+  return { targets, captures, victims: [...victims] }
+}
+
+function gcd(a: number, b: number): number {
+  return b === 0 ? a : gcd(b, a % b)
+}
+
+/**
+ * ปลายของเส้นทางเดินจาก `from`: ช่องที่ไกลที่สุดในแต่ละทิศ เส้นเดียวจึงแทนทุกช่องที่ผ่าน
+ * (เรือได้สูงสุด 4 เส้น ม้าได้เส้นละช่องเพราะทุกช่องอยู่คนละทิศ)
+ */
+export function lineEnds(from: string, targets: string[]): string[] {
+  const far = new Map<string, { to: string; dist: number }>()
+  for (const to of targets) {
+    const df = to.charCodeAt(0) - from.charCodeAt(0)
+    const dr = Number(to[1]) - Number(from[1])
+    const g = gcd(Math.abs(df), Math.abs(dr))
+    if (g === 0) continue
+    const key = (df / g) + ',' + (dr / g)
+    const seen = far.get(key)
+    if (!seen || g > seen.dist) far.set(key, { to, dist: g })
+  }
+  return [...far.values()].map((v) => v.to)
 }

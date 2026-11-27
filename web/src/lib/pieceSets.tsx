@@ -97,6 +97,29 @@ export function squareStyle(set: BoardSet, dark: boolean): CSSProperties {
   }
 }
 
+/**
+ * ชุดของแต่ละฝั่งในเกม: ชุดที่ผู้เล่นฝั่งนั้นเลือกไว้ในห้องรอ (เซิร์ฟเวอร์ส่งมากับ state)
+ * กระดานแบ่งครึ่ง ครึ่งของฝั่งไหนใช้ชุดของฝั่งนั้น และตัวหมากของฝั่งนั้นก็ใช้ชุดเดียวกัน
+ * ฝั่งที่ไม่ได้เลือก (หรือรหัสที่หน้าเว็บรุ่นนี้ไม่รู้จัก) ใช้ชุดของผู้ดู `local`
+ */
+export function sideSets(
+  local: BoardSet,
+  players: Partial<Record<Color, { set?: string }>> | undefined,
+): Record<Color, BoardSet> {
+  const pick = (color: Color) => SETS.find((s) => s.id === players?.[color]?.set) ?? local
+  return { w: pick('w'), b: pick('b') }
+}
+
+/** หมากของฝั่งไหนเริ่มที่ครึ่งกระดานของช่องนี้: แถว 1–4 เป็นครึ่งของฝั่งขาว แถว 5–8 เป็นครึ่งของฝั่งดำ */
+export function halfOf(square: string): Color {
+  return Number(square[1]) <= 4 ? 'w' : 'b'
+}
+
+/** ช่องนี้เป็นช่องเข้มหรือไม่ (a1 เป็นช่องเข้ม) */
+export function isDarkSquare(square: string): boolean {
+  return (square.charCodeAt(0) - 97 + Number(square[1])) % 2 === 1
+}
+
 // ---------- การวาดตัวหมาก ----------
 
 type PieceRenderer = (props?: { fill?: string; square?: string; svgStyle?: CSSProperties }) => JSX.Element
@@ -111,6 +134,8 @@ export interface PieceOptions {
   badge?: boolean
   /** รูปแบบตัวหมากที่ผู้เล่นเลือกเป็นรายตัว (ไม่ระบุ = แบบสัญลักษณ์ทุกตัว) */
   styles?: StylePrefs
+  /** ชุดของแต่ละฝั่ง: ตัวหมากของฝั่งไหนวาดด้วยชุดของฝั่งนั้น (ไม่ระบุ = ใช้ `set` ทั้งสองฝั่ง) */
+  bySide?: Record<Color, BoardSet>
 }
 
 /** ตัวหมากหนึ่งตัวเป็น SVG ใช้ได้ทั้งบนกระดานและที่อื่น */
@@ -201,7 +226,7 @@ export function piecesFor(set: BoardSet, opts: PieceOptions = {}): PieceRenderer
     for (const kind of ALL_KINDS) {
       out[color + kind] = (props) => {
         const landing = props?.square !== undefined && props.square === opts.landOn
-        return pieceSvg(set, color, kind, {
+        return pieceSvg(opts.bySide?.[color] ?? set, color, kind, {
           badge: opts.badge,
           styles: opts.styles,
           className: landing ? 'piece land' : 'piece',
