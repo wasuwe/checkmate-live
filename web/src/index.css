@@ -5532,19 +5532,8 @@ a.cb-card:focus-visible {
   }
 }
 
-/* มือถือเตี้ยมาก: ชุดหมากเลือกได้อีกทีในเกม (เมนูที่ป้ายรหัสห้อง) */
-@media (max-width: 860px) and (max-height: 620px) {
-  .lobby-sets {
-    display: none;
-  }
-}
-
-/* มือถือแนวนอน: ที่นั่งอยู่ซ้าย รหัสห้องกับแชทอยู่ขวา ชุดหมากเลือกได้อีกทีในเกม */
+/* มือถือแนวนอน: ที่นั่งอยู่ซ้าย รหัสห้อง แชท และชุดหมากอยู่ขวา */
 @media (min-width: 600px) and (max-height: 520px) {
-  .lobby-sets {
-    display: none;
-  }
-
   .lobby-chat .card-title,
   .lobby-chat .chat-empty {
     display: none;
@@ -5552,10 +5541,11 @@ a.cb-card:focus-visible {
 
   .lobby-grid {
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto auto 1fr;
     grid-template-areas:
       'players invite'
-      'players chat';
+      'players chat'
+      'players sets';
     gap: 8px;
   }
 
@@ -5592,6 +5582,31 @@ a.cb-card:focus-visible {
 
   .lobby-chat .chat-list {
     max-height: clamp(30px, 100dvh - 300px, 240px);
+  }
+
+  /* ชุดหมากเป็นแถวปุ่มแถวเดียวที่ปัดได้ เหมือนบนมือถือแนวตั้ง */
+  .lobby-sets {
+    align-self: start;
+  }
+
+  .lobby-sets-head {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .lobby-sets .row.wrap {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .lobby-sets .chip {
+    flex: none;
+    min-height: 40px;
   }
 
   /* คอลัมน์ขวาแคบ: ปุ่มแชร์ลงไปอยู่ใต้รหัสห้องได้ */
