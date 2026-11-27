@@ -90,6 +90,9 @@ export function RoomPage({ roomId, navigate }: Props) {
     return <Lobby state={state} lobby={state.lobby} stateAt={game.stateAt} online={online} sendReady={game.sendReady} chat={chat} />
   }
 
+  // ตราในแผงข้างกระดานเป็นสีทองเมื่อถึงตาของผู้ดู
+  const myTurn = state.status === 'playing' && state.you.color !== '' && state.turn === state.you.color
+
   // ระหว่างเกมและหลังจบ: กระดานใหญ่เต็มพื้นที่ ห้องยุบเป็นแถบด้านบน แชทอยู่ด้านล่าง
   return (
     <main className="screen full room">
@@ -149,6 +152,17 @@ export function RoomPage({ roomId, navigate }: Props) {
                 เล่นเกมใหม่
               </button>
             )}
+          </div>
+
+          {/* จอกว้าง: กลางแผงข้างกระดานมีตรากับสถานะตัวใหญ่ (จอแคบซ่อนไว้)
+              เป็นสำเนาของแถบสถานะด้านบน จึงซ่อนจากโปรแกรมอ่านหน้าจอ */}
+          <div className="game-side" aria-hidden="true">
+            <Emblem width={190} className={myTurn ? 'gold' : undefined} />
+            <p className="game-side-status starred">{statusText(state)}</p>
+            <p className="small">
+              {gameName(gameId)} · {describeTimeControl(state.tc)}
+            </p>
+            <p className="tiny game-side-tip">แตะรูปคู่แข่งเพื่อเปิดแชท</p>
           </div>
 
           {state.status === 'waiting' && <WaitingCard roomId={roomId} />}

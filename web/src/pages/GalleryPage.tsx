@@ -58,7 +58,7 @@ function Characters({ data }: { data: CreditsData }) {
 
   const list = ocsOf(data, filter)
   const oc = data.ocs.find((o) => o.id === selectedId) ?? data.ocs[0]
-  const color = safeColor(oc.color, '#FF8FB1')
+  const color = safeColor(oc.color, '#C9A45C')
   const image = safeImage(oc.image)
 
   function pickFilter(id: string) {
@@ -111,12 +111,12 @@ function Characters({ data }: { data: CreditsData }) {
                 aria-label={`${o.name} ของ ${owner.name}`}
                 onClick={() => setSelectedId(o.id)}
               >
-                <span className="oc-card-slash" style={{ background: safeColor(o.color, '#FF8FB1') }} />
+                <span className="oc-card-slash" style={{ background: safeColor(o.color, '#C9A45C') }} />
                 {face ? <img className="oc-card-face" src={face} alt="" loading="lazy" /> : <span className="oc-card-initial">{initialOf(o.name)}</span>}
                 <span className="oc-card-no">{ocNumber(data, o)}</span>
                 <span className="oc-card-name">
                   <span>{o.name}</span>
-                  <span style={{ color: safeColor(o.color, '#FF8FB1') }}>{owner.name}</span>
+                  <span style={{ color: safeColor(o.color, '#C9A45C') }}>{owner.name}</span>
                 </span>
                 {on && <span className="oc-card-p1">P1</span>}
               </button>
