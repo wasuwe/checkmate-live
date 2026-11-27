@@ -15,7 +15,7 @@ import { useGameSocket } from '../hooks/useGameSocket'
 import { clockAt, describeTimeControl, isUntimed } from '../lib/clock'
 import { gameName, gameOf } from '../lib/games'
 import { chatNames } from '../lib/lobby'
-import { absences, someoneArrived } from '../lib/presence'
+import { absences, doorShouldRing, newDoorMemory } from '../lib/presence'
 import type { ChatItem, Color, StateMsg } from '../lib/protocol'
 import { capturedSquares } from '../lib/fx'
 import { playDoorSound, playMoveSound } from '../lib/sound'
@@ -404,6 +404,7 @@ function ChatPopover({ pop, children }: { pop: ChatPopup; children: React.ReactN
  */
 function useTurnAlert(state: StateMsg | null): [number, boolean] {
   const prev = useRef<StateMsg | null>(null)
+  const door = useRef(newDoorMemory())
   const [seq, setSeq] = useState(0)
   const [toastSeq, setToastSeq] = useState(0)
 
@@ -416,7 +417,8 @@ function useTurnAlert(state: StateMsg | null): [number, boolean] {
       playMoveSound(capturedSquares(before, state).length > 0 ? 'capture' : 'move')
     }
     // คู่แข่งหรือผู้ชมเข้าห้อง: เสียงประตูเปิดกับกระดิ่งประตู (ใช้ตัวเปิด/ปิดเสียงเดียวกับเสียงหมาก)
-    if (state && someoneArrived(before, state) && turnSoundOn()) playDoorSound()
+    // ตัดสินทุก state แม้ปิดเสียงอยู่ เพื่อให้ความจำเรื่องคนเข้าออกถูกต้องตอนเปิดเสียงกลับมา
+    if (state && doorShouldRing(before, state, door.current, Date.now()) && turnSoundOn()) playDoorSound()
     if (!state || !becameMyTurn(before, state)) return
     const next = seq + 1
     setSeq(next)

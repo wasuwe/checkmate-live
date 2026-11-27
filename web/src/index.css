@@ -1504,11 +1504,6 @@ body:has(.home)::before {
   grid-template-rows: repeat(5, 1fr);
 }
 
-.mini-board.four {
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(4, 1fr);
-}
-
 .mini-board > div {
   position: relative;
   display: flex;
@@ -1526,10 +1521,6 @@ body:has(.home)::before {
   width: 92%;
   height: 92%;
   overflow: visible;
-}
-
-.mini-board.four > div {
-  font-size: 19cqw;
 }
 
 .mini-dot {
@@ -6238,5 +6229,57 @@ a.cb-card:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .btn.nudge {
     animation: none;
+  }
+}
+
+/* ---------- ภาพตัวอย่างของชุดหมากรุกในคลัง: ตัวหมากเป็นตัวเด่น ---------- */
+
+.set-show {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--gold);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 3px 10px rgba(30, 42, 107, 0.16);
+}
+
+.set-show > div {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+
+/* เบี้ยตัวละครของสองฝั่ง: ช่องใหญ่ครึ่งความกว้าง */
+.set-show > .big {
+  grid-column: span 2;
+}
+
+.set-show .show-piece {
+  width: 84%;
+  height: 84%;
+  overflow: visible;
+  filter: drop-shadow(0 2px 1.5px rgba(20, 25, 70, 0.28));
+}
+
+.set-show > .big .show-piece {
+  width: 92%;
+  height: 92%;
+  transition: translate 0.4s var(--bounce);
+}
+
+/* ชี้ที่ชุดไหน ตัวละครของชุดนั้นเด้งขึ้นเล็กน้อย ฝั่งดำตามหลังนิดหนึ่ง */
+.catalog-item:hover .set-show > .big .show-piece,
+.slot-pick:hover .set-show > .big .show-piece {
+  translate: 0 -5%;
+}
+
+.catalog-item:hover .set-show > .big + .big .show-piece,
+.slot-pick:hover .set-show > .big + .big .show-piece {
+  transition-delay: 0.07s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .set-show > .big .show-piece {
+    transition: none;
   }
 }

@@ -167,17 +167,42 @@ export function renderMoveSound(ac: BaseAudioContext, kind: MoveSound, at = ac.c
   else knock(ac, master, style, at, 1, vary())
 }
 
-/** เล่นเสียงหมาก เบราว์เซอร์ที่ไม่ยอมเล่นเสียงจะเงียบไปเฉย ๆ */
-export function playMoveSound(kind: MoveSound, styleId?: string): void {
+/** เสียงที่รอให้เบราว์เซอร์ยอมเล่นได้ไม่เกินเท่านี้ (ms) เกินแล้วทิ้ง */
+export const SOUND_WAIT_MS = 400
+
+/**
+ * เล่นเสียงหนึ่งครั้งด้วย `render` เบราว์เซอร์ที่ไม่ยอมเล่นเสียงจะเงียบไปเฉย ๆ
+ *
+ * เบราว์เซอร์ไม่ให้หน้าเว็บเล่นเสียงจนกว่าผู้ใช้จะกดอะไรสักอย่าง ระหว่างนั้น AudioContext อยู่ในสถานะ suspended
+ * และนาฬิกาของมันหยุดเดิน ถ้าวาดเสียงลงไปตอนนั้น เสียงทุกครั้งจะค้างอยู่ที่เวลาเดียวกัน แล้วดังออกมาพร้อมกันทั้งหมด
+ * ตอนที่ผู้ใช้กดครั้งแรก (เช่น ผู้ชมที่เปิดลิงก์ดูเฉย ๆ ไปสามสิบตา แล้วได้ยินเสียงหมากสามสิบครั้งซ้อนกัน)
+ * จึงวาดเสียงเฉพาะเมื่อเล่นได้จริง: ถ้ายัง suspended ให้ขอเปิด แล้วเล่นก็ต่อเมื่อเปิดได้ทันที เสียงที่รอนานถูกทิ้ง
+ */
+function play(render: (ac: AudioContext) => void): void {
   try {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
     if (!Ctx) return
     ctx ??= new Ctx()
-    if (ctx.state === 'suspended') void ctx.resume()
-    renderMoveSound(ctx, kind, ctx.currentTime, styleId)
+    const ac = ctx
+    if (ac.state === 'running') {
+      render(ac)
+      return
+    }
+    const asked = performance.now()
+    ac.resume().then(
+      () => {
+        if (ac.state === 'running' && performance.now() - asked <= SOUND_WAIT_MS) render(ac)
+      },
+      () => {}, // เปิดไม่ได้ก็ไม่มีเสียง
+    )
   } catch {
     // ไม่มีเสียงก็เล่นต่อได้
   }
+}
+
+/** เล่นเสียงหมาก */
+export function playMoveSound(kind: MoveSound, styleId?: string): void {
+  play((ac) => renderMoveSound(ac, kind, ac.currentTime, styleId))
 }
 
 // ---------- เสียงคนเข้าห้อง: ประตูเปิดแล้วกระดิ่งประตูดัง (เจ้าของโปรเจกต์ขอ 2026-11-27) ----------
@@ -270,15 +295,7 @@ export function renderDoorSound(ac: BaseAudioContext, at = ac.currentTime): void
   }
 }
 
-/** เล่นเสียงประตูกับกระดิ่ง เบราว์เซอร์ที่ไม่ยอมเล่นเสียงจะเงียบไปเฉย ๆ */
+/** เล่นเสียงประตูกับกระดิ่ง */
 export function playDoorSound(): void {
-  try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-    if (!Ctx) return
-    ctx ??= new Ctx()
-    if (ctx.state === 'suspended') void ctx.resume()
-    renderDoorSound(ctx, ctx.currentTime)
-  } catch {
-    // ไม่มีเสียงก็เล่นต่อได้
-  }
+  play((ac) => renderDoorSound(ac, ac.currentTime))
 }

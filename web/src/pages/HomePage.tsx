@@ -16,7 +16,7 @@ const CODE_LENGTH = ROOM_ID_LENGTH
 
 /**
  * เหลือเฉพาะตัวอักษรภาษาอังกฤษและตัวเลข ตัวเล็กถูกแปลงเป็นตัวใหญ่
- * ตัวที่ไม่มีในรหัส (0 O 1 I L) ยังพิมพ์ได้ให้เห็น แต่รหัสจะไม่ผ่านและปุ่มเข้าห้องกดไม่ได้
+ * ตัวที่ไม่มีในรหัส (0 O 1 I L) ยังพิมพ์ได้ให้เห็น กดเข้าห้องแล้วจะแจ้งว่าไม่พบห้อง
  * ช่องกรอกไม่ตั้ง maxLength เพราะรหัสที่คัดลอกมาอาจมีช่องว่างคั่น (เช่น "K7Q 2XM") ซึ่งจะถูกตัดท้ายก่อนถึงตรงนี้
  */
 function cleanCode(value: string): string {
@@ -28,6 +28,9 @@ export function HomePage({ navigate }: Props) {
   const [joinOpen, setJoinOpen] = useState(false)
   const [code, setCode] = useState('')
   const ready = isRoomId(code)
+  // กรอกครบ 6 ตัวแล้วกดได้เสมอ รหัสที่รูปแบบไม่ถูก (เช่น มี 0 O 1 I L หรือเป็นตัวอักษรล้วน) ก็แจ้งว่าไม่พบห้อง
+  // เดิมปุ่มกดไม่ได้เฉย ๆ โดยไม่บอกอะไร ผู้ใช้จึงไม่รู้ว่ารหัสผิด (เจ้าของโปรเจกต์แจ้ง 2026-11-27)
+  const full = code.length === CODE_LENGTH
   const [checking, setChecking] = useState(false)
   // ข้อความแจ้งเมื่อรหัสที่กรอกไม่มีห้อง แสดงที่หน้านี้เลย ไม่พาไปหน้าอื่น (เจ้าของโปรเจกต์กำหนด)
   const [joinError, setJoinError] = useState<string | null>(null)
@@ -39,7 +42,11 @@ export function HomePage({ navigate }: Props) {
 
   async function onJoin(e: FormEvent) {
     e.preventDefault()
-    if (!ready || checking) return
+    if (!full || checking) return
+    if (!ready) {
+      setJoinError('ไม่พบห้องรหัสนี้ ตรวจรหัสอีกครั้ง (รหัสห้องมีทั้งตัวอักษรและตัวเลข และไม่มี 0 O 1 I L)')
+      return
+    }
     setChecking(true)
     const found = await roomExists(code)
     setChecking(false)
@@ -123,7 +130,7 @@ export function HomePage({ navigate }: Props) {
                 {joinError}
               </p>
             )}
-            <button type="submit" className={`btn strong${ready ? ' pink' : ''}`} disabled={!ready || checking}>
+            <button type="submit" className={`btn strong${full ? ' pink' : ''}`} disabled={!full || checking}>
               {checking ? 'กำลังตรวจรหัส…' : 'เข้าห้อง'}
             </button>
           </form>
