@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { lineEnds, reachOf } from './moves'
 import { halfOf, isDarkSquare, setById, sideSets } from './pieceSets'
+import { someoneArrived } from './presence'
 import type { StateMsg } from './protocol'
 import { rematchView } from './text'
 
@@ -139,5 +140,41 @@ describe('rematch after the game', () => {
 
   test('there is nothing to ask while the game is still on', () => {
     expect(rematchView(state())).toMatchObject({ canAsk: false, button: '', note: '' })
+  })
+})
+
+describe('door bell when someone enters the room', () => {
+  const seat = (you: boolean, connected = true) => ({ you, connected, ready: false })
+  const lobby = (others: number, watching = 0) =>
+    state({
+      status: 'waiting',
+      lobby: { seats: [seat(true), ...Array.from({ length: others }, () => seat(false))] },
+      watching,
+    })
+
+  test('rings when the opponent sits down and when a spectator comes in', () => {
+    expect(someoneArrived(lobby(0), lobby(1))).toBe(true)
+    expect(someoneArrived(lobby(1), lobby(1, 1))).toBe(true)
+    expect(someoneArrived(lobby(1, 1), lobby(1, 2))).toBe(true)
+  })
+
+  test('does not ring for our own arrival, for people leaving, or when nothing changed', () => {
+    expect(someoneArrived(null, lobby(1, 3))).toBe(false)
+    expect(someoneArrived(lobby(1, 1), lobby(1, 0))).toBe(false)
+    expect(someoneArrived(lobby(1), lobby(1))).toBe(false)
+  })
+
+  test('does not ring when the same people only change places', () => {
+    const playing = state({ players: { w: { connected: true }, b: { connected: true } }, watching: 1 })
+    // ห้องรอกลายเป็นเกม
+    expect(someoneArrived(lobby(1, 1), playing)).toBe(false)
+    // คนที่ถูกเชิญออกจากที่นั่งกลายเป็นผู้ชม
+    expect(someoneArrived(lobby(1, 0), lobby(0, 1))).toBe(false)
+  })
+
+  test('rings when a player who dropped out of the game comes back', () => {
+    const away = state({ players: { w: { connected: true }, b: { connected: false } } })
+    const back = state({ players: { w: { connected: true }, b: { connected: true } } })
+    expect(someoneArrived(away, back)).toBe(true)
   })
 })

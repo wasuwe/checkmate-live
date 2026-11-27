@@ -15,10 +15,10 @@ import { useGameSocket } from '../hooks/useGameSocket'
 import { clockAt, describeTimeControl, isUntimed } from '../lib/clock'
 import { gameName, gameOf } from '../lib/games'
 import { chatNames } from '../lib/lobby'
-import { absences } from '../lib/presence'
+import { absences, someoneArrived } from '../lib/presence'
 import type { ChatItem, Color, StateMsg } from '../lib/protocol'
 import { capturedSquares } from '../lib/fx'
-import { playMoveSound } from '../lib/sound'
+import { playDoorSound, playMoveSound } from '../lib/sound'
 import { becameMyTurn, setTurnSound, turnSoundOn, useTurnSound } from '../lib/turnAlert'
 import { shouldToss, tossView, type TossView } from '../lib/toss'
 import {
@@ -409,6 +409,8 @@ function useTurnAlert(state: StateMsg | null): [number, boolean] {
     if (state && before && state.ply === before.ply + 1 && turnSoundOn()) {
       playMoveSound(capturedSquares(before, state).length > 0 ? 'capture' : 'move')
     }
+    // คู่แข่งหรือผู้ชมเข้าห้อง: เสียงประตูเปิดกับกระดิ่งประตู (ใช้ตัวเปิด/ปิดเสียงเดียวกับเสียงหมาก)
+    if (state && someoneArrived(before, state) && turnSoundOn()) playDoorSound()
     if (!state || !becameMyTurn(before, state)) return
     const next = seq + 1
     setSeq(next)
@@ -447,7 +449,7 @@ function useTurnAlert(state: StateMsg | null): [number, boolean] {
 /** ป้าย "ถึงตาคุณแล้ว!" แสดงนานเท่ากับการเคลื่อนไหวของมัน (turnToast ใน index.css) */
 const TOAST_MS = 1800
 
-/** ปุ่มเปิด/ปิดเสียงวางหมาก */
+/** ปุ่มเปิด/ปิดเสียงในเกม (เสียงวางหมาก และเสียงประตูเมื่อมีคนเข้าห้อง) */
 function TurnSoundToggle() {
   const on = useTurnSound()
   return (
@@ -460,7 +462,7 @@ function TurnSoundToggle() {
         if (!on) playMoveSound('move') // ให้ได้ยินตัวอย่างตอนเปิด
       }}
     >
-      {on ? 'เสียงหมาก: เปิด' : 'เสียงหมาก: ปิด'}
+      {on ? 'เสียงในเกม: เปิด' : 'เสียงในเกม: ปิด'}
     </button>
   )
 }

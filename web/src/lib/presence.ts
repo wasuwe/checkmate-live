@@ -23,3 +23,20 @@ export function absences(state: StateMsg, stateAt: number, now: number): Absence
   }
   return out
 }
+
+/** จำนวนคนอื่นที่อยู่ในห้องตอนนี้: ผู้เล่นคนอื่นที่เชื่อมต่ออยู่ (ที่นั่งในห้องรอ หรือฝั่งในเกม) รวมกับผู้ชม */
+function othersPresent(state: StateMsg): number {
+  const seated = state.lobby
+    ? state.lobby.seats.filter((s) => !s.you && s.connected).length
+    : Object.entries(state.players ?? {}).filter(([color, p]) => color !== state.you.color && p.connected).length
+  return seated + (state.watching ?? 0)
+}
+
+/**
+ * มีคนเพิ่งเข้าห้องหรือไม่ (เทียบกับ state ก่อนหน้า): คู่แข่งเข้ามานั่ง ผู้ชมเข้ามาดู หรือคนที่หลุดกลับเข้ามา
+ * ใช้เล่นเสียงประตูกับกระดิ่ง ไม่นับ state แรกหลังเราเข้าห้องเอง และไม่นับการย้ายที่ของคนเดิม
+ * (เช่น ห้องรอกลายเป็นเกม หรือคนที่ถูกเชิญออกจากที่นั่งกลายเป็นผู้ชม)
+ */
+export function someoneArrived(prev: StateMsg | null, next: StateMsg): boolean {
+  return prev !== null && othersPresent(next) > othersPresent(prev)
+}
