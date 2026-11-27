@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChatPanel } from '../components/ChatPanel'
+import { Emblem } from '../components/Emblem'
 import { ClockRow } from '../components/ClockRow'
 import { CoinToss } from '../components/CoinToss'
 import { Lobby } from '../components/Lobby'
@@ -479,10 +480,11 @@ function GameOverDialog({ state, navigate }: { state: StateMsg; navigate: (to: s
         aria-labelledby="result-title"
         onClick={(e) => e.stopPropagation()}
       >
+        <Emblem width={170} className="gold" />
         <div className="medal result-medal" style={{ background: medal.bg }} aria-hidden="true">
           {medal.glyph + VS}
         </div>
-        <h2 className="title" id="result-title">
+        <h2 className="title starred" id="result-title">
           {headline}
         </h2>
         {reason && <p>{reason}</p>}

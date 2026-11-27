@@ -1,6 +1,8 @@
 import { useIsAdmin } from '../lib/admin'
 import { useState, type ClipboardEvent, type FormEvent } from 'react'
 import { AccountPanel } from '../components/AccountPanel'
+import { Emblem } from '../components/Emblem'
+import { StageScene } from '../components/StageScene'
 import { VS } from '../lib/pieceSets'
 import { extractRoomId, isRoomId, ROOM_ID_LENGTH } from '../lib/protocol'
 import { roomPath, ADMIN_PATH, PIECE_STUDIO_PATH } from '../lib/router'
@@ -41,17 +43,13 @@ export function HomePage({ navigate }: Props) {
 
   return (
     <main className="screen home">
+      {/* ฉากเวทีกลางคืน: จอกว้างอยู่ครึ่งซ้ายของหน้า จอแคบเป็นแถบด้านบน */}
+      <StageScene className="home-scene">
+        <span className="stage-actor queen">{'♛' + VS}</span>
+        <span className="stage-actor knight">{'♞' + VS}</span>
+      </StageScene>
       <div className="hero">
-        <div className="hero-pieces" aria-hidden="true">
-          <span style={{ color: '#FFB8CC', transform: 'rotate(-14deg) translateY(6px)' }}>{'♜' + VS}</span>
-          <span className="tall" style={{ color: '#FFDC85', transform: 'rotate(-4deg)' }}>
-            {'♚' + VS}
-          </span>
-          <span className="tall" style={{ color: '#9FE3C9', transform: 'rotate(5deg)' }}>
-            {'♛' + VS}
-          </span>
-          <span style={{ color: '#C9BDFF', transform: 'rotate(14deg) translateY(6px)' }}>{'♞' + VS}</span>
-        </div>
+        <Emblem />
         <h1 className="hero-name">
           CheckMate <em>Live</em>
         </h1>

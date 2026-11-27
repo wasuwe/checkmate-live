@@ -383,7 +383,9 @@ input::placeholder {
 
 /* หัวข้อหลักของหน้ามีดาวสี่แฉกสีทองขนาบสองข้าง (✦ หัวข้อ ✦) */
 h1.title::before,
-h1.title::after {
+h1.title::after,
+.starred::before,
+.starred::after {
   content: '✦';
   display: inline-block;
   margin: 0 0.45em;
@@ -394,6 +396,10 @@ h1.title::after {
 
 h1.title::before {
   margin-left: 0;
+}
+
+.emblem.gold .emblem-crown {
+  fill: var(--gold);
 }
 
 .subtitle {
@@ -761,7 +767,7 @@ h1.title::before {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 18px; /* ให้เนื้อหาเริ่มใต้ขอบคลื่นของฉากฟ้า */
+  margin-bottom: 26px; /* ให้เนื้อหาเริ่มใต้ขอบคลื่นของฉากฟ้า */
 }
 
 .brand {
@@ -842,7 +848,7 @@ h1.title::before {
 .home {
   align-items: center;
   gap: 22px;
-  padding-top: 28px;
+  padding-top: 196px; /* เว้นที่ให้ฉากเวทีด้านบน */
 }
 
 .hero {
@@ -853,49 +859,186 @@ h1.title::before {
   padding: 26px 10px 0;
 }
 
-.hero-pieces {
-  display: flex;
-  gap: 2px;
-  align-items: flex-end;
-  font-family: var(--font-glyph);
-  font-size: clamp(46px, 14vw, 64px);
-  line-height: 1;
-  -webkit-text-stroke: 2.5px var(--ink);
-}
-
-.hero-pieces > span {
-  animation: float 3.2s ease-in-out infinite;
-}
-
-.hero-pieces > span:nth-child(2) {
-  animation-delay: -0.8s;
-}
-
-.hero-pieces > span:nth-child(3) {
-  animation-delay: -1.6s;
-}
-
-.hero-pieces > span:nth-child(4) {
-  animation-delay: -2.4s;
-}
-
-.hero-pieces .tall {
-  font-size: clamp(60px, 18vw, 84px);
-}
-
 .hero-name {
   font-family: var(--font-head);
-  font-weight: 600;
-  font-size: clamp(32px, 10vw, 44px);
-  line-height: 1.05;
+  font-weight: 700;
+  font-size: clamp(30px, 9vw, 40px);
+  line-height: 1.15;
   text-align: center;
-  margin-top: 10px;
-  letter-spacing: -0.5px;
+  margin-top: 4px;
+}
+
+.hero-name::before,
+.hero-name::after {
+  content: '✦';
+  display: inline-block;
+  margin: 0 0.4em;
+  color: var(--gold);
+  font-size: 0.45em;
+  vertical-align: 0.4em;
 }
 
 .hero-name em {
   font-style: normal;
-  color: var(--pink-strong);
+  color: var(--gold-ink);
+}
+
+/* ---------- ฉากเวทีกลางคืน (StageScene) ---------- */
+
+.stage-scene {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    160deg,
+    var(--night-1) 0%,
+    var(--night-2) 50%,
+    var(--night-3) 82%,
+    #c9cff0 100%
+  );
+  pointer-events: none;
+}
+
+.stage-arch {
+  position: absolute;
+  bottom: -4px;
+  border: 3px solid rgba(255, 236, 180, 0.5);
+  border-bottom: none;
+  border-radius: 999px 999px 0 0;
+  background: rgba(255, 226, 140, 0.2);
+}
+
+.stage-arch.a {
+  left: 10%;
+  width: 24%;
+  height: 66%;
+}
+
+.stage-arch.b {
+  left: 48%;
+  width: 32%;
+  height: 82%;
+  background: rgba(255, 226, 140, 0.3);
+}
+
+.stage-star {
+  position: absolute;
+  animation: twinkle 3.6s ease-in-out infinite;
+}
+
+.stage-star:nth-of-type(2n) {
+  animation-delay: -1.4s;
+}
+
+.stage-star:nth-of-type(3n) {
+  animation-delay: -2.3s;
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+  50% {
+    opacity: 0.55;
+    scale: 0.8;
+  }
+}
+
+.stage-glow {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -16%;
+  height: 50%;
+  background:
+    radial-gradient(closest-side at 32% 66%, rgba(255, 220, 110, 0.75), transparent),
+    radial-gradient(closest-side at 74% 72%, rgba(210, 216, 255, 0.7), transparent);
+}
+
+/* ตัวละครบนเวที: หมากตัวใหญ่เรืองแสง */
+.stage-actor {
+  position: absolute;
+  font-family: var(--font-glyph);
+  line-height: 1;
+  color: var(--paper);
+  text-shadow:
+    0 0 28px rgba(255, 226, 140, 0.85),
+    0 8px 0 rgba(30, 42, 107, 0.3);
+  animation: float 4s ease-in-out infinite;
+}
+
+.stage-actor.dark {
+  color: var(--ink);
+}
+
+.emblem {
+  display: block;
+  color: var(--ink);
+}
+
+.emblem .emblem-crown {
+  fill: currentColor;
+}
+
+/* ---------- หน้าแรก: ฉากเวทีด้านซ้าย (จอกว้าง) หรือด้านบน (จอแคบ) ---------- */
+
+body:has(.home)::before {
+  display: none;
+}
+
+.home-scene {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 230px;
+  clip-path: polygon(0 0, 100% 0, 100% 86%, 80% 94%, 58% 88%, 36% 96%, 16% 89%, 0 95%);
+  animation: none;
+}
+
+.home-scene .stage-actor.queen {
+  left: 24%;
+  bottom: 14%;
+  font-size: 92px;
+  color: var(--ink);
+  animation-delay: -1.8s;
+}
+
+.home-scene .stage-actor.knight {
+  left: 56%;
+  bottom: 10%;
+  font-size: 140px;
+}
+
+@media (min-width: 960px) {
+  .app:has(> .home) {
+    padding-left: 46vw;
+  }
+
+  .home {
+    justify-content: center;
+    min-height: calc(100vh - 68px);
+    padding-top: 20px;
+  }
+
+  .home-scene {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 46vw;
+    height: auto;
+    clip-path: polygon(0 0, 100% 0, 89% 25%, 97% 50%, 86% 75%, 93% 100%, 0 100%);
+  }
+
+  .home-scene .stage-actor.queen {
+    left: 14%;
+    bottom: 18%;
+    font-size: 150px;
+  }
+
+  .home-scene .stage-actor.knight {
+    left: 46%;
+    bottom: 14%;
+    font-size: 260px;
+  }
 }
 
 .menu {
@@ -915,8 +1058,8 @@ h1.title::before {
   width: 100%;
   padding: 16px;
   border: 1px solid var(--frame);
-  border-radius: 20px;
-  background: var(--mint);
+  border-radius: 16px;
+  background: var(--paper);
   box-shadow: 0 5px 15px rgba(30, 42, 107, 0.14);
   display: flex;
   flex-direction: column;
@@ -975,31 +1118,35 @@ h1.title::before {
   gap: 12px;
 }
 
-/* ลิงก์ท้ายหน้าแรก: ป้ายเล็กแบบสติกเกอร์ ไม่ตัดคำกลางลิงก์ ถ้าที่ไม่พอจะขึ้นแถวใหม่ทั้งป้าย */
+/* ลิงก์ท้ายหน้าแรก: ตัวหนังสือเรียบ คั่นด้วยดาวสีทอง ไม่ตัดคำกลางลิงก์ ถ้าที่ไม่พอจะขึ้นแถวใหม่ทั้งลิงก์ */
 .footer-links {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
+  align-items: center;
+  gap: 0 4px;
   font-size: 14px;
 }
 
 .footer-links button.link {
   min-height: 44px;
-  padding: 6px 14px;
-  border: 1px solid var(--frame);
-  border-radius: 999px;
-  background: var(--paper);
+  padding: 6px 8px;
   color: var(--ink);
-  font-weight: 700;
+  font-weight: 500;
   white-space: nowrap;
-  transition: translate 0.35s var(--bounce);
+}
+
+.footer-links button.link + button.link::before {
+  content: '✦';
+  margin-right: 12px;
+  color: var(--gold);
+  font-size: 10px;
+  vertical-align: 2px;
 }
 
 .footer-links button.link:hover:not(:disabled) {
-  translate: 0 -2px;
+  color: var(--gold-ink);
   text-decoration: none;
-  background: var(--butter);
 }
 
 /* ---------- เข้าสู่ระบบ / สมัคร ---------- */
@@ -1026,20 +1173,23 @@ h1.title::before {
   gap: 4px;
 }
 
+/* เหรียญเป็นซุ้มโค้งกรอบทอง มีหมากอยู่ข้างใน */
 .medal {
   width: 84px;
-  height: 84px;
-  border: 1px solid var(--frame);
-  border-radius: 50%;
-  box-shadow: 0 5px 15px rgba(30, 42, 107, 0.14);
+  height: 100px;
+  border: 1px solid var(--gold);
+  border-radius: 50% 50% 10px 10px / 46px 46px 10px 10px;
+  box-shadow:
+    0 0 0 3px var(--paper),
+    0 0 0 4px var(--gold),
+    var(--lift);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-glyph);
   font-size: 52px;
   line-height: 1;
-  color: #fff;
-  -webkit-text-stroke: 2px var(--ink);
+  color: var(--ink);
   margin-bottom: 10px;
 }
 
@@ -1217,15 +1367,16 @@ h1.title::before {
 .game-card {
   position: relative;
   min-width: 0;
-  text-align: left;
-  padding: clamp(10px, 3vw, 18px);
+  text-align: center;
+  padding: clamp(10px, 3vw, 16px) clamp(10px, 3vw, 16px) clamp(14px, 3.6vw, 20px);
   border: 1px solid var(--frame);
-  border-radius: clamp(18px, 4vw, 24px);
+  border-radius: 50% 50% 14px 14px / 120px 120px 14px 14px; /* ซุ้มโค้งแบบเวที */
   background: var(--paper);
-  box-shadow: 0 4px 12px rgba(30, 42, 107, 0.14);
+  box-shadow: var(--lift);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
   font-family: var(--font-body);
   transition:
     translate 0.35s var(--bounce),
@@ -1238,28 +1389,30 @@ h1.title::before {
 }
 
 .game-card.picked {
-  background: var(--picked);
-  box-shadow: 0 7px 21px rgba(30, 42, 107, 0.14);
+  border-color: var(--gold);
+  box-shadow:
+    0 0 0 3px rgba(201, 164, 92, 0.35),
+    var(--lift);
   translate: 0 -3px;
 }
 
+/* รูปเกมในซุ้มโค้ง สีพื้นมาจากสีประจำเกม (games.ts) */
 .game-art {
-  height: clamp(76px, 22vw, 110px);
-  border: 1px solid var(--frame);
-  border-radius: 16px;
+  align-self: stretch;
+  height: clamp(96px, 28vw, 150px);
+  border-radius: 50% 50% 8px 8px / 90px 90px 8px 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-glyph);
-  font-size: clamp(46px, 14vw, 72px);
+  font-size: clamp(48px, 15vw, 84px);
   line-height: 1;
-  color: #fff;
-  -webkit-text-stroke: 2.5px var(--ink);
+  color: var(--ink);
 }
 
 .game-name {
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: clamp(17px, 4.5vw, 21px);
 }
 
@@ -1294,7 +1447,9 @@ h1.title::before {
 }
 
 .tc[aria-pressed='true'] {
-  background: var(--butter);
+  border-color: var(--pill);
+  background: var(--pill);
+  color: var(--cream);
 }
 
 .tc b {
@@ -1311,7 +1466,7 @@ h1.title::before {
   position: fixed;
   inset: 0;
   z-index: 20;
-  background: rgba(59, 47, 74, 0.45);
+  background: rgba(30, 32, 50, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1320,13 +1475,17 @@ h1.title::before {
   animation: fade 0.25s ease both;
 }
 
+/* ป็อปอัปเป็นกระดาษงาช้างมีกรอบทองสองชั้น */
 .dialog {
   width: 100%;
   max-width: 460px;
   background: var(--paper);
-  border: 1px solid var(--frame);
-  border-radius: 24px;
-  box-shadow: 0 8px 24px rgba(30, 42, 107, 0.14);
+  border: 1px solid var(--gold);
+  border-radius: 18px;
+  box-shadow:
+    0 0 0 5px var(--paper),
+    0 0 0 6px var(--gold),
+    0 30px 60px rgba(0, 0, 0, 0.3);
   padding: clamp(16px, 4.5vw, 22px);
   display: flex;
   flex-direction: column;
@@ -1342,7 +1501,7 @@ h1.title::before {
 
 .dialog-title {
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 21px;
 }
 
@@ -1350,9 +1509,10 @@ h1.title::before {
   width: 44px;
   height: 44px;
   flex: none;
-  border: 1px solid var(--frame);
-  border-radius: 12px;
-  background: var(--paper);
+  border: none;
+  border-radius: 50%;
+  background: var(--pill);
+  color: var(--cream);
   font-size: 15px;
   padding: 0;
 }
@@ -1389,8 +1549,8 @@ h1.title::before {
 
 .result-medal {
   width: 96px;
-  height: 96px;
-  font-size: 58px;
+  height: 116px;
+  font-size: 60px;
   margin: 0;
 }
 
@@ -1449,7 +1609,8 @@ h1.title::before {
 }
 
 .clock-row.running {
-  background: var(--butter);
+  border-color: var(--gold);
+  background: linear-gradient(90deg, rgba(201, 164, 92, 0.32), rgba(201, 164, 92, 0.06)), var(--paper);
 }
 
 .clock-player {
@@ -1494,13 +1655,14 @@ h1.title::before {
   color: var(--error);
 }
 
+/* กรอบกระดานเป็นเส้นทองสองชั้นบนกระดาษงาช้าง เหมือนกรอบรูปบนเวที */
 .board {
   position: relative;
   width: 100%;
   aspect-ratio: 1;
-  border: 1px solid var(--frame);
-  border-radius: 20px;
-  box-shadow: 0 7px 21px rgba(30, 42, 107, 0.14);
+  border: 6px double var(--gold);
+  border-radius: 10px;
+  box-shadow: 0 18px 40px rgba(20, 25, 70, 0.3);
   background: var(--paper);
   container-type: inline-size;
 }
@@ -1509,7 +1671,7 @@ h1.title::before {
 .board-clip {
   width: 100%;
   height: 100%;
-  border-radius: 15px;
+  border-radius: 4px;
   overflow: hidden;
 }
 
@@ -1704,9 +1866,13 @@ h1.title::before {
 }
 
 .room-code.huge {
-  font-size: clamp(24px, 7vw, 34px);
-  letter-spacing: 3px;
+  font-weight: 700;
+  font-size: clamp(28px, 8vw, 40px);
+  letter-spacing: 6px;
   text-align: center;
+  padding: 2px 18px;
+  border-top: 1px solid var(--gold);
+  border-bottom: 1px solid var(--gold);
 }
 
 .waiting {
@@ -2970,31 +3136,44 @@ a.link-card:hover {
 
 .lobby-vs {
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 20px;
-  opacity: 0.55;
+  color: var(--gold);
 }
 
+/* ที่นั่งเป็นซุ้มโค้งบนเวทีกลางคืน คนที่พร้อมแล้วมีแสงทองล้อมรอบ */
 .lobby-seat {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   min-width: 0;
-  padding: 14px 8px;
-  border: 1px solid var(--frame);
-  border-radius: 18px;
-  background: var(--paper);
-  transition: background-color 0.25s ease;
+  padding: 22px 8px 14px;
+  border: 1px solid rgba(255, 236, 180, 0.55);
+  border-radius: 50% 50% 14px 14px / 90px 90px 14px 14px;
+  background: linear-gradient(170deg, var(--night-1) 0%, var(--night-2) 65%, var(--night-3) 100%);
+  color: var(--cream);
+  transition:
+    box-shadow 0.3s ease,
+    opacity 0.3s ease;
+}
+
+.lobby-seat .avatar,
+.lobby-seat img {
+  box-shadow: 0 0 22px rgba(255, 226, 140, 0.55);
 }
 
 .lobby-seat.ready {
-  background: var(--mint);
+  border-color: var(--gold);
+  box-shadow:
+    0 0 0 2px var(--gold),
+    0 0 26px rgba(255, 216, 107, 0.55);
 }
 
 .lobby-seat.empty {
-  border-style: dashed;
+  border: 1px dashed var(--frame);
   background: transparent;
+  color: var(--muted);
 }
 
 .lobby-seat.away {
@@ -3004,7 +3183,7 @@ a.link-card:hover {
 .lobby-seat-empty {
   width: 56px;
   height: 56px;
-  border: 1px dashed var(--frame);
+  border: 1px dashed var(--muted);
   border-radius: 50%;
   opacity: 0.5;
 }
@@ -3016,8 +3195,14 @@ a.link-card:hover {
   white-space: nowrap;
 }
 
+.lobby-seat-status {
+  color: var(--ink);
+}
+
 .lobby-seat.ready .lobby-seat-status {
-  background: var(--paper);
+  border-color: var(--gold);
+  background: var(--pill);
+  color: #ffe9a8;
 }
 
 .lobby-hint {
@@ -3039,8 +3224,7 @@ a.link-card:hover {
   min-width: 1ch;
   font-size: 64px;
   line-height: 1;
-  color: var(--pink-strong);
-  -webkit-text-stroke: 2.5px var(--ink);
+  color: var(--gold-ink);
   animation: pop 0.35s var(--bounce) both;
 }
 
@@ -3073,9 +3257,18 @@ body:has(.game.stack) .topbar {
   display: none;
 }
 
-/* ระหว่างเล่นไม่มีแถบบน จึงซ่อนฉากฟ้าด้วย ให้ป้ายสถานะบนพื้นงาช้างอ่านง่าย (หน้าเล่นเกมจะออกแบบใหม่ในขั้นถัดไป) */
+/* ระหว่างเล่นไม่มีแถบบน จึงไม่ใช้แถบฉากฟ้าด้านบน แต่ใช้ฉากกลางคืนเต็มหน้าแทน */
 body:has(.game.stack)::before {
   display: none;
+}
+
+/* ระหว่างเล่น ทั้งหน้าเป็นเวทีกลางคืน กระดานกรอบทองวางอยู่กลางเวที */
+body:has(.game.stack) {
+  background: linear-gradient(170deg, var(--night-1) 0%, var(--night-2) 45%, var(--night-3) 80%, #cfd3ee 100%) fixed;
+}
+
+body:has(.game.stack) .room-bar .game-status {
+  color: var(--cream);
 }
 
 .app:has(.game.stack) {
@@ -3793,12 +3986,13 @@ a.cb-card:focus-visible {
   top: 46%;
   z-index: 12;
   padding: 10px 22px;
-  border: 1px solid var(--frame);
+  border: 1px solid var(--gold);
   border-radius: 999px;
-  background: var(--butter);
-  box-shadow: 0 5px 15px rgba(30, 42, 107, 0.14);
+  background: var(--pill);
+  color: #ffe9a8;
+  box-shadow: 0 10px 30px rgba(20, 25, 70, 0.35);
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: clamp(18px, 4cqw, 28px);
   white-space: nowrap;
   pointer-events: none;

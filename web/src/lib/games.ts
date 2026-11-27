@@ -13,10 +13,10 @@ export interface GameType {
 }
 
 export const GAMES: GameType[] = [
-  { id: 'chess', name: 'หมากรุกสากล', desc: 'กติกามาตรฐานสากล เล่นได้ทั่วโลก', glyph: '♞', bg: '#FFB8CC', soon: false },
-  { id: 'makruk', name: 'หมากรุกไทย', desc: 'เบี้ยเริ่มแถวที่สาม เดินแบบไทยแท้', glyph: '♜', bg: '#9FE3C9', soon: false },
-  { id: 'checkers', name: 'หมากฮอส', desc: 'เดินทแยง กินข้ามหัว เข้าฝั่งได้เป็นฮอส', glyph: '●', bg: '#C9BDFF', soon: false },
-  { id: 'neeb', name: 'หมากหนีบ', desc: 'เดินแบบเรือ หนีบหมากฝ่ายตรงข้ามไว้ตรงกลางเพื่อกิน', glyph: '◎', bg: '#A9D6F7', soon: false },
+  { id: 'chess', name: 'หมากรุกสากล', desc: 'กติกามาตรฐานสากล เล่นได้ทั่วโลก', glyph: '♞', bg: '#F3D6DE', soon: false },
+  { id: 'makruk', name: 'หมากรุกไทย', desc: 'เบี้ยเริ่มแถวที่สาม เดินแบบไทยแท้', glyph: '♜', bg: '#D3EADF', soon: false },
+  { id: 'checkers', name: 'หมากฮอส', desc: 'เดินทแยง กินข้ามหัว เข้าฝั่งได้เป็นฮอส', glyph: '●', bg: '#DED8F5', soon: false },
+  { id: 'neeb', name: 'หมากหนีบ', desc: 'เดินแบบเรือ หนีบหมากฝ่ายตรงข้ามไว้ตรงกลางเพื่อกิน', glyph: '◎', bg: '#D5E6F5', soon: false },
 ]
 
 /** เกมที่เล่นได้จริง (มีกติกาฝั่งเซิร์ฟเวอร์และหน้ากฎ) */
