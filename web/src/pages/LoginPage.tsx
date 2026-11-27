@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { PasswordInput } from '../components/PasswordInput'
+import { StageScene } from '../components/StageScene'
 import { useMe } from '../lib/me'
 import { VS } from '../lib/pieceSets'
 import { EMAIL_PATTERN } from '../lib/registration'
@@ -43,6 +44,10 @@ export function LoginPage({ navigate }: Props) {
 
   return (
     <main className="screen" style={{ maxWidth: 440, paddingTop: 12 }}>
+      {/* ฉากเวทีด้านซ้าย แสดงเฉพาะจอกว้าง */}
+      <StageScene className="auth-scene">
+        <span className="stage-actor">{'♚' + VS}</span>
+      </StageScene>
       <div className="auth-head">
         <div className="medal" style={{ background: 'var(--butter)' }} aria-hidden="true">
           {'♚' + VS}

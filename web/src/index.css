@@ -981,6 +981,42 @@ h1.title::before {
   fill: currentColor;
 }
 
+/* ---------- เข้าสู่ระบบ / สมัคร: ฉากเวทีด้านซ้ายเฉพาะจอกว้าง ---------- */
+
+.auth-scene {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .app:has(.auth-scene) {
+    padding-left: 40vw;
+  }
+
+  .auth-scene {
+    display: block;
+    position: fixed;
+    z-index: 1;
+    inset: 0 auto 0 0;
+    width: 40vw;
+    clip-path: polygon(0 0, 100% 0, 89% 25%, 97% 50%, 86% 75%, 93% 100%, 0 100%);
+    animation: none;
+  }
+
+  .auth-scene .stage-actor {
+    left: 50%;
+    bottom: 16%;
+    translate: -50% 0;
+    font-size: 230px;
+  }
+}
+
+/* หัวข้อในแถวที่ตัดบรรทัดได้ ไม่ถูกบีบจนเหลือบรรทัดละไม่กี่ตัวอักษร ข้อความข้าง ๆ จะลงไปแถวใหม่แทน */
+.row.wrap > .title.grow,
+.row.wrap > .subtitle.grow,
+.row.wrap > .card-title.grow {
+  min-width: min(100%, 9em);
+}
+
 /* ---------- หน้าแรก: ฉากเวทีด้านซ้าย (จอกว้าง) หรือด้านบน (จอแคบ) ---------- */
 
 body:has(.home)::before {
@@ -1206,24 +1242,30 @@ body:has(.home)::before {
   display: flex;
   gap: 14px;
   padding: 18px 0;
-  border-bottom: 2px dashed var(--line);
+  border-bottom: 1px solid var(--line);
 }
 
 .terms-item:last-child {
   border-bottom: none;
 }
 
+/* เลขข้อเป็นวงกลมกรอบทองสองชั้น */
 .num {
   width: 34px;
   height: 34px;
   flex: none;
-  border: 1px solid var(--frame);
+  border: 1px solid var(--gold);
   border-radius: 50%;
+  box-shadow:
+    0 0 0 2px var(--paper),
+    0 0 0 3px var(--gold);
+  background: var(--paper);
+  color: var(--gold-ink);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .rule-grid {
@@ -1234,8 +1276,8 @@ body:has(.home)::before {
 
 .rule-card {
   border: 1px solid var(--frame);
-  border-radius: 22px;
-  box-shadow: 0 5px 15px rgba(30, 42, 107, 0.14);
+  border-radius: 16px;
+  box-shadow: var(--lift);
   padding: 18px;
   display: flex;
   flex-direction: column;
@@ -3662,9 +3704,9 @@ html:has(.game.stack) {
   padding: 6px 14px;
   border: 1px solid var(--frame);
   border-radius: 999px;
-  background: var(--sky);
+  background: var(--lavender);
   font-family: var(--font-head);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 15px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3679,12 +3721,9 @@ html:has(.game.stack) {
 .cb-vs {
   flex: none;
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 22px;
-  color: #fff;
-  -webkit-text-stroke: 2px var(--ink);
-  paint-order: stroke;
-  text-shadow: 0 3px 0 var(--ink);
+  color: var(--gold);
 }
 
 /* เวที: เว้นที่ด้านบนให้คนแถวหลังยืน และตัดความสูงส่วนที่กระดานเอนหายไป */
@@ -3692,12 +3731,19 @@ html:has(.game.stack) {
   /* กระดานแคบกว่าพื้นที่เล็กน้อย เพราะขอบด้านใกล้ผู้ดูจะบานออกตามมุมมอง */
   --w: calc(min(100cqw, 940px) * 0.84);
   --cell: calc(var(--w) / var(--cols));
-  perspective: 1800px;
+  /* ระยะมุมมองแปรตามความกว้างกระดาน ภาพจึงเอนเท่ากันทุกขนาดจอ และความสูงด้านล่างคำนวณได้แน่นอน */
+  perspective: calc(var(--w) * 2.28);
   perspective-origin: 50% 20%;
   width: 100%;
   padding-top: 120px;
+  /* เวทีกลางคืน: ทีมงานยืนบนกระดานกลางฉากดาว */
+  border-radius: 18px;
+  background:
+    radial-gradient(closest-side at 50% 100%, rgba(255, 220, 110, 0.55), transparent) 50% 100% / 90% 60% no-repeat,
+    linear-gradient(180deg, var(--night-1) 0%, var(--night-2) 55%, var(--night-3) 100%);
+  overflow: hidden;
   /* ความสูงที่เห็นจริงของกระดานที่เอน = ความสูง × cos(tilt) */
-  height: calc(120px + var(--cell) * var(--rows) * 0.66 + 28px);
+  height: calc(120px + var(--cell) * var(--rows) * 0.66 + 44px);
 }
 
 .cb-plane {
@@ -3711,11 +3757,11 @@ html:has(.game.stack) {
   transform-origin: 50% 0;
   transform: rotateX(var(--tilt));
   transform-style: preserve-3d;
-  border: 1px solid var(--frame);
-  border-radius: 14px;
-  background: conic-gradient(#ffe9f0 90deg, #f7a1bb 0 180deg, #ffe9f0 0 270deg, #f7a1bb 0) 0 0 /
+  border: 6px double var(--gold);
+  border-radius: 8px;
+  background: conic-gradient(#f7f1e3 90deg, #a9b3e6 0 180deg, #f7f1e3 0 270deg, #a9b3e6 0) 0 0 /
     calc(200% / var(--cols)) calc(200% / var(--rows));
-  box-shadow: 0 16px 48px rgba(30, 42, 107, 0.14);
+  box-shadow: 0 20px 50px rgba(10, 14, 50, 0.45);
 }
 
 /* ตำแหน่งบนกระดาน: สองฝั่งอยู่ซ้ายกับขวา (มองจากด้านข้าง) */
@@ -3785,7 +3831,7 @@ a.cb-card:focus-visible {
 .cb-name {
   max-width: 100%;
   font-family: var(--font-head);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 14px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3819,12 +3865,15 @@ a.cb-card:focus-visible {
   display: grid;
   place-items: center;
   overflow: hidden;
-  border: 1px solid var(--frame);
-  border-radius: 50%;
+  border: 1px solid var(--gold);
+  border-radius: 50% 50% 8px 8px / 40% 40% 8px 8px; /* ซุ้มโค้งแบบที่นั่งบนเวที */
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 26px;
-  box-shadow: 0 4px 12px rgba(30, 42, 107, 0.14);
+  box-shadow:
+    0 0 0 2px var(--paper),
+    0 0 0 3px var(--gold),
+    0 0 18px rgba(255, 226, 140, 0.55);
 }
 
 .cb-photo img {
@@ -3877,7 +3926,8 @@ a.cb-card:focus-visible {
   .cb-stage {
     --w: calc(100cqw * 0.8);
     padding-top: 110px;
-    height: calc(110px + var(--cell) * var(--rows) * 0.72 + 28px);
+    height: calc(110px + var(--cell) * var(--rows) * 0.95 + 40px);
+    perspective: calc(var(--w) * 5.8);
     perspective-origin: 50% 0%;
   }
 

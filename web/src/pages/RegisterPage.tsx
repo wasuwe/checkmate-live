@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { PasswordInput } from '../components/PasswordInput'
+import { StageScene } from '../components/StageScene'
 import { setPendingName, useMe } from '../lib/me'
 import { VS } from '../lib/pieceSets'
 import { NAME_MAX } from '../lib/profile'
@@ -147,6 +148,10 @@ export function RegisterPage({ navigate }: Props) {
 
   return (
     <main className="screen" style={{ paddingTop: 12 }}>
+      {/* ฉากเวทีด้านซ้าย แสดงเฉพาะจอกว้าง */}
+      <StageScene className="auth-scene">
+        <span className="stage-actor">{'♟' + VS}</span>
+      </StageScene>
       <div className="auth-head">
         <div className="medal" style={{ background: 'var(--mint)' }} aria-hidden="true">
           {'♟' + VS}

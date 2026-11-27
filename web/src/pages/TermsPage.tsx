@@ -5,8 +5,6 @@ interface Props {
   navigate: (to: string) => void
 }
 
-const COLORS = ['#FFB8CC', '#9FE3C9', '#C9BDFF', '#FFDC85', '#A9D6F7']
-
 export function TermsPage({ navigate }: Props) {
   return (
     <main className="screen medium" style={{ gap: 16 }}>
@@ -15,7 +13,7 @@ export function TermsPage({ navigate }: Props) {
       <ol className="card terms-list" style={{ listStyle: 'none', margin: 0 }}>
         {TERMS.map((t, i) => (
           <li key={t.title} className="terms-item">
-            <div className="num" style={{ background: COLORS[i % COLORS.length] }} aria-hidden="true">
+            <div className="num" aria-hidden="true">
               {i + 1}
             </div>
             <div>
