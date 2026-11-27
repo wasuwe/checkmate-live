@@ -65,8 +65,8 @@ describe('board sets', () => {
     const cells = previewCells(setById('honey'))
     expect(cells).toHaveLength(16)
     expect(cells.filter((c) => c.glyph !== '')).toHaveLength(4)
-    expect(cells[0].bg).toBe('#FFF7DA')
-    expect(cells[1].bg).toBe('#FFD36E')
+    expect(cells[0].bg).toBe('#FAF3E0')
+    expect(cells[1].bg).toBe('#D8B56C')
   })
 })
 
@@ -83,8 +83,8 @@ describe('saved set slots', () => {
 
   test('changing a slot keeps the others', () => {
     const next = withSlot(DEFAULT_PREFS, 1, 'cocoa')
-    expect(next.slots).toEqual(['sakura', 'cocoa', 'honey'])
-    expect(DEFAULT_PREFS.slots[1]).toBe('mint') // ไม่แก้ของเดิม
+    expect(next.slots).toEqual(['sky', 'cocoa', 'honey'])
+    expect(DEFAULT_PREFS.slots[1]).toBe('sakura') // ไม่แก้ของเดิม
     expect(withSlot(DEFAULT_PREFS, 9, 'cocoa')).toBe(DEFAULT_PREFS)
   })
 

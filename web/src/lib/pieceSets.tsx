@@ -11,7 +11,7 @@ import { cloneElement, useSyncExternalStore, type CSSProperties, type JSX } from
 import { drawPiece, styleKind, type StylePrefs } from './pieceStyles'
 import type { Color } from './protocol'
 
-export const INK = '#3B2F4A'
+export const INK = '#2B2A33'
 /** บังคับให้สัญลักษณ์แสดงเป็นตัวอักษร ไม่ใช่ emoji สี */
 export const VS = '︎'
 export const GLYPH_FONT =
@@ -53,29 +53,31 @@ export interface BoardSet {
   b: string
 }
 
+// ทุกชุดเป็นโทนสไตล์นิทาน: ช่องอ่อนสีกระดาษงาช้าง ช่องเข้มเป็นสีหม่น ตัวหมากฝั่งดำสีเข้มลึก
+// id เดิมของแต่ละชุดคงไว้ ชุดที่ผู้เล่นเก็บไว้ในเบราว์เซอร์จึงยังใช้ได้ (เปลี่ยนแค่สีกับชื่อ)
 export const SETS: BoardSet[] = [
-  { id: 'sakura', name: 'ซากุระ', color: 'pink', light: '#FFE8EF', dark: '#F7A1BC', w: '#FFFFFF', b: '#B0477A' },
-  { id: 'strawberry', name: 'สตรอว์เบอร์รี', color: 'pink', light: '#FFF0F0', dark: '#FF8E9E', w: '#FFF7F2', b: '#8A2338' },
-  { id: 'mint', name: 'มิ้นต์ช็อก', color: 'green', light: '#E8FAF2', dark: '#86D9B9', w: '#FFFFFF', b: '#2E6B57' },
-  { id: 'matcha', name: 'มัทฉะ', color: 'green', light: '#F1F5DF', dark: '#A8C47A', w: '#FFFDF4', b: '#3F5222' },
-  { id: 'lavender', name: 'ลาเวนเดอร์', color: 'purple', light: '#F1EDFF', dark: '#B9AAF5', w: '#FFFFFF', b: '#4A3A8C' },
-  { id: 'grape', name: 'องุ่น', color: 'purple', light: '#F5E9FA', dark: '#C78BDB', w: '#FFF9FF', b: '#5B2470' },
-  { id: 'honey', name: 'น้ำผึ้ง', color: 'yellow', light: '#FFF7DA', dark: '#FFD36E', w: '#FFFFFF', b: '#8A5A12' },
-  { id: 'lemon', name: 'เลมอน', color: 'yellow', light: '#FDFBE1', dark: '#E9DC6A', w: '#FFFFFF', b: '#6B5E0E' },
-  { id: 'sky', name: 'ท้องฟ้า', color: 'blue', light: '#E6F4FF', dark: '#8CC7F2', w: '#FFFFFF', b: '#1F4E78' },
-  { id: 'soda', name: 'โซดา', color: 'blue', light: '#E4FBFB', dark: '#79D2D6', w: '#FFFFFF', b: '#18575A' },
-  { id: 'cocoa', name: 'โกโก้', color: 'brown', light: '#F7E9D7', dark: '#C69B72', w: '#FFF8EE', b: '#4A2E1E' },
-  { id: 'classic', name: 'คลาสสิก', color: 'brown', light: '#EEEED2', dark: '#769656', w: '#FFFFFF', b: '#2B2B2B' },
+  { id: 'sky', name: 'ราตรีดาว', color: 'blue', light: '#F7F1E3', dark: '#A9B3E6', w: '#FFFDF8', b: '#1E2A6B' },
+  { id: 'soda', name: 'ทะเลจันทร์', color: 'blue', light: '#EEF2F4', dark: '#86A9C4', w: '#FFFFFF', b: '#183A57' },
+  { id: 'sakura', name: 'กุหลาบราตรี', color: 'pink', light: '#F7EEE8', dark: '#D6A2AD', w: '#FFFDF8', b: '#6E1E3A' },
+  { id: 'strawberry', name: 'ทับทิม', color: 'pink', light: '#F6ECE3', dark: '#C77B86', w: '#FFFBF5', b: '#5A1730' },
+  { id: 'mint', name: 'สวนมรกต', color: 'green', light: '#F2F2E6', dark: '#93B8A2', w: '#FFFDF6', b: '#1F4A3A' },
+  { id: 'matcha', name: 'ป่าหิ่งห้อย', color: 'green', light: '#F0F0DE', dark: '#A3AE74', w: '#FFFBEA', b: '#2F3A1A' },
+  { id: 'lavender', name: 'ม่านม่วง', color: 'purple', light: '#F4F0F8', dark: '#A99BD2', w: '#FFFFFF', b: '#3A2C66' },
+  { id: 'grape', name: 'พลบค่ำ', color: 'purple', light: '#F2EBF2', dark: '#A086AC', w: '#FFF9FF', b: '#3D2347' },
+  { id: 'honey', name: 'ทองคำ', color: 'yellow', light: '#FAF3E0', dark: '#D8B56C', w: '#FFFDF6', b: '#5C3D0E' },
+  { id: 'lemon', name: 'แสงเทียน', color: 'yellow', light: '#FBF6E6', dark: '#E2C98C', w: '#FFFFFF', b: '#6A4A12' },
+  { id: 'cocoa', name: 'ไม้โอ๊ก', color: 'brown', light: '#F4E6CF', dark: '#B98A5E', w: '#FFF8EE', b: '#3A2414' },
+  { id: 'classic', name: 'หมึกงาช้าง', color: 'brown', light: '#F5EFE1', dark: '#B9AF9B', w: '#FFFFFF', b: '#2B2A33' },
 ]
 
 export const SET_FILTERS: { id: SetColor | 'all'; label: string; swatch: string }[] = [
-  { id: 'all', label: 'ทั้งหมด', swatch: 'conic-gradient(#F7A1BC 0 17%,#86D9B9 0 33%,#B9AAF5 0 50%,#FFD36E 0 67%,#8CC7F2 0 83%,#C69B72 0)' },
-  { id: 'pink', label: 'ชมพู', swatch: '#F7A1BC' },
-  { id: 'green', label: 'เขียว', swatch: '#86D9B9' },
-  { id: 'purple', label: 'ม่วง', swatch: '#B9AAF5' },
-  { id: 'yellow', label: 'เหลือง', swatch: '#FFD36E' },
-  { id: 'blue', label: 'ฟ้า', swatch: '#8CC7F2' },
-  { id: 'brown', label: 'น้ำตาล', swatch: '#C69B72' },
+  { id: 'all', label: 'ทั้งหมด', swatch: 'conic-gradient(#A9B3E6 0 17%,#D6A2AD 0 33%,#93B8A2 0 50%,#A99BD2 0 67%,#D8B56C 0 83%,#B98A5E 0)' },
+  { id: 'blue', label: 'ฟ้าคราม', swatch: '#A9B3E6' },
+  { id: 'pink', label: 'กุหลาบ', swatch: '#D6A2AD' },
+  { id: 'green', label: 'มรกต', swatch: '#93B8A2' },
+  { id: 'purple', label: 'ม่วง', swatch: '#A99BD2' },
+  { id: 'yellow', label: 'ทอง', swatch: '#D8B56C' },
+  { id: 'brown', label: 'ไม้', swatch: '#B98A5E' },
 ]
 
 export function setById(id: string | null | undefined): BoardSet {
@@ -114,7 +116,8 @@ export function pieceSvg(
       {FLIPPED[kind] ? cloneElement(body, { transform: 'rotate(180 22.5 22.5)' }) : body}
       {opts.badge !== false && (
         <>
-          <circle cx="7.2" cy="7.2" r="5.6" fill="#fff" stroke={INK} strokeWidth="0.9" />
+          {/* ป้ายชนิดหมาก: วงกลมสีกระดาษงาช้าง ขอบทอง */}
+          <circle cx="7.2" cy="7.2" r="5.6" fill="#FBF8F1" stroke="#B08A45" strokeWidth="0.9" />
           <text
             x="7.2"
             y="7.7"
@@ -224,7 +227,7 @@ export interface SetPrefs {
   active: number
 }
 
-export const DEFAULT_PREFS: SetPrefs = { slots: ['sakura', 'mint', 'honey'], active: 0 }
+export const DEFAULT_PREFS: SetPrefs = { slots: ['sky', 'sakura', 'honey'], active: 0 }
 
 /** ทำให้ค่าที่อ่านมาใช้ได้เสมอ ไม่ว่าในที่เก็บจะเป็นอะไร */
 export function cleanPrefs(value: unknown): SetPrefs {

@@ -1962,7 +1962,7 @@ body:has(.home)::before {
 }
 
 .chat-list li.mine .chat-text {
-  background: #ffe8ef;
+  background: #e6e8f7;
 }
 
 .chat-actions {
@@ -2071,7 +2071,7 @@ body:has(.home)::before {
 }
 
 .slot.editing {
-  background: #ffe8ef;
+  background: linear-gradient(180deg, rgba(201, 164, 92, 0.22), rgba(201, 164, 92, 0.05)), var(--paper);
   box-shadow: var(--ring);
 }
 
@@ -3998,7 +3998,7 @@ a.cb-card:focus-visible {
   overflow: hidden;
   border: 1px solid var(--frame);
   border-radius: 10px;
-  background: #ffe9f0;
+  background: var(--cream);
   font-family: var(--font-head);
   font-size: 26px;
   color: var(--muted);
