@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math"
 	"slices"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/time/rate"
@@ -47,6 +48,8 @@ type Room struct {
 	onClose   func(id string)
 	// onFinish ถูกเรียกครั้งเดียวเมื่อเกมจบ (อาจเป็น nil)
 	onFinish func(id string)
+	// activity คือภาพล่าสุดของผู้เล่นในห้อง ให้ goroutine อื่นอ่านได้โดยไม่ต้องรอห้อง (ดู publishActivity)
+	activity atomic.Pointer[map[string]Activity]
 
 	// ---- ด้านล่างนี้เป็นของ goroutine run เท่านั้น ----
 	game   game.Engine
@@ -516,6 +519,7 @@ func (r *Room) connected(userID string) bool {
 
 // broadcastState ส่ง state ให้ทุกคนในห้อง แต่ละคนได้ field "you" ของตัวเอง
 func (r *Room) broadcastState() {
+	r.publishActivity()
 	now := time.Now()
 	base := stateMsg{
 		Type:        "state",

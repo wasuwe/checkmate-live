@@ -211,6 +211,9 @@ func main() {
 	if guestEnabled {
 		apiCfg.Guest = guest // เปิด POST /api/guest
 	}
+	if db != nil {
+		apiCfg.Members = db.Members() // หน้าดูสมาชิกของผู้ดูแล (ต้องมีฐานข้อมูล)
+	}
 	handler := httpapi.New(apiCfg)
 
 	srv := &http.Server{

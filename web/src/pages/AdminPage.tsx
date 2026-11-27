@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { AdminGate } from '../components/AdminGate'
 import { ArrowIcon } from '../components/ArrowIcon'
 import { CropDialog } from '../components/CropDialog'
 import {
@@ -11,7 +12,6 @@ import {
   removeOcImage,
   type ImageKind,
   setOcImage,
-  useIsAdmin,
   type Kind,
   type Op,
   type Result,
@@ -29,8 +29,7 @@ import {
   type Person,
   type TeamGroup,
 } from '../lib/credits'
-import { PIECE_STUDIO_PATH } from '../lib/router'
-import { loginAvailable } from '../lib/session'
+import { MEMBERS_PATH, PIECE_STUDIO_PATH } from '../lib/router'
 
 interface Props {
   navigate: (to: string) => void
@@ -45,38 +44,11 @@ interface Props {
  * เซิร์ฟเวอร์ตรวจสิทธิ์และตรวจข้อมูลทุกครั้ง หน้านี้แค่ซ่อนตัวเองจากคนที่ไม่ใช่ admin
  */
 export function AdminPage({ navigate }: Props) {
-  const isAdmin = useIsAdmin()
-
-  if (isAdmin === null) {
-    return (
-      <main className="screen">
-        <p className="card center" role="status">
-          กำลังตรวจสิทธิ์…
-        </p>
-      </main>
-    )
-  }
-  if (!isAdmin) {
-    return (
-      <main className="screen">
-        <h1 className="title">จัดการข้อมูล</h1>
-        <section className="card">
-          <p className="pretty">หน้านี้สำหรับผู้ดูแลเท่านั้น ถ้าคุณเป็นผู้ดูแล ให้เข้าสู่ระบบด้วยอีเมลที่ได้รับสิทธิ์</p>
-          <div className="row wrap">
-            {loginAvailable && (
-              <button type="button" className="btn butter" onClick={() => navigate('/login')}>
-                เข้าสู่ระบบ
-              </button>
-            )}
-            <button type="button" className="btn" onClick={() => navigate('/')}>
-              กลับหน้าแรก
-            </button>
-          </div>
-        </section>
-      </main>
-    )
-  }
-  return <CreditsEditor navigate={navigate} />
+  return (
+    <AdminGate navigate={navigate} title="จัดการข้อมูล">
+      <CreditsEditor navigate={navigate} />
+    </AdminGate>
+  )
 }
 
 type Load = { state: 'loading' } | { state: 'failed' } | { state: 'ready'; data: CreditsData | null }
@@ -234,6 +206,9 @@ function CreditsEditor({ navigate }: Props) {
     <main className="screen wide admin" style={{ gap: 16 }}>
       <div className="row wrap admin-head">
         <h1 className="title grow">จัดการข้อมูล · เครดิตและแกลเลอรี</h1>
+        <button type="button" className="btn mini" onClick={() => navigate(MEMBERS_PATH)}>
+          ดูสมาชิก
+        </button>
         <button type="button" className="btn mini" onClick={() => navigate('/credits')}>
           ดูหน้าเครดิต
         </button>

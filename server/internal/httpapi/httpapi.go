@@ -15,6 +15,7 @@ import (
 	"github.com/wasuwe/checkmate-live/server/internal/content"
 	"github.com/wasuwe/checkmate-live/server/internal/game"
 	"github.com/wasuwe/checkmate-live/server/internal/hub"
+	"github.com/wasuwe/checkmate-live/server/internal/members"
 	"github.com/wasuwe/checkmate-live/server/internal/profile"
 	"github.com/wasuwe/checkmate-live/server/internal/ratelimit"
 )
@@ -35,6 +36,8 @@ type Config struct {
 
 	// Content เก็บเนื้อหาที่ admin แก้ได้ (หน้าเครดิต) ถ้าเป็น nil จะไม่เปิด route ของเนื้อหา
 	Content content.Store
+	// Members อ่านรายชื่อสมาชิกและสถิติการเล่น ถ้าเป็น nil จะไม่เปิด route ของหน้าดูสมาชิก
+	Members members.Store
 	// Admins คืออีเมลของผู้ดูแลที่แก้เนื้อหาได้ (จาก ADMIN_EMAILS) ว่าง = ไม่มีใครแก้ได้
 	Admins []string
 
@@ -100,6 +103,10 @@ func New(cfg Config) http.Handler {
 			mux.HandleFunc("DELETE /api/pieces/styles/{id}", a.deletePieceStyle)
 			mux.HandleFunc("PUT /api/pieces/styles/{id}/images/{piece}", a.putPieceImage)
 			mux.HandleFunc("DELETE /api/pieces/styles/{id}/images/{piece}", a.deletePieceImage)
+		}
+		if cfg.Members != nil {
+			mux.HandleFunc("GET /api/admin/users", a.getMembers)
+			mux.HandleFunc("GET /api/admin/users/{id}", a.getMember)
 		}
 		// path ใต้ /api ที่ไม่มีจริงต้องได้ 404 ไม่ใช่หน้าเว็บ
 		mux.HandleFunc("/api/", http.NotFound)

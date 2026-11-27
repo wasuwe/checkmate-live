@@ -178,6 +178,7 @@ describe('pages', () => {
       ['/gallery', 'gallery'],
       ['/piece-studio', 'pieces'],
       ['/backstage', 'admin'],
+      ['/backstage/members', 'members'],
       ['/admin', 'not_found'], // ชื่อที่เดาง่ายไม่ได้พาไปหน้าจัดการ
     ]) {
       expect(parseRoute(path).page, path).toBe(page)

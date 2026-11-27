@@ -15,11 +15,14 @@ export type Route =
   | { page: 'gallery' }
   | { page: 'pieces' }
   | { page: 'admin' }
+  | { page: 'members' }
   | { page: 'room'; roomId: string }
   | { page: 'not_found' }
 
 /** ที่อยู่ของหน้าจัดการข้อมูลของผู้ดูแล เปลี่ยนที่นี่ที่เดียว (เจ้าของโปรเจกต์เลือกชื่อนี้แทน /admin) */
 export const ADMIN_PATH = '/backstage'
+/** หน้าดูสมาชิกของผู้ดูแล: ใครสมัครไว้ กำลังเล่นอยู่ไหม และสถิติการเล่น */
+export const MEMBERS_PATH = `${ADMIN_PATH}/members`
 /** หน้าจัดการรูปแบบตัวหมาก (บทบาทแยกจาก admin) */
 export const PIECE_STUDIO_PATH = '/piece-studio'
 
@@ -34,6 +37,7 @@ const STATIC: Record<string, Route> = {
   '/credits': { page: 'credits' },
   '/gallery': { page: 'gallery' },
   [ADMIN_PATH]: { page: 'admin' },
+  [MEMBERS_PATH]: { page: 'members' },
   [PIECE_STUDIO_PATH]: { page: 'pieces' },
 }
 

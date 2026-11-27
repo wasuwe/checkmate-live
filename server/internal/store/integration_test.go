@@ -15,6 +15,7 @@ import (
 	"github.com/wasuwe/checkmate-live/server/internal/content"
 	"github.com/wasuwe/checkmate-live/server/internal/envfile"
 	"github.com/wasuwe/checkmate-live/server/internal/hub"
+	"github.com/wasuwe/checkmate-live/server/internal/members"
 	"github.com/wasuwe/checkmate-live/server/internal/profile"
 )
 
@@ -574,5 +575,140 @@ func TestIntegrationPieceStyles(t *testing.T) {
 	}
 	if _, err := c.Image(ctx, imgB); !errors.Is(err, content.ErrNotFound) {
 		t.Fatalf("the deleted style's image is still stored: %v", err)
+	}
+}
+
+func TestIntegrationMembers(t *testing.T) {
+	s, _ := openTestStore(t)
+	ctx := context.Background()
+	exec := func(sql string, args ...any) {
+		t.Helper()
+		if _, err := s.pool.Exec(ctx, sql, args...); err != nil {
+			t.Fatalf("%s: %v", sql, err)
+		}
+	}
+	// เฉพาะใน schema ทดสอบ: ใช้ตารางบัญชีจำลองแทน auth.users และถอดการผูกกับบัญชีจริงออกจาก games
+	// เพื่อให้ใส่เกมของบัญชีสมมุติได้ โดยไม่แตะตารางของ Supabase Auth
+	exec("alter table games drop constraint games_white_id_fkey, drop constraint games_black_id_fkey")
+	exec("create table test_users (id uuid primary key, email text, created_at timestamptz, last_sign_in_at timestamptz)")
+	m := s.Members()
+	m.users = "test_users"
+
+	const (
+		alice = "11111111-1111-4111-8111-111111111111"
+		bob   = "22222222-2222-4222-8222-222222222222"
+		carol = "33333333-3333-4333-8333-333333333333"
+	)
+	day := time.Date(2026, 11, 1, 9, 0, 0, 0, time.UTC)
+	signIn := day.Add(72 * time.Hour)
+	exec("insert into test_users values ($1, 'alice@example.com', $2, $3)", alice, day, signIn)
+	exec("insert into test_users values ($1, 'bob@example.com', $2, null)", bob, day.Add(24*time.Hour))
+	exec("insert into test_users values ($1, 'carol@example.com', $2, null)", carol, day.Add(48*time.Hour))
+	if _, err := s.Profiles().SetName(ctx, alice, "Alice"); err != nil {
+		t.Fatal(err)
+	}
+
+	game := func(room, white, black, variant, result, reason string, start time.Time, length time.Duration) {
+		t.Helper()
+		rec := hub.GameRecord{
+			RoomID: room, WhiteID: white, BlackID: black, PGN: "*", Result: result, Reason: reason,
+			TimeControl: "10+0", Variant: variant, StartedAt: start, EndedAt: start.Add(length),
+		}
+		if err := s.insertGame(ctx, rec); err != nil {
+			t.Fatalf("insert game %s: %v", room, err)
+		}
+	}
+	play := day.Add(100 * time.Hour)
+	game("AAAAA2", alice, bob, "chess", "1-0", "checkmate", play, 10*time.Minute)                    // alice ชนะ
+	game("AAAAA3", bob, alice, "chess", "1/2-1/2", "draw", play.Add(time.Hour), 5*time.Minute)       // เสมอ
+	game("AAAAA4", alice, "guest_x", "makruk", "0-1", "resign", play.Add(2*time.Hour), 2*time.Minute) // alice แพ้ผู้เล่นรับเชิญ
+	game("AAAAA5", "guest_x", "guest_y", "checkers", "1-0", "wipeout", play, time.Minute)            // ไม่มีสมาชิก ไม่ถูกนับ
+
+	list, err := m.List(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 3 || list[0].ID != carol || list[1].ID != bob || list[2].ID != alice {
+		t.Fatalf("members, newest first: %+v", list)
+	}
+	a, b, c := list[2], list[1], list[0]
+	if a.Email != "alice@example.com" || a.Name != "Alice" || !a.JoinedAt.Equal(day) || a.LastSignIn == nil || !a.LastSignIn.Equal(signIn) {
+		t.Fatalf("alice's account: %+v", a)
+	}
+	if a.Games != 3 || a.Wins != 1 || a.Losses != 1 || a.Draws != 1 || a.Seconds != 17*60 ||
+		a.LastPlayed == nil || !a.LastPlayed.Equal(play.Add(2*time.Hour+2*time.Minute)) {
+		t.Fatalf("alice's totals: %+v", a.Stats)
+	}
+	if b.Games != 2 || b.Wins != 0 || b.Losses != 1 || b.Draws != 1 || b.Seconds != 15*60 || b.Name != "" || b.LastSignIn != nil {
+		t.Fatalf("bob: %+v", b)
+	}
+	if c.Games != 0 || c.Seconds != 0 || c.LastPlayed != nil {
+		t.Fatalf("carol never played: %+v", c.Stats)
+	}
+
+	d, err := m.Get(ctx, alice)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d.ID != alice || d.Games != 3 || d.Name != "Alice" {
+		t.Fatalf("detail header: %+v", d.Member)
+	}
+	if len(d.ByGame) != 2 || d.ByGame[0].Game != "chess" || d.ByGame[0].Games != 2 || d.ByGame[0].Wins != 1 || d.ByGame[0].Draws != 1 ||
+		d.ByGame[0].Seconds != 15*60 || d.ByGame[1].Game != "makruk" || d.ByGame[1].Losses != 1 || d.ByGame[1].Seconds != 2*60 {
+		t.Fatalf("by game: %+v", d.ByGame)
+	}
+	if len(d.Opponents) != 2 || d.Opponents[0].ID != bob || d.Opponents[0].Email != "bob@example.com" || d.Opponents[0].Games != 2 ||
+		d.Opponents[0].Wins != 1 || d.Opponents[0].Draws != 1 || d.Opponents[1].ID != "" || d.Opponents[1].Games != 1 || d.Opponents[1].Losses != 1 {
+		t.Fatalf("opponents: %+v", d.Opponents)
+	}
+	if len(d.Recent) != 3 {
+		t.Fatalf("recent games: %+v", d.Recent)
+	}
+	last, mid, first := d.Recent[0], d.Recent[1], d.Recent[2]
+	if last.Game != "makruk" || last.Color != "w" || last.Outcome != "loss" || last.Reason != "resign" || last.OpponentID != "" || last.Seconds != 120 || last.TimeControl != "10+0" {
+		t.Fatalf("latest game: %+v", last)
+	}
+	if mid.Color != "b" || mid.Outcome != "draw" || mid.OpponentID != bob || mid.OpponentEmail != "bob@example.com" {
+		t.Fatalf("second game: %+v", mid)
+	}
+	if first.Outcome != "win" || first.Color != "w" || !first.StartedAt.Equal(play) || first.Seconds != 600 {
+		t.Fatalf("first game: %+v", first)
+	}
+
+	// มุมของ bob: ผลกลับด้าน และชื่อคู่แข่งมาจากโปรไฟล์
+	bd, err := m.Get(ctx, bob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(bd.Opponents) != 1 || bd.Opponents[0].Name != "Alice" || bd.Opponents[0].Losses != 1 || bd.Opponents[0].Wins != 0 || bd.Recent[1].Outcome != "loss" || bd.Recent[1].Color != "b" {
+		t.Fatalf("bob's view: %+v / %+v", bd.Opponents, bd.Recent)
+	}
+
+	// คนที่ไม่เคยเล่น: รายการว่าง ไม่ใช่ error
+	cd, err := m.Get(ctx, carol)
+	if err != nil || len(cd.ByGame) != 0 || len(cd.Opponents) != 0 || len(cd.Recent) != 0 {
+		t.Fatalf("carol's detail: %+v, %v", cd, err)
+	}
+	for _, missing := range []string{"44444444-4444-4444-8444-444444444444", "guest_x", "", "not-a-uuid'; drop table games; --"} {
+		if _, err := m.Get(ctx, missing); !errors.Is(err, members.ErrNotFound) {
+			t.Errorf("Get(%q) = %v, want ErrNotFound", missing, err)
+		}
+	}
+}
+
+// ตรวจว่าบัญชีที่เซิร์ฟเวอร์ใช้ต่อฐานข้อมูลอ่านรายชื่อบัญชีจริงได้ (อ่านอย่างเดียว และไม่พิมพ์ข้อมูลของใครออกมา)
+func TestIntegrationMembersCanReadAccounts(t *testing.T) {
+	s, _ := openTestStore(t)
+	list, err := s.Members().List(context.Background())
+	if err != nil {
+		t.Fatalf("the database role cannot list accounts: %v", err)
+	}
+	for _, m := range list {
+		if !accountID(m.ID).Valid || m.JoinedAt.IsZero() {
+			t.Fatal("an account row is missing its id or sign-up time")
+		}
+		if m.Games != 0 {
+			t.Fatal("a fresh schema has no games, so every total must be zero")
+		}
 	}
 }
