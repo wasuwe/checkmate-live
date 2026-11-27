@@ -55,7 +55,6 @@ const sun: Draw = (p) => (
     <circle cx="22.5" cy="21" r="9.5" fill="#FFE9A8" {...line(p.ink)} />
     {eyes(20, 3, p.ink)}
     <path d="M19.5 23.8 Q22.5 26.5 25.5 23.8" fill="none" {...line(p.ink, 1.2)} />
-    {base(p)}
   </g>
 )
 
@@ -69,7 +68,6 @@ const wind: Draw = (p) => (
     <path d="M14 27.5 Q19 24 23.5 27 T32.5 25.5" fill="none" {...line('#E6E8F7', 1.5)} />
     {eyes(21.5, 3.2, '#FFF6DC', 1.2)}
     <path d="M3 18 H9 M2 24 H7" {...line(p.ink, 1.3)} />
-    {base(p)}
   </g>
 )
 
@@ -81,7 +79,6 @@ const pitcher: Draw = (p) => (
     <circle cx="20" cy="30" r="1.6" fill="#9AA4AE" />
     <circle cx="24.5" cy="31" r="1.4" fill="#9AA4AE" />
     <circle cx="22" cy="27.6" r="1.2" fill="#9AA4AE" />
-    {base(p)}
   </g>
 )
 
@@ -94,7 +91,6 @@ const crow: Draw = (p) => (
     <circle cx="26.8" cy="14" r="1.9" fill="#FFF6DC" />
     <circle cx="27.2" cy="14" r="0.9" fill={p.ink} />
     <path d="M15 24.5 Q20.5 21 26.5 26.5" fill="none" {...line(p.color === 'w' ? '#9AA4AE' : '#5A6378', 1.4)} />
-    {base(p)}
   </g>
 )
 
@@ -105,7 +101,6 @@ const tortoise: Draw = (p) => (
     <rect x="27" y="30" width="4" height="5" rx="1.5" fill="#B8D3A8" {...line(p.ink, 1.2)} />
     <path d="M10.5 32 Q11.5 16.5 22.5 15.5 Q33.5 16.5 34.5 32 Z" fill={p.fill} {...line(p.ink)} />
     <path d="M16.5 32 L18.8 24 H26.2 L28.5 32 M18.8 24 L22.5 17.5 L26.2 24" fill="none" {...line('#5E8A6A', 1.2)} />
-    {base(p)}
   </g>
 )
 
@@ -118,7 +113,6 @@ const hare: Draw = (p) => (
     {eyes(23.5, 3.4, eyeOn(p))}
     <circle cx="22.5" cy="27" r="1.3" fill="#E3B2BC" />
     <path d="M13 27 H17.5 M27.5 27 H32" {...line(eyeOn(p), 0.8)} />
-    {base(p)}
   </g>
 )
 
@@ -149,7 +143,6 @@ const sheep: Draw = (p) => (
     <ellipse cx="22.5" cy="20.5" rx="4.8" ry="6" fill="#4A4238" {...line(p.ink, 1.2)} />
     <path d="M17.5 17 L14.5 19 M27.5 17 L30.5 19" {...line('#4A4238', 2.4)} />
     {eyes(19.5, 2, '#FFF6DC', 1)}
-    {base(p)}
   </g>
 )
 
@@ -167,7 +160,6 @@ const wolfHead = (p: FablePaint, y = 0) => (
 const wolf: Draw = (p) => (
   <g>
     {wolfHead(p)}
-    {base(p)}
   </g>
 )
 
@@ -180,7 +172,6 @@ const wolfInFleece: Draw = (p) => (
     <ellipse cx="22.5" cy="21" rx="5.4" ry="6" fill={p.fill} {...line(p.ink, 1.2)} />
     <path d="M18.8 19.5 L21.3 20.4 M26.2 19.5 L23.7 20.4" {...line('#F2CF6E', 1.6)} />
     <path d="M20 25 L21.2 23.8 L22.5 25 L23.8 23.8 L25 25" fill="none" {...line('#FFF6DC', 1)} />
-    {base(p)}
   </g>
 )
 
@@ -200,8 +191,7 @@ const grapes: Draw = (p) => {
       ].map(([x, y], i) => (
         <circle key={i} cx={x} cy={y} r="3.7" fill={berry} {...line(p.ink, 1.2)} />
       ))}
-      {base(p)}
-    </g>
+      </g>
   )
 }
 
@@ -214,7 +204,6 @@ const fox: Draw = (p) => (
     <path d="M16 22 Q22.5 25.5 29 22 Q26 29 22.5 33 Q19 29 16 22 Z" fill="#FFF6DC" {...line(p.ink, 1)} />
     <circle cx="22.5" cy="31.5" r="1.5" fill={p.ink} />
     <path d="M16.8 18.5 L20 19.5 M28.2 18.5 L25 19.5" {...line('#F2CF6E', 1.8)} />
-    {base(p)}
   </g>
 )
 
@@ -234,7 +223,6 @@ const mouseHead = (p: FablePaint) => (
 const mouse: Draw = (p) => (
   <g>
     {mouseHead(p)}
-    {base(p)}
   </g>
 )
 
@@ -245,7 +233,6 @@ const townMouse: Draw = (p) => (
     <rect x="16" y="15" width="13" height="2.2" rx="1" fill="#2B2A33" />
     <rect x="18.2" y="6.5" width="8.6" height="9" rx="1" fill="#2B2A33" />
     <rect x="18.2" y="12.5" width="8.6" height="1.6" fill="#C77B86" />
-    {base(p)}
   </g>
 )
 
@@ -256,7 +243,6 @@ const countryMouse: Draw = (p) => (
     <ellipse cx="22.5" cy="16" rx="10" ry="2.6" fill="#E2C98C" {...line(p.ink, 1.1)} />
     <path d="M17 16 Q17.5 9.5 22.5 9.5 Q27.5 9.5 28 16" fill="#E2C98C" {...line(p.ink, 1.1)} />
     <path d="M17.2 14 H27.8" {...line('#93B8A2', 1.4)} />
-    {base(p)}
   </g>
 )
 
@@ -269,7 +255,6 @@ const catWithBell: Draw = (p) => (
     <path d="M21.3 25.5 L22.5 26.7 L23.7 25.5" fill="none" {...line('#E3B2BC', 1.2)} />
     <path d="M15.5 31 Q22.5 34 29.5 31" fill="none" {...line('#C77B86', 2)} />
     <circle cx="22.5" cy="33.2" r="2.6" fill="#F2CF6E" {...line(p.ink, 1)} />
-    {base(p)}
   </g>
 )
 
@@ -278,7 +263,6 @@ const goldenEgg: Draw = (p) => (
     <ellipse cx="22.5" cy="23" rx="8.3" ry="10.8" fill="#F2CF6E" {...line(p.ink)} />
     <ellipse cx="19.5" cy="18.5" rx="2.2" ry="3.6" fill="#FFF6DC" opacity="0.8" />
     <path d="M30 9 Q30.6 12 33.5 12.5 Q30.6 13 30 16 Q29.4 13 26.5 12.5 Q29.4 12 30 9 Z" fill="#FFE9A8" {...line('#C9973A', 0.8)} />
-    {base(p)}
   </g>
 )
 
@@ -291,7 +275,6 @@ const goose: Draw = (p) => (
     <path d="M14 10.5 L8.5 12.2 L14 14 Z" fill="#E09A3E" {...line(p.ink, 1)} />
     <circle cx="18.6" cy="10.6" r="1" fill="#FFF6DC" />
     <path d="M24 27 Q28.5 25 32 28" fill="none" {...line('#F2CF6E', 1.3)} />
-    {base(p)}
   </g>
 )
 
@@ -304,7 +287,6 @@ const ant: Draw = (p) => (
     <ellipse cx="30" cy="26" rx="5.5" ry="4.5" fill={p.fill} {...line(p.ink)} />
     <circle cx="14" cy="19.5" r="0.9" fill={eyeOn(p)} />
     <path d="M10 25 L13.5 29 Q15 30.5 17 29" fill="none" {...line('#C77B86', 1)} />
-    {base(p)}
   </g>
 )
 
@@ -317,7 +299,6 @@ const grasshopper: Draw = (p) => (
     <circle cx="31.5" cy="21" r="4.2" fill={p.fill} {...line(p.ink)} />
     <circle cx="33" cy="20.3" r="1.1" fill={eyeOn(p)} />
     <path d="M13 31 L11 34 M19 31.5 L18 34.5" {...line(p.ink, 1.3)} />
-    {base(p)}
   </g>
 )
 
@@ -332,7 +313,6 @@ const lion: Draw = (p) => (
     {eyes(21, 2.6, p.ink, 1.1)}
     <path d="M21 24.2 L22.5 25.6 L24 24.2 Z" fill={p.ink} />
     <path d="M20.3 27 Q22.5 28.5 24.7 27" fill="none" {...line(p.ink, 1)} />
-    {base(p)}
   </g>
 )
 
@@ -343,12 +323,11 @@ const cheese: Draw = (p) => (
     <circle cx="28" cy="27.5" r="1.8" fill="#D8A73E" />
     <circle cx="22.5" cy="29.5" r="1.2" fill="#D8A73E" />
     <circle cx="25" cy="20" r="1.3" fill="#D8A73E" />
-    {base(p)}
   </g>
 )
 
-/** เบี้ยของแต่ละชุด: [ฝั่งขาว, ฝั่งดำ] */
-export const FABLE_PAWNS: Record<string, [Draw, Draw]> = {
+/** ตัวละครของแต่ละชุด: [ฝั่งขาว, ฝั่งดำ] วาดเฉพาะตัว ไม่มีฐาน */
+const FABLE_FIGURES: Record<string, [Draw, Draw]> = {
   sky: [sun, wind],
   soda: [pitcher, crow],
   mint: [tortoise, hare],
@@ -362,6 +341,107 @@ export const FABLE_PAWNS: Record<string, [Draw, Draw]> = {
   sakura: [cheese, fox],
   strawberry: [sheep, wolfInFleece],
 }
+
+// ---------- ตัวหมากทุกตัวเป็นตัวละครของฝั่งนั้น แต่งชุดตามตำแหน่ง ----------
+// เบี้ย: ตัวละครยืนบนฐาน · คิง: เสื้อคลุมกับมงกุฎ · ควีน: ชุดกระโปรงกับมงกุฎเล็ก
+// เรือ: ยืนบนป้อม · บิชอป: เสื้อยาวกับหมวกทรงสูง · ม้า: โล่กับหอก
+// ป้ายเล็กที่มุมตัวหมาก (มาจาก pieceSets) ยังบอกชนิดหมากเสมอ
+
+const GOLD = '#F2CF6E'
+
+/** ฐานกว้างของตัวหมากที่ไม่ใช่เบี้ย */
+const wideBase = ({ fill, ink }: FablePaint) => <rect x="9.5" y="36" width="26" height="5" rx="2.5" fill={fill} {...line(ink)} />
+
+/** ตัวละครย่อขนาดแล้ววางให้จุดกลางตัวอยู่ที่ (x, y) */
+const figureAt = (figure: Draw, p: FablePaint, x: number, y: number, scale: number) => (
+  <g transform={`translate(${x} ${y}) scale(${scale}) translate(-22.5 -22)`}>{figure(p)}</g>
+)
+
+type Role = (figure: Draw, p: FablePaint) => JSX.Element
+
+const pawnRole: Role = (figure, p) => (
+  <g>
+    {figure(p)}
+    {base(p)}
+  </g>
+)
+
+const kingRole: Role = (figure, p) => (
+  <g>
+    <path d="M11 37 Q12 25.5 22.5 23.5 Q33 25.5 34 37 Z" fill={p.fill} {...line(p.ink)} />
+    <path d="M22.5 24 V36.5" {...line(GOLD, 1.6)} />
+    {figureAt(figure, p, 22.5, 17, 0.6)}
+    <path d="M14.5 9.5 L15.5 3 L19.3 6.6 L22.5 1.8 L25.7 6.6 L29.5 3 L30.5 9.5 Z" fill={GOLD} {...line(p.ink, 1.3)} />
+    {wideBase(p)}
+  </g>
+)
+
+const queenRole: Role = (figure, p) => (
+  <g>
+    <path d="M9.5 37 Q15 30 16.5 24.5 H28.5 Q30 30 35.5 37 Z" fill={p.fill} {...line(p.ink)} />
+    <path d="M13.5 33 Q22.5 30 31.5 33" fill="none" {...line(GOLD, 1.4)} />
+    {figureAt(figure, p, 22.5, 17, 0.6)}
+    <path d="M15.5 8.5 Q22.5 2 29.5 8.5 L28 10 Q22.5 5.5 17 10 Z" fill={GOLD} {...line(p.ink, 1.2)} />
+    <circle cx="22.5" cy="4.6" r="1.9" fill="#C77B86" {...line(p.ink, 1)} />
+    {wideBase(p)}
+  </g>
+)
+
+const rookRole: Role = (figure, p) => (
+  <g>
+    {figureAt(figure, p, 22.5, 12.5, 0.55)}
+    <path
+      d="M11.5 37 V23 H15 V20 H19 V23 H21 V20 H24 V23 H26 V20 H30 V23 H33.5 V37 Z"
+      fill={p.fill}
+      {...line(p.ink)}
+    />
+    <path d="M19.5 37 V31 Q22.5 27.5 25.5 31 V37" fill="none" {...line(p.ink, 1.3)} />
+    <path d="M12 26.5 H33" {...line(GOLD, 1.3)} />
+    {wideBase(p)}
+  </g>
+)
+
+const bishopRole: Role = (figure, p) => (
+  <g>
+    <path d="M14 37 Q15 26 22.5 24 Q30 26 31 37 Z" fill={p.fill} {...line(p.ink)} />
+    <path d="M22.5 25 V36.5 M19 30 H26" {...line(GOLD, 1.5)} />
+    {figureAt(figure, p, 22.5, 17.5, 0.58)}
+    <path d="M17.5 10 Q18.5 3.5 22.5 0.8 Q26.5 3.5 27.5 10 Z" fill={GOLD} {...line(p.ink, 1.2)} />
+    <path d="M22.5 3 V9" {...line(p.ink, 1)} />
+    {wideBase(p)}
+  </g>
+)
+
+const knightRole: Role = (figure, p) => (
+  <g>
+    <path d="M6 5 L19 30" {...line(p.ink, 2.4)} />
+    <path d="M6 5 L19 30" stroke={GOLD} strokeWidth="1" strokeLinecap="round" />
+    <path d="M13 37 Q14 27 21 25 Q28 27 29 37 Z" fill={p.fill} {...line(p.ink)} />
+    {figureAt(figure, p, 21, 18, 0.58)}
+    <path d="M28 22 H38 V29 Q38 34.5 33 36.5 Q28 34.5 28 29 Z" fill={GOLD} {...line(p.ink, 1.3)} />
+    <path d="M30.5 26 L33 30.5 L35.5 26" fill="none" {...line(p.ink, 1.2)} />
+    {wideBase(p)}
+  </g>
+)
+
+const ROLES: Record<'K' | 'Q' | 'R' | 'B' | 'N' | 'P', Role> = {
+  K: kingRole,
+  Q: queenRole,
+  R: rookRole,
+  B: bishopRole,
+  N: knightRole,
+  P: pawnRole,
+}
+
+/** ตัวหมากของชุดนิทาน หรือ undefined ถ้าชุดนั้นไม่มีตัวละคร */
+export function fablePiece(setId: string, kind: 'K' | 'Q' | 'R' | 'B' | 'N' | 'P', paint: FablePaint): JSX.Element | undefined {
+  const cast = FABLE_FIGURES[setId]
+  if (!cast) return undefined
+  return ROLES[kind](cast[paint.color === 'w' ? 0 : 1], paint)
+}
+
+/** ชุดที่มีตัวละครครบ (ใช้ตรวจในเทส) */
+export const FABLE_SET_IDS = Object.keys(FABLE_FIGURES)
 
 /** ชื่อตัวละครที่เป็นเบี้ยของแต่ละชุด ใช้บอกในหน้าเลือกชุด */
 export const FABLE_CAST: Record<string, [string, string]> = {

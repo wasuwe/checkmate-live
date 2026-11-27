@@ -14,7 +14,7 @@ import {
   withoutSlot,
   withSlot,
 } from './pieceSets'
-import { FABLE_CAST, FABLE_PAWNS } from './fables'
+import { FABLE_CAST, FABLE_SET_IDS } from './fables'
 
 // หมากรุกสากล 6 ชนิด, เม็ด โคน เบี้ยหงาย ของหมากรุกไทย, เบี้ยและฮอสของหมากฮอส, หมากของหมากหนีบ
 const ALL = ['w', 'b'].flatMap((c) => ['K', 'Q', 'R', 'B', 'N', 'P', 'M', 'S', 'F', 'C', 'H', 'O'].map((k) => c + k))
@@ -39,16 +39,16 @@ describe('board sets', () => {
     expect(new Set(SETS.map((s) => s.name)).size).toBe(SETS.length)
   })
 
-  test('every set has its fable board pattern and pawn characters', () => {
+  test('every set has its fable board pattern and characters', () => {
     for (const set of SETS) {
-      expect(FABLE_PAWNS[set.id], set.id).toHaveLength(2)
+      expect(FABLE_SET_IDS, set.id).toContain(set.id)
       expect(FABLE_CAST[set.id], set.id).toHaveLength(2)
       expect(squareStyle(set, true).backgroundImage, set.id).toMatch(/^url\("data:image\/svg\+xml,/)
       expect(squareStyle(set, false).backgroundColor, set.id).toBe(set.light)
     }
   })
 
-  test('pawns are drawn as the fable characters unless another pawn style is chosen', () => {
+  test('pieces are drawn as the fable characters unless another style is chosen', () => {
     const set = setById('mint')
     const pawn = pieceSvg(set, 'w', 'P', { badge: false })
     const glyph = pieceSvg(set, 'w', 'P', { badge: false, styles: { K: 'glyph', Q: 'glyph', R: 'glyph', B: 'glyph', N: 'glyph', P: 'shape' } })
@@ -65,10 +65,13 @@ describe('board sets', () => {
     for (const set of SETS) {
       const pieces = piecesFor(set)
       expect(Object.keys(pieces).sort()).toEqual([...ALL].sort())
-      const white = pieces.wN().props.children[0].props
-      const black = pieces.bN().props.children[0].props
-      expect(white.fill).toBe(set.w)
-      expect(black.fill).toBe(set.b)
+      // ตัวละครในนิทานใช้สีตัวหมากของชุด
+      expect(JSON.stringify(pieces.wN().props.children[0])).toContain(set.w)
+      expect(JSON.stringify(pieces.bN().props.children[0])).toContain(set.b)
+      // รูปแบบอื่นที่ผู้เล่นเลือกก็ใช้สีของชุดเช่นกัน
+      const shaped = piecesFor(set, { styles: { K: 'shape', Q: 'shape', R: 'shape', B: 'shape', N: 'shape', P: 'shape' } })
+      expect(shaped.wN().props.children[0].props.fill).toBe(set.w)
+      expect(shaped.bN().props.children[0].props.fill).toBe(set.b)
     }
   })
 

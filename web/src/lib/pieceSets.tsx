@@ -8,7 +8,7 @@
 /* oxlint-disable react/only-export-components */
 
 import { cloneElement, useSyncExternalStore, type CSSProperties, type JSX } from 'react'
-import { FABLE_PATTERNS, FABLE_PAWNS } from './fables'
+import { FABLE_PATTERNS, fablePiece } from './fables'
 import { DEFAULT_STYLE, drawPiece, styleKind, type StylePrefs } from './pieceStyles'
 import type { Color } from './protocol'
 
@@ -124,9 +124,10 @@ export function pieceSvg(
   // รูปทรงมาจากรูปแบบที่ผู้เล่นเลือกของตัวหมากรุกสากลที่ตรงกัน (เม็ด=ควีน โคน=บิชอป เบี้ยหงาย=เบี้ย)
   const base = styleKind(kind) ?? 'P'
   const paint = { fill: color === 'w' ? set.w : set.b, ink: INK, color }
-  // เบี้ยแบบตั้งต้นเป็นตัวละครในนิทานของชุด ถ้าผู้เล่นเลือกรูปแบบอื่นให้เบี้ยไว้ก็ใช้แบบนั้นแทน
-  const fablePawn = base === 'P' && (opts.styles?.P ?? DEFAULT_STYLE) === DEFAULT_STYLE ? FABLE_PAWNS[set.id] : undefined
-  const body = fablePawn ? fablePawn[color === 'w' ? 0 : 1](paint) : drawPiece(opts.styles?.[base], base, paint)
+  // รูปแบบตั้งต้นของทุกตัวเป็นตัวละครในนิทานของชุด แต่งชุดตามตำแหน่ง
+  // ถ้าผู้เล่นเลือกรูปแบบอื่นให้ตัวไหนไว้ในหน้าโปรไฟล์ ตัวนั้นใช้แบบที่เลือกแทน
+  const fable = (opts.styles?.[base] ?? DEFAULT_STYLE) === DEFAULT_STYLE ? fablePiece(set.id, base, paint) : undefined
+  const body = fable ?? drawPiece(opts.styles?.[base], base, paint)
   return (
     <svg key={opts.key} viewBox="0 0 45 45" className={opts.className ?? 'piece'} style={opts.style}>
       {FLIPPED[kind] ? cloneElement(body, { transform: 'rotate(180 22.5 22.5)' }) : body}
