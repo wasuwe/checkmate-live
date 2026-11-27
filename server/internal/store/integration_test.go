@@ -619,10 +619,10 @@ func TestIntegrationMembers(t *testing.T) {
 		}
 	}
 	play := day.Add(100 * time.Hour)
-	game("AAAAA2", alice, bob, "chess", "1-0", "checkmate", play, 10*time.Minute)                    // alice ชนะ
-	game("AAAAA3", bob, alice, "chess", "1/2-1/2", "draw", play.Add(time.Hour), 5*time.Minute)       // เสมอ
+	game("AAAAA2", alice, bob, "chess", "1-0", "checkmate", play, 10*time.Minute)                     // alice ชนะ
+	game("AAAAA3", bob, alice, "chess", "1/2-1/2", "draw", play.Add(time.Hour), 5*time.Minute)        // เสมอ
 	game("AAAAA4", alice, "guest_x", "makruk", "0-1", "resign", play.Add(2*time.Hour), 2*time.Minute) // alice แพ้ผู้เล่นรับเชิญ
-	game("AAAAA5", "guest_x", "guest_y", "checkers", "1-0", "wipeout", play, time.Minute)            // ไม่มีสมาชิก ไม่ถูกนับ
+	game("AAAAA5", "guest_x", "guest_y", "checkers", "1-0", "wipeout", play, time.Minute)             // ไม่มีสมาชิก ไม่ถูกนับ
 
 	list, err := m.List(ctx)
 	if err != nil {
