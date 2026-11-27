@@ -1454,7 +1454,7 @@ body:has(.home)::before {
 
 .dashed-list > div {
   padding: 14px 0;
-  border-bottom: 2px dashed var(--line);
+  border-bottom: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -2214,7 +2214,7 @@ body:has(.home)::before {
   flex-direction: column;
   gap: 10px;
   padding: 14px 0;
-  border-top: 2px dashed var(--line);
+  border-top: 1px solid var(--line);
 }
 
 .fx-options {
@@ -2848,9 +2848,9 @@ a.link-card:hover {
   gap: 6px;
   padding: 6px;
   border: 1px solid var(--frame);
-  border-radius: 20px;
+  border-radius: 999px;
   background: var(--paper);
-  box-shadow: 0 5px 15px rgba(30, 42, 107, 0.14);
+  box-shadow: var(--lift);
 }
 
 .admin-tab {
@@ -2861,11 +2861,11 @@ a.link-card:hover {
   gap: 8px;
   min-height: 48px;
   padding: 6px 8px;
-  border: 2.5px solid transparent;
-  border-radius: 14px;
+  border: none;
+  border-radius: 999px;
   background: transparent;
   font-family: var(--font-head);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 16px;
   color: var(--ink);
   cursor: pointer;
@@ -2876,8 +2876,8 @@ a.link-card:hover {
 }
 
 .admin-tab[aria-selected='true'] {
-  border-color: var(--ink);
-  background: var(--butter);
+  background: var(--pill);
+  color: var(--cream);
 }
 
 .admin-tab-count {
@@ -2886,6 +2886,7 @@ a.link-card:hover {
   border: 1px solid var(--frame);
   border-radius: 999px;
   background: var(--paper);
+  color: var(--ink);
   font-family: var(--font-body);
   font-weight: 700;
   font-size: 13px;
@@ -2944,7 +2945,7 @@ a.link-card:hover {
 }
 
 .admin-row.open > .admin-row-head {
-  border-bottom: 1px dashed var(--frame);
+  border-bottom: 1px solid var(--line);
   background: var(--cream);
 }
 
@@ -3080,7 +3081,7 @@ a.link-card:hover {
   align-items: center;
   gap: 8px;
   padding-top: 10px;
-  border-top: 2px dashed rgba(59, 47, 74, 0.35);
+  border-top: 1px solid var(--line);
 }
 
 .save-line .error {
@@ -3575,7 +3576,7 @@ html:has(.game.stack) {
 }
 
 .set-details {
-  border-top: 2px dashed rgba(59, 47, 74, 0.35);
+  border-top: 1px solid var(--line);
   padding-top: 8px;
 }
 
@@ -4081,8 +4082,9 @@ a.cb-card:focus-visible {
   color: var(--muted);
 }
 
+/* ช่องตัวอย่างของหมากขาวใช้สีช่องเข้มของชุดตั้งต้น (ราตรีดาว) ให้เห็นว่าหมากขาวเด่นบนกระดานจริงไหม */
 .studio-preview.dark {
-  background: #f7a1bb;
+  background: #a9b3e6;
   color: #fff;
 }
 
