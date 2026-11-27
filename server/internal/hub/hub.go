@@ -26,6 +26,9 @@ type Config struct {
 	AuthTimeout time.Duration
 	// IdleTTL คือเวลาที่ห้องว่าง (ไม่มีใครอยู่และไม่ได้กำลังเล่น) อยู่ได้ก่อนถูกลบ
 	IdleTTL time.Duration
+	// FinishedTTL คือเวลาที่ห้องยังเปิดอยู่หลังเกมจบ ให้ผู้เล่นดูกระดานและผล ครบแล้วห้องปิดเองแม้ยังมีคนอยู่
+	// (ค่าเริ่มต้น 1 นาที เจ้าของโปรเจกต์กำหนด) หน้าเว็บนับถอยหลังแล้วเล่นภาพปิดม่าน
+	FinishedTTL time.Duration
 	// AbandonGrace คือเวลาที่ผู้เล่นซึ่งหลุดระหว่างเกมกลับเข้ามาได้ก่อนถูกปรับแพ้
 	AbandonGrace time.Duration
 	// StartDelay คือเวลาตั้งแต่เกมเริ่มจนนาฬิกาของฝ่ายที่เดินก่อนเริ่มนับ
@@ -68,6 +71,9 @@ func (c Config) withDefaults() Config {
 	}
 	if c.IdleTTL == 0 {
 		c.IdleTTL = 10 * time.Minute
+	}
+	if c.FinishedTTL == 0 {
+		c.FinishedTTL = time.Minute
 	}
 	if c.AbandonGrace == 0 {
 		c.AbandonGrace = 60 * time.Second
@@ -187,6 +193,7 @@ func (h *Hub) CreateGameRoom(variant game.Variant, tc TimeControl, createdBy str
 
 	room := newRoom(id, h.cfg, variant, tc, createdBy, h.removeRoom)
 	room.onFinish = h.roomFinished
+	room.onRestart = h.roomRestarted
 	h.rooms[id] = room
 	h.trackOpen(id, createdBy)
 	room.persist() // ยังไม่มี goroutine ของห้อง จึงเรียกจากตรงนี้ได้
@@ -199,6 +206,15 @@ func (h *Hub) RoomCount() int {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	return len(h.rooms)
+}
+
+// RoomExists บอกว่ามีห้องรหัสนี้เปิดอยู่หรือไม่ ให้หน้าแรกแจ้งได้ทันทีเมื่อกรอกรหัสที่ไม่มีห้อง
+// ใช้โควตาเดียวกับการขอเข้าห้อง (ต่อ IP) จึงใช้ไล่เดารหัสห้องไม่ได้เร็วกว่าเดิม allowed เป็น false เมื่อเกินโควตา
+func (h *Hub) RoomExists(r *http.Request, id string) (exists, allowed bool) {
+	if !h.joins.Allow(h.cfg.ClientIP(r)) {
+		return false, false
+	}
+	return roomIDRe.MatchString(id) && h.room(id) != nil, true
 }
 
 func (h *Hub) room(id string) *Room {
@@ -219,6 +235,15 @@ func (h *Hub) roomFinished(id string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.untrackOpen(id)
+}
+
+// roomRestarted ถูกเรียกเมื่อห้องเริ่มเกมใหม่หลังเล่นต่อ ห้องนั้นกลับมานับเป็นห้องค้างของผู้สร้าง
+func (h *Hub) roomRestarted(id, createdBy string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if _, tracked := h.open[id]; !tracked {
+		h.trackOpen(id, createdBy)
+	}
 }
 
 // trackOpen และ untrackOpen ต้องเรียกขณะถือ h.mu

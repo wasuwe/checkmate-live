@@ -4,6 +4,7 @@ import { AccountPanel } from '../components/AccountPanel'
 import { Emblem } from '../components/Emblem'
 import { HomeFloaters } from '../components/HomeFloaters'
 import { StageScene } from '../components/StageScene'
+import { roomExists } from '../lib/api'
 import { extractRoomId, isRoomId, ROOM_ID_LENGTH } from '../lib/protocol'
 import { roomPath, ADMIN_PATH, PIECE_STUDIO_PATH } from '../lib/router'
 
@@ -27,10 +28,25 @@ export function HomePage({ navigate }: Props) {
   const [joinOpen, setJoinOpen] = useState(false)
   const [code, setCode] = useState('')
   const ready = isRoomId(code)
+  const [checking, setChecking] = useState(false)
+  // ข้อความแจ้งเมื่อรหัสที่กรอกไม่มีห้อง แสดงที่หน้านี้เลย ไม่พาไปหน้าอื่น (เจ้าของโปรเจกต์กำหนด)
+  const [joinError, setJoinError] = useState<string | null>(null)
 
-  function onJoin(e: FormEvent) {
+  function changeCode(next: string) {
+    setCode(next)
+    setJoinError(null)
+  }
+
+  async function onJoin(e: FormEvent) {
     e.preventDefault()
-    if (ready) navigate(roomPath(code))
+    if (!ready || checking) return
+    setChecking(true)
+    const found = await roomExists(code)
+    setChecking(false)
+    if (found === 'no') setJoinError('ไม่พบห้องรหัสนี้ ห้องอาจปิดไปแล้ว หรือรหัสไม่ถูกต้อง')
+    else if (found === 'limited') setJoinError('ลองถี่เกินไป รอสักครู่แล้วลองใหม่')
+    // ตรวจไม่ได้ (เช่น เน็ตสะดุด): พาเข้าห้องตามเดิม หน้าห้องจะแจ้งเองถ้าเข้าไม่ได้
+    else navigate(roomPath(code))
   }
 
   // วางทั้งลิงก์ก็ได้ ระบบดึงรหัสห้องออกมาให้
@@ -38,7 +54,7 @@ export function HomePage({ navigate }: Props) {
     const roomId = extractRoomId(e.clipboardData.getData('text'))
     if (roomId !== null) {
       e.preventDefault()
-      setCode(roomId)
+      changeCode(roomId)
     }
   }
 
@@ -72,7 +88,7 @@ export function HomePage({ navigate }: Props) {
                 aria-label="ปิด"
                 onClick={() => {
                   setJoinOpen(false)
-                  setCode('')
+                  changeCode('')
                 }}
               >
                 ✕
@@ -90,7 +106,8 @@ export function HomePage({ navigate }: Props) {
               ))}
               <input
                 value={code}
-                onChange={(e) => setCode(cleanCode(e.target.value))}
+                onChange={(e) => changeCode(cleanCode(e.target.value))}
+                aria-invalid={joinError !== null}
                 onPaste={onPaste}
                 autoFocus
                 autoComplete="off"
@@ -101,8 +118,13 @@ export function HomePage({ navigate }: Props) {
                 aria-label="รหัสห้อง 6 ตัว (ตัวอักษรและตัวเลข)"
               />
             </div>
-            <button type="submit" className={`btn strong${ready ? ' pink' : ''}`} disabled={!ready}>
-              เข้าห้อง
+            {joinError && (
+              <p className="error anim-shake" role="alert">
+                {joinError}
+              </p>
+            )}
+            <button type="submit" className={`btn strong${ready ? ' pink' : ''}`} disabled={!ready || checking}>
+              {checking ? 'กำลังตรวจรหัส…' : 'เข้าห้อง'}
             </button>
           </form>
         ) : (

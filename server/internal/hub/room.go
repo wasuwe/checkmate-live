@@ -24,6 +24,8 @@ const (
 	evReport
 	evReady
 	evKick
+	evSet
+	evRematch
 )
 
 // event คือสิ่งที่ส่งเข้า goroutine ของห้อง
@@ -46,8 +48,10 @@ type Room struct {
 	inbox     chan event
 	done      chan struct{}
 	onClose   func(id string)
-	// onFinish ถูกเรียกครั้งเดียวเมื่อเกมจบ (อาจเป็น nil)
+	// onFinish ถูกเรียกทุกครั้งที่เกมในห้องจบ (อาจเป็น nil)
 	onFinish func(id string)
+	// onRestart ถูกเรียกเมื่อผู้เล่นทั้งสองกดเล่นต่อและเกมใหม่เริ่มในห้องเดิม (อาจเป็น nil)
+	onRestart func(id, createdBy string)
 	// activity คือภาพล่าสุดของผู้เล่นในห้อง ให้ goroutine อื่นอ่านได้โดยไม่ต้องรอห้อง (ดู publishActivity)
 	activity atomic.Pointer[map[string]Activity]
 
@@ -62,12 +66,19 @@ type Room struct {
 	// removed คือผู้ใช้ที่เจ้าของห้องให้ออกจากที่นั่ง กลับมานั่งในห้องนี้ไม่ได้ (เป็นผู้ชมได้)
 	// เก็บในหน่วยความจำเท่านั้น ถ้าเซิร์ฟเวอร์เริ่มใหม่ระหว่างรอ รายชื่อนี้หายไป
 	removed map[string]bool
+	// sets คือรหัสชุดหมากรุกที่ผู้เล่นแต่ละคนเลือกในห้องรอ (user ID → รหัส) เลือกได้เฉพาะก่อนเกมเริ่ม
+	sets    map[string]string
 	players map[game.Color]string // สี → user ID (หลังเริ่มเกม)
 	clients map[*Client]struct{}
 	// profiles คือชื่อและรูปล่าสุดของผู้ใช้ที่เคยเข้าห้อง (user ID → โปรไฟล์)
 	profiles   map[string]PlayerProfile
 	emptySince time.Time // เวลาที่ห้องเริ่มว่าง (zero = มีคนอยู่)
 	startedAt  time.Time // เวลาที่เกมเริ่ม
+	// closeAt คือเวลาที่ห้องซึ่งเกมจบแล้วจะปิดเอง (zero = เกมยังไม่จบ)
+	closeAt time.Time
+	// rematch คือผู้เล่นที่กด "เล่นต่อ" หลังเกมจบ (user ID) และ round คือลำดับของเกมในห้องนี้
+	rematch map[string]bool
+	round   int
 	// abandonAt คือเส้นตายของผู้เล่นที่หลุดระหว่างเกม ถ้าไม่กลับมาทันจะแพ้ด้วยเหตุ abandon
 	abandonAt map[game.Color]time.Time
 	clock     *clock
@@ -83,7 +94,7 @@ type Room struct {
 }
 
 func newRoom(id string, cfg Config, variant game.Variant, tc TimeControl, createdBy string, onClose func(string)) *Room {
-	if tc.Initial <= 0 {
+	if tc.Initial <= 0 && !tc.Unlimited {
 		tc = DefaultTimeControl
 	}
 	return &Room{
@@ -98,6 +109,8 @@ func newRoom(id string, cfg Config, variant game.Variant, tc TimeControl, create
 		players:    map[game.Color]string{},
 		ready:      map[string]bool{},
 		removed:    map[string]bool{},
+		sets:       map[string]string{},
+		rematch:    map[string]bool{},
 		clients:    map[*Client]struct{}{},
 		profiles:   map[string]PlayerProfile{},
 		emptySince: time.Now(),
@@ -194,8 +207,16 @@ func (r *Room) nextDeadline() (time.Time, bool) {
 		return flag, true
 	}
 	// ห้องที่ไม่มีใครอยู่และไม่ได้กำลังเล่น จะถูกลบเมื่อว่างครบ IdleTTL
+	// ห้องที่เกมจบแล้วปิดเมื่อครบ FinishedTTL แม้ยังมีคนอยู่ (แล้วแต่อย่างไหนถึงก่อน)
 	if len(r.clients) == 0 && r.status != StatusPlaying {
-		return r.emptySince.Add(r.cfg.IdleTTL), true
+		idle := r.emptySince.Add(r.cfg.IdleTTL)
+		if !r.closeAt.IsZero() && r.closeAt.Before(idle) {
+			return r.closeAt, true
+		}
+		return idle, true
+	}
+	if !r.closeAt.IsZero() {
+		return r.closeAt, true
 	}
 	return time.Time{}, false
 }
@@ -237,6 +258,10 @@ func (r *Room) onTimer(now time.Time) bool {
 	if len(r.clients) == 0 && r.status != StatusPlaying && !now.Before(r.emptySince.Add(r.cfg.IdleTTL)) {
 		return true
 	}
+	// เกมจบมาครบเวลาแล้ว: ปิดห้อง (หน้าเว็บของคนที่ยังอยู่เล่นภาพปิดม่านเองจากเวลาที่ส่งไปใน state)
+	if !r.closeAt.IsZero() && !now.Before(r.closeAt) {
+		return true
+	}
 	return false
 }
 
@@ -269,6 +294,10 @@ func (r *Room) handle(ev event) {
 		r.handleReady(ev.client, ev.ready)
 	case evKick:
 		r.handleKick(ev.client)
+	case evSet:
+		r.handleSet(ev.client, ev.text)
+	case evRematch:
+		r.handleRematch(ev.client)
 	}
 }
 
@@ -320,6 +349,10 @@ func (r *Room) handleLeave(c *Client) {
 	// ผู้เล่นปิดทุกแท็บระหว่างเกม: เริ่มนับถอยหลัง ถ้ายังมีแท็บอื่นเปิดอยู่ถือว่ายังอยู่
 	if color, ok := r.colorOf(c.UserID); ok && r.status == StatusPlaying && !r.connected(c.UserID) {
 		r.abandonAt[color] = now.Add(r.cfg.AbandonGrace)
+	}
+	// ออกจากห้องหลังเกมจบ: ถือว่าไม่ขอเล่นต่อแล้ว
+	if r.status == StatusFinished && r.rematch[c.UserID] && !r.connected(c.UserID) {
+		delete(r.rematch, c.UserID)
 	}
 	// ออกจากห้องรอ: ถือว่าไม่พร้อม และหยุดนับถอยหลัง (ที่นั่งยังอยู่จนกว่าจะมีคนอื่นมานั่งแทน)
 	if r.status == StatusWaiting && r.ready[c.UserID] && !r.connected(c.UserID) {
@@ -390,6 +423,7 @@ func (r *Room) handleMove(c *Client, ply int, m game.Move) {
 func (r *Room) finish() {
 	now := time.Now()
 	r.status = StatusFinished
+	r.closeAt = now.Add(r.cfg.FinishedTTL)
 	r.clock.stop(now)
 	clear(r.abandonAt)
 	r.persistGame(now)
@@ -444,6 +478,53 @@ func (r *Room) handleReady(c *Client, ready bool) {
 	if r.status == StatusWaiting {
 		r.broadcastState()
 	}
+}
+
+// handleSet จำชุดหมากรุกที่ผู้เล่นเลือก รับเฉพาะจากผู้เล่นที่นั่งอยู่และเฉพาะก่อนเกมเริ่ม
+// (เจ้าของโปรเจกต์กำหนด: เลือกชุดได้ตอนเข้าห้องเท่านั้น ระหว่างเกมเปลี่ยนไม่ได้)
+func (r *Room) handleSet(c *Client, set string) {
+	if r.status != StatusWaiting || !slices.Contains(r.seats, c.UserID) || r.sets[c.UserID] == set {
+		return
+	}
+	r.sets[c.UserID] = set
+	r.persist()
+}
+
+// rematchWait คือเวลาอย่างน้อยที่ห้องยังเปิดรออีกคนหลังมีคนกดเล่นต่อ (กดตอนใกล้ปิดห้อง อีกคนจะได้มีเวลากด)
+const rematchWait = 20 * time.Second
+
+// handleRematch รับคำขอเล่นต่อหลังเกมจบ จากผู้เล่นของเกมที่เพิ่งจบเท่านั้น
+// เมื่อผู้เล่นทั้งสองกดแล้ว (และยังเชื่อมต่ออยู่ทั้งคู่) เกมใหม่เริ่มในห้องเดิม โดยสุ่มฝ่ายใหม่ (เจ้าของโปรเจกต์กำหนด)
+func (r *Room) handleRematch(c *Client) {
+	if _, ok := r.colorOf(c.UserID); !ok || r.status != StatusFinished || r.rematch[c.UserID] {
+		return
+	}
+	r.rematch[c.UserID] = true
+	white, black := r.players[game.White], r.players[game.Black]
+	if r.rematch[white] && r.rematch[black] && r.connected(white) && r.connected(black) {
+		r.restart(white, black)
+		return
+	}
+	if wait := time.Now().Add(rematchWait); r.closeAt.Before(wait) {
+		r.closeAt = wait
+	}
+	r.broadcastState()
+}
+
+// restart เริ่มเกมใหม่ในห้องเดิม: กระดานและนาฬิกาเริ่มใหม่ สุ่มฝ่ายใหม่ ชุดหมากรุกและแชทคงเดิม
+func (r *Room) restart(a, b string) {
+	r.game = game.NewVariant(r.game.Variant())
+	r.clock = newClock(r.clock.tc)
+	clear(r.players)
+	clear(r.rematch)
+	r.closeAt = time.Time{}
+	r.round++
+	r.start(a, b)
+	if r.onRestart != nil {
+		r.onRestart(r.id, r.createdBy)
+	}
+	r.persist()
+	r.broadcastState()
 }
 
 // hostID คือเจ้าของห้องในห้องรอ: ผู้สร้างห้องถ้านั่งอยู่ ไม่งั้นคือคนที่นั่งก่อน ("" ถ้ายังไม่มีใครนั่ง)
@@ -550,6 +631,7 @@ func (r *Room) broadcastState() {
 				Avatar:    profile.Avatar,
 				Guest:     auth.IsGuest(id),
 				Sender:    r.chatSender(id),
+				Set:       r.sets[id],
 			}
 			if at, ok := r.abandonAt[color]; ok {
 				// ปัดขึ้น เพื่อไม่ให้ client เห็น 0 ทั้งที่ยังเหลือเวลา
@@ -558,10 +640,22 @@ func (r *Room) broadcastState() {
 			base.Players[color] = info
 		}
 	}
+	base.Spectators, base.Watching = r.spectators()
+	base.Round = r.round
+	for _, color := range []game.Color{game.White, game.Black} {
+		if r.rematch[r.players[color]] {
+			base.Rematch = append(base.Rematch, color)
+		}
+	}
+	if !r.closeAt.IsZero() {
+		// ปัดขึ้นเป็นอย่างน้อย 1 เพื่อให้ฝั่งเว็บรู้ว่ากำลังนับอยู่ แม้เหลือเวลาน้อยมาก
+		base.CloseIn = max(1, r.closeAt.Sub(now).Milliseconds())
+	}
 	base.Result, base.Reason = r.game.Result()
 	if r.status == StatusPlaying {
 		// เกมที่หน้าเว็บไม่มีกติกาของตัวเอง: ส่งตาเดินที่ถูกกติกาไปให้ใช้ไฮไลต์ (ตาเดินจริงยังถูกตรวจที่นี่เสมอ)
 		base.Legal, base.Check, base.Count = r.game.Legal(), r.game.Check(), r.game.Count()
+		base.Reach = r.game.Reach()
 		base.Forced = r.game.Forced()
 	}
 
@@ -578,6 +672,28 @@ func (r *Room) broadcastState() {
 		}
 		c.Send(b)
 	}
+}
+
+// spectators คืนผู้ชมที่กำลังเชื่อมต่ออยู่ (คนที่ไม่ได้นั่งและไม่ได้เป็นผู้เล่น) กับจำนวนทั้งหมด
+// คนเดียวกันที่เปิดหลายแท็บนับครั้งเดียว เรียงตาม user ID เพื่อให้ลำดับที่นั่งไม่สลับไปมาทุกครั้งที่ส่ง state
+func (r *Room) spectators() ([]spectatorInfo, int) {
+	var ids []string
+	for c := range r.clients {
+		if !r.isSeated(c.UserID) && !slices.Contains(ids, c.UserID) {
+			ids = append(ids, c.UserID)
+		}
+	}
+	slices.Sort(ids)
+	total := len(ids)
+	if total > maxSpectatorsListed {
+		ids = ids[:maxSpectatorsListed]
+	}
+	out := make([]spectatorInfo, len(ids))
+	for i, id := range ids {
+		profile := r.profiles[id]
+		out[i] = spectatorInfo{Name: profile.Name, Avatar: profile.Avatar, Guest: auth.IsGuest(id)}
+	}
+	return out, total
 }
 
 // lobbyFor คืนสถานะห้องรอสำหรับผู้ใช้คนหนึ่ง หรือ nil ถ้าไม่ได้อยู่ในช่วงรอ

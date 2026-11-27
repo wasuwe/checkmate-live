@@ -32,6 +32,22 @@ export async function createRoom(timeControl: string, game: GameId = 'chess'): P
   return body.roomId
 }
 
+/**
+ * ถามเซิร์ฟเวอร์ว่ามีห้องรหัสนี้เปิดอยู่หรือไม่ ใช้ที่หน้าแรกก่อนพาเข้าห้อง
+ * 'limited' = ถามถี่เกินไป, 'unknown' = ถามไม่สำเร็จ (เช่น เน็ตหลุด) ผู้เรียกควรพาเข้าห้องไปตามเดิม
+ */
+export async function roomExists(roomId: string): Promise<'yes' | 'no' | 'limited' | 'unknown'> {
+  try {
+    const res = await fetch(`/api/rooms/${encodeURIComponent(roomId)}`)
+    if (res.ok) return 'yes'
+    if (res.status === 404) return 'no'
+    if (res.status === 429) return 'limited'
+    return 'unknown'
+  } catch {
+    return 'unknown'
+  }
+}
+
 const CREATE_ROOM_ERRORS: Record<string, string> = {
   too_many_rooms: 'คุณมีห้องที่ยังเล่นไม่จบค้างอยู่หลายห้อง เล่นให้จบหรือรอสักครู่ก่อนสร้างห้องใหม่',
   rate_limited: 'สร้างห้องถี่เกินไป รอสักครู่แล้วลองใหม่',

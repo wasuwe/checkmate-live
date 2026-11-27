@@ -179,3 +179,106 @@ export function playMoveSound(kind: MoveSound, styleId?: string): void {
     // ไม่มีเสียงก็เล่นต่อได้
   }
 }
+
+// ---------- เสียงคนเข้าห้อง: ประตูเปิดแล้วกระดิ่งประตูดัง (เจ้าของโปรเจกต์ขอ 2026-11-27) ----------
+// ดังเมื่อคู่แข่งหรือผู้ชมเข้าห้อง ประกอบจาก
+//   1) กลอนประตู: เสียงกระแทกสั้นทุ้ม
+//   2) บานพับ: เสียงเอี๊ยดสั้น ๆ ที่ระดับเสียงไต่ขึ้น
+//   3) กระดิ่งหน้าร้าน: เคาะสามครั้งไล่กัน แต่ละครั้งเป็นเสียงโลหะหลายความถี่ที่ค่อย ๆ จาง
+
+/** ความถี่ย่อยของกระดิ่งเทียบกับความถี่หลัก และความดังของแต่ละตัว */
+const BELL_PARTIALS: [number, number][] = [
+  [1, 1],
+  [2.76, 0.5],
+  [5.4, 0.25],
+  [8.93, 0.12],
+]
+
+/** เวลา (วินาทีหลังประตูเริ่มเปิด) ความถี่หลัก และความดังของกระดิ่งแต่ละครั้ง */
+const BELL_STRIKES: [number, number, number][] = [
+  [0.3, 2090, 0.3],
+  [0.46, 2480, 0.24],
+  [0.6, 2090, 0.16],
+]
+
+/** ความยาวของเสียงทั้งหมดเป็นวินาที */
+export const DOOR_SOUND_SECONDS = 1.9
+
+/** วาดเสียงประตูกับกระดิ่งลงใน context ใดก็ได้ */
+export function renderDoorSound(ac: BaseAudioContext, at = ac.currentTime): void {
+  const master = ac.createGain()
+  master.gain.value = 0.55
+  master.connect(ac.destination)
+
+  // 1) กลอนประตู
+  const latch = ac.createBufferSource()
+  latch.buffer = noiseFor(ac)
+  const latchBand = ac.createBiquadFilter()
+  latchBand.type = 'bandpass'
+  latchBand.frequency.value = 520
+  latchBand.Q.value = 0.8
+  const latchGain = ac.createGain()
+  latchGain.gain.setValueAtTime(0.0001, at)
+  latchGain.gain.exponentialRampToValueAtTime(0.9, at + 0.003)
+  latchGain.gain.exponentialRampToValueAtTime(0.0001, at + 0.05)
+  latch.connect(latchBand).connect(latchGain).connect(master)
+  latch.start(at)
+  latch.stop(at + 0.07)
+
+  // 2) บานพับเอี๊ยด: คลื่นฟันเลื่อยผ่านตัวกรองแคบ ระดับเสียงไต่ขึ้นและสั่นเล็กน้อย
+  const creak = ac.createOscillator()
+  creak.type = 'sawtooth'
+  creak.frequency.setValueAtTime(95, at + 0.03)
+  creak.frequency.linearRampToValueAtTime(170, at + 0.3)
+  const wobble = ac.createOscillator()
+  wobble.frequency.value = 23
+  const wobbleDepth = ac.createGain()
+  wobbleDepth.gain.value = 9
+  wobble.connect(wobbleDepth).connect(creak.frequency)
+  const creakBand = ac.createBiquadFilter()
+  creakBand.type = 'bandpass'
+  creakBand.frequency.setValueAtTime(700, at + 0.03)
+  creakBand.frequency.linearRampToValueAtTime(1300, at + 0.3)
+  creakBand.Q.value = 5
+  const creakGain = ac.createGain()
+  creakGain.gain.setValueAtTime(0.0001, at + 0.03)
+  creakGain.gain.exponentialRampToValueAtTime(0.22, at + 0.1)
+  creakGain.gain.exponentialRampToValueAtTime(0.0001, at + 0.34)
+  creak.connect(creakBand).connect(creakGain).connect(master)
+  for (const osc of [creak, wobble]) {
+    osc.start(at + 0.03)
+    osc.stop(at + 0.36)
+  }
+
+  // 3) กระดิ่ง
+  for (const [delay, base, level] of BELL_STRIKES) {
+    const start = at + delay
+    for (const [ratio, part] of BELL_PARTIALS) {
+      const osc = ac.createOscillator()
+      osc.type = 'sine'
+      osc.frequency.value = base * ratio
+      const gain = ac.createGain()
+      // ความถี่สูงจางเร็วกว่า เหมือนโลหะจริง
+      const decay = 1.1 / Math.sqrt(ratio)
+      gain.gain.setValueAtTime(0.0001, start)
+      gain.gain.exponentialRampToValueAtTime(level * part, start + 0.004)
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + decay)
+      osc.connect(gain).connect(master)
+      osc.start(start)
+      osc.stop(start + decay + 0.02)
+    }
+  }
+}
+
+/** เล่นเสียงประตูกับกระดิ่ง เบราว์เซอร์ที่ไม่ยอมเล่นเสียงจะเงียบไปเฉย ๆ */
+export function playDoorSound(): void {
+  try {
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    if (!Ctx) return
+    ctx ??= new Ctx()
+    if (ctx.state === 'suspended') void ctx.resume()
+    renderDoorSound(ctx, ctx.currentTime)
+  } catch {
+    // ไม่มีเสียงก็เล่นต่อได้
+  }
+}

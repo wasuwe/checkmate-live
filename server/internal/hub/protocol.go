@@ -14,14 +14,16 @@ import (
 
 // ชนิดข้อความขาเข้า
 const (
-	msgAuth   = "auth"
-	msgJoin   = "join"
-	msgMove   = "move"
-	msgResign = "resign"
-	msgChat   = "chat"
-	msgReport = "report"
-	msgReady  = "ready"
-	msgKick   = "kick"
+	msgAuth    = "auth"
+	msgJoin    = "join"
+	msgMove    = "move"
+	msgResign  = "resign"
+	msgChat    = "chat"
+	msgReport  = "report"
+	msgReady   = "ready"
+	msgKick    = "kick"
+	msgSet     = "set"
+	msgRematch = "rematch"
 )
 
 // inbound คือข้อความขาเข้าทุกชนิดรวมกัน field ที่ไม่รู้จักจะถูกปฏิเสธ
@@ -36,6 +38,7 @@ type inbound struct {
 	Text  string `json:"text,omitempty"`
 	ID    *int   `json:"id,omitempty"`
 	Ready *bool  `json:"ready,omitempty"`
+	Set   string `json:"set,omitempty"`
 }
 
 var (
@@ -43,6 +46,8 @@ var (
 
 	squareRe = regexp.MustCompile(`^[a-h][1-8]$`)
 	promoRe  = regexp.MustCompile(`^[qrbn]?$`)
+	// รหัสชุดหมากรุกที่ผู้เล่นเลือก หน้าเว็บเป็นผู้รู้ว่ารหัสไหนคือชุดอะไร (รหัสที่ไม่รู้จักใช้ชุดของผู้ดูแทน)
+	setIDRe = regexp.MustCompile(`^[a-z0-9-]{1,24}$`)
 	// ตัวอักษรผสมตัวเลข 6 ตัว (ดู newRoomID) หรือรหัสตัวเลข 6 หลักแบบเดิม ซึ่งยังรับไว้ให้ห้องที่เปิดค้างก่อนเปลี่ยน
 	// กู้คืนและเข้าได้จนกว่าจะปิดไปเอง
 	roomIDRe = regexp.MustCompile(`^(?:[A-HJKMNP-Z2-9]{6}|[1-9][0-9]{5})$`)
@@ -76,6 +81,8 @@ func decodeInbound(data []byte) (inbound, error) {
 		allowed.ID = m.ID
 	case msgReady:
 		allowed.Ready = m.Ready
+	case msgSet:
+		allowed.Set = m.Set
 	}
 	if m != allowed {
 		return inbound{}, errBadMessage
@@ -95,6 +102,8 @@ func decodeInbound(data []byte) (inbound, error) {
 			!squareRe.MatchString(m.From) || !squareRe.MatchString(m.To) || !promoRe.MatchString(m.Promo) {
 			return inbound{}, errBadMessage
 		}
+	case msgRematch:
+		// ไม่มี field เพิ่ม: ผู้ขอเล่นต่อคือเจ้าของ connection
 	case msgKick:
 		// ไม่มี field เพิ่ม: คนที่ถูกให้ออกคือผู้เล่นอีกคนในห้องรอเสมอ เซิร์ฟเวอร์ไม่รับว่าจะให้ใครออกจาก client
 	case msgResign:
@@ -111,6 +120,10 @@ func decodeInbound(data []byte) (inbound, error) {
 		}
 	case msgReady:
 		if m.Ready == nil {
+			return inbound{}, errBadMessage
+		}
+	case msgSet:
+		if !setIDRe.MatchString(m.Set) {
 			return inbound{}, errBadMessage
 		}
 	default:
@@ -188,7 +201,19 @@ type playerInfo struct {
 	Guest bool `json:"guest,omitempty"`
 	// Sender คือเลขประจำตัวในแชทของผู้เล่นคนนี้ ให้ฝั่งเว็บใส่ชื่อให้ข้อความที่ส่งตั้งแต่อยู่ในห้องรอ
 	Sender string `json:"sender,omitempty"`
+	// Set คือรหัสชุดหมากรุกที่ผู้เล่นคนนี้เลือกไว้ในห้องรอ (ว่างถ้าไม่ได้เลือก) ครึ่งกระดานและตัวหมากของฝั่งนี้วาดด้วยชุดนี้
+	Set string `json:"set,omitempty"`
 }
+
+// spectatorInfo คือผู้ชมหนึ่งคนที่กำลังเปิดห้องอยู่ (ไม่มีการส่ง user ID)
+type spectatorInfo struct {
+	Name   string `json:"name,omitempty"`
+	Avatar string `json:"avatar,omitempty"`
+	Guest  bool   `json:"guest,omitempty"`
+}
+
+// maxSpectatorsListed คือจำนวนผู้ชมสูงสุดที่ส่งรายชื่อไปกับ state (ที่เหลือบอกเป็นจำนวนใน Watching)
+const maxSpectatorsListed = 12
 
 // lobbySeat คือที่นั่งหนึ่งที่ในห้องรอ (ยังไม่มีสี สีถูกสุ่มตอนเริ่มเกม)
 type lobbySeat struct {
@@ -244,7 +269,7 @@ type stateMsg struct {
 	LastMove *moveInfo                  `json:"lastMove,omitempty"`
 	Players  map[game.Color]*playerInfo `json:"players,omitempty"`
 	You      youInfo                    `json:"you"`
-	// TimeControl เช่น "10+0" (นาที+วินาทีที่บวกต่อตา)
+	// TimeControl เช่น "10+0" (นาที+วินาทีที่บวกต่อตา) หรือ "none" = ไม่จับเวลา (เวลาใน Clock เป็น 0 และไม่มีความหมาย)
 	TimeControl string    `json:"tc"`
 	Clock       clockInfo `json:"clock"`
 	Result      string    `json:"result,omitempty"`
@@ -253,9 +278,20 @@ type stateMsg struct {
 	// Legal: ช่องต้นทาง → ช่องปลายทางของฝ่ายที่ถึงตา, Check: ช่องของขุนที่ถูกรุก
 	Legal map[string][]string `json:"legal,omitempty"`
 	Check string              `json:"check,omitempty"`
+	// Reach: ช่องที่หมากของฝ่ายที่ยังไม่ถึงตาเดินไปได้ตามวิธีเดินของมัน ใช้แสดงเส้นทางเดินเมื่อชี้ที่หมากเท่านั้น
+	Reach map[string][]string `json:"reach,omitempty"`
 	Count *game.Count         `json:"count,omitempty"`
 	// Forced คือฝ่ายที่ถึงตาต้องกิน (หมากฮอสบังคับกิน)
 	Forced bool `json:"forced,omitempty"`
+	// Spectators คือผู้ชมที่กำลังเปิดห้องอยู่ (สูงสุด maxSpectatorsListed คน) และ Watching คือจำนวนผู้ชมทั้งหมด
+	Spectators []spectatorInfo `json:"spectators,omitempty"`
+	Watching   int             `json:"watching,omitempty"`
+	// Rematch คือสีของผู้เล่นที่กด "เล่นต่อ" แล้วหลังเกมจบ (เกมใหม่เริ่มเมื่อกดครบสองคน)
+	Rematch []game.Color `json:"rematch,omitempty"`
+	// Round คือลำดับของเกมในห้องนี้ เริ่มที่ 0 และเพิ่มทุกครั้งที่เล่นต่อ ให้หน้าเว็บรู้ว่าเป็นเกมใหม่แม้ ply กลับเป็น 0
+	Round int `json:"round,omitempty"`
+	// CloseIn คือมิลลิวินาทีที่เหลือก่อนห้องปิดเอง (มีเฉพาะหลังเกมจบ)
+	CloseIn int64 `json:"closeIn,omitempty"`
 	// Lobby มีเฉพาะตอนรอเริ่มเกม
 	Lobby *lobbyInfo `json:"lobby,omitempty"`
 }

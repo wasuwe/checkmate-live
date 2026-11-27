@@ -285,6 +285,14 @@ func (g *Makruk) Legal() map[string][]string {
 	return out
 }
 
+// Reach คืนช่องที่หมากของฝ่ายที่ยังไม่ถึงตาเดินไปได้ (ไม่ดูว่าขุนของตัวเองจะถูกรุกหรือไม่)
+func (g *Makruk) Reach() map[string][]string {
+	if g.Over() {
+		return nil
+	}
+	return reachMap(&g.board, g.turn.Other(), func(from int) []int { return g.targets(from, false) })
+}
+
 // Check คืนช่องของขุนที่ถูกรุก (ของฝ่ายที่ถึงตา) หรือ ""
 func (g *Makruk) Check() string {
 	if g.inCheck(g.turn) {

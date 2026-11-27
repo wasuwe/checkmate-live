@@ -36,16 +36,26 @@ export interface TimeControlOption {
 }
 
 /** เวลาเล่นที่ให้เลือกตอนสร้างห้อง (นาทีต่อฝั่ง + วินาทีที่บวกหลังเดินแต่ละตา) */
+/** ค่าของเวลาเล่นแบบไม่จับเวลา (ต้องตรงกับ NoTimeControl ฝั่งเซิร์ฟเวอร์) */
+export const NO_TIME = 'none'
+
+/** เกมนี้ไม่จับเวลา: ไม่มีนาฬิกาและไม่มีใครแพ้เพราะหมดเวลา */
+export function isUntimed(tc: string): boolean {
+  return tc === NO_TIME
+}
+
 export const TIME_CONTROLS: TimeControlOption[] = [
   { value: '5+3', label: '5 นาที + 3 วิ', hint: 'เร็ว' },
   { value: '10+0', label: '10 นาที', hint: 'มาตรฐาน' },
   { value: '15+10', label: '15 นาที + 10 วิ', hint: 'คิดนาน' },
+  { value: NO_TIME, label: 'ไม่จับเวลา', hint: 'เล่นสบาย ๆ' },
 ]
 
 export const DEFAULT_TIME_CONTROL = '10+0'
 
 /** "5+3" → "5 นาที +3 วินาทีต่อตา" */
 export function describeTimeControl(tc: string): string {
+  if (isUntimed(tc)) return 'ไม่จับเวลา'
   const match = /^(\d+)\+(\d+)$/.exec(tc)
   if (!match) return tc
   const [, minutes, increment] = match

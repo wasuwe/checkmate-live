@@ -6,7 +6,9 @@ import { countdownSeconds, lobbyHint, mySeat, SEAT_STATUS_TEXT, seatName, seatSt
 import type { LobbyInfo, LobbySeat, StateMsg } from '../lib/protocol'
 import { formatRoomCode } from '../lib/text'
 import { Avatar } from './Avatar'
+import { useSetPrefs } from '../lib/pieceSets'
 import { PiecePicker } from './PiecePicker'
+import { Stands } from './Stands'
 
 interface Props {
   state: StateMsg
@@ -17,6 +19,8 @@ interface Props {
   sendReady: (ready: boolean) => boolean
   /** เชิญผู้เล่นอีกคนออกจากที่นั่ง (ใช้ได้เฉพาะเจ้าของห้อง เซิร์ฟเวอร์ตรวจอีกชั้น) */
   sendKick: () => boolean
+  /** บอกเซิร์ฟเวอร์ว่าเลือกชุดหมากรุกไหน (ครึ่งกระดานของเราในเกมใช้ชุดนี้ ทุกคนในห้องเห็น) */
+  sendSet: (set: string) => boolean
   /** แผงแชทของห้อง (ใช้ตัวเดียวกับระหว่างเกม) */
   chat: ReactNode
 }
@@ -25,8 +29,17 @@ interface Props {
  * ห้องรอก่อนเกม: รหัสห้อง ที่นั่งของผู้เล่นสองคน ปุ่มพร้อม และแชท
  * เกมเริ่มเมื่อผู้เล่นทั้งสองกดพร้อมและนับถอยหลังครบ (เซิร์ฟเวอร์เป็นผู้นับ)
  */
-export function Lobby({ state, lobby, stateAt, online, sendReady, sendKick, chat }: Props) {
+export function Lobby({ state, lobby, stateAt, online, sendReady, sendKick, sendSet, chat }: Props) {
   const me = mySeat(lobby)
+  // ชุดที่เลือกถูกส่งให้เซิร์ฟเวอร์ทุกครั้งที่เปลี่ยน และส่งใหม่เมื่อได้ที่นั่งหรือเชื่อมต่อกลับมา
+  // เลือกได้เฉพาะในห้องรอ เมื่อเกมเริ่มแล้วชุดของทั้งสองฝั่งคงที่จนจบเกม
+  const { set } = useSetPrefs()
+  const seated = !!me
+  useEffect(() => {
+    if (seated && online) sendSet(set.id)
+    // sendSet เป็นฟังก์ชันใหม่ทุกครั้งที่วาด แต่ส่งผ่านการเชื่อมต่อเดิม จึงไม่ใช่เหตุให้ส่งซ้ำ
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seated, online, set.id])
   const seconds = useCountdown(lobby, stateAt)
   const gameId = gameOf(state)
   // เชิญออกได้เฉพาะที่นั่งของอีกคน และเฉพาะก่อนเริ่มนับถอยหลัง (ระหว่างนับปุ่มหายไป กันกดพลาดตอนเกมกำลังเริ่ม)
@@ -94,16 +107,18 @@ export function Lobby({ state, lobby, stateAt, online, sendReady, sendKick, chat
               {me.ready ? 'ยกเลิกพร้อม' : 'พร้อม!'}
             </button>
           )}
+          <Stands spectators={state.spectators} watching={state.watching} />
         </section>
 
         <section className="card side lobby-sets" aria-label="ชุดหมากรุก">
           <div className="row lobby-sets-head">
-            <h2 className="card-title grow">เลือกชุดหมากรุกระหว่างรอ</h2>
+            <h2 className="card-title grow">เลือกชุดหมากรุกของคุณ</h2>
             <a className="small" href="/profile" target="_blank" rel="noopener">
               จัดการชุด
             </a>
           </div>
           <PiecePicker />
+          <p className="tiny pretty lobby-sets-note">ครึ่งกระดานฝั่งคุณและตัวหมากของคุณใช้ชุดนี้ เลือกได้ถึงก่อนเกมเริ่ม</p>
         </section>
 
         <div className="lobby-chat">{chat}</div>

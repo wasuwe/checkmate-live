@@ -14,7 +14,12 @@ import (
 type TimeControl struct {
 	Initial   time.Duration
 	Increment time.Duration
+	// Unlimited คือเล่นแบบไม่จับเวลา: นาฬิกาไม่นับและไม่มีใครแพ้เพราะหมดเวลา (Initial และ Increment เป็น 0)
+	Unlimited bool
 }
+
+// NoTimeControl คือค่าที่ใช้เขียนเวลาเล่นแบบไม่จับเวลา (ใน API ใน state และในฐานข้อมูล)
+const NoTimeControl = "none"
 
 // DefaultTimeControl คือ 10 นาที ไม่บวกเวลา
 var DefaultTimeControl = TimeControl{Initial: 10 * time.Minute}
@@ -25,8 +30,11 @@ var ErrBadTimeControl = errors.New("bad time control")
 var timeControlRe = regexp.MustCompile(`^(\d{1,2})\+(\d{1,2})$`)
 
 // ParseTimeControl อ่านรูปแบบ "นาที+วินาทีที่บวก" เช่น "5+3" หรือ "10+0"
-// รับ 1–60 นาที และบวกได้ 0–60 วินาที
+// รับ 1–60 นาที และบวกได้ 0–60 วินาที หรือ "none" สำหรับไม่จับเวลา
 func ParseTimeControl(s string) (TimeControl, error) {
+	if s == NoTimeControl {
+		return TimeControl{Unlimited: true}, nil
+	}
 	m := timeControlRe.FindStringSubmatch(s)
 	if m == nil {
 		return TimeControl{}, ErrBadTimeControl
@@ -43,6 +51,9 @@ func ParseTimeControl(s string) (TimeControl, error) {
 }
 
 func (tc TimeControl) String() string {
+	if tc.Unlimited {
+		return NoTimeControl
+	}
 	return fmt.Sprintf("%d+%d", int(tc.Initial/time.Minute), int(tc.Increment/time.Second))
 }
 
@@ -85,9 +96,9 @@ func (k *clock) delay(now time.Time) time.Duration {
 	return max(k.since.Sub(now), 0)
 }
 
-// flagAt คืนเวลาที่ฝั่งซึ่งกำลังเดินจะหมดเวลา
+// flagAt คืนเวลาที่ฝั่งซึ่งกำลังเดินจะหมดเวลา (เกมที่ไม่จับเวลาไม่มีวันหมดเวลา)
 func (k *clock) flagAt() (time.Time, bool) {
-	if k.running == "" {
+	if k.running == "" || k.tc.Unlimited {
 		return time.Time{}, false
 	}
 	return k.since.Add(k.remaining[k.running]), true

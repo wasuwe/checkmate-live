@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Chessboard } from 'react-chessboard'
-import { FX_LEVEL, fxEventFor, squarePosition, useFxPrefs, type FxEvent } from '../lib/fx'
+import { boardOf, FX_LEVEL, fxEventFor, squarePosition, useFxPrefs, type FxEvent } from '../lib/fx'
 import { checkWords, gameOf } from '../lib/games'
 import {
   boardPosition,
   chainSquare,
   checkSquareFor,
+  lineEnds,
   needsPromotion,
   pieceColor,
   previewFor,
-  targetsFor,
+  reachOf,
+  type PieceReach,
 } from '../lib/moves'
-import { piecesFor, squareStyle, useSetPrefs } from '../lib/pieceSets'
+import { halfOf, isDarkSquare, piecesFor, sideSets, squareStyle, useSetPrefs, type Kind } from '../lib/pieceSets'
+import { RULES } from '../lib/rules'
+import { colorName } from '../lib/text'
 import { useStylePrefs } from '../lib/pieceStyles'
 import type { GameId, Promo, StateMsg } from '../lib/protocol'
 import { FxBurst } from './Fx'
@@ -38,22 +42,43 @@ interface Pending {
   session: number
 }
 
-// สไตล์นิทาน: ตาที่เพิ่งเดินและหมากที่เลือกเป็นแสงทอง คิงที่ถูกรุกเป็นแสงแดงทับทิม
-const LAST_MOVE: CSSProperties = { backgroundColor: '#F3DC9C' }
-const SELECTED: CSSProperties = { backgroundColor: '#E9C46E' }
+// สไตล์นิทาน: ตาที่เพิ่งเดินและหมากที่เลือกเป็นแสงทอง
+// (backgroundImage: none เพื่อให้สีทองทับลายของช่องเหมือนกันทั้งสองครึ่งกระดาน)
+const LAST_MOVE: CSSProperties = { backgroundColor: '#F3DC9C', backgroundImage: 'none' }
+const SELECTED: CSSProperties = { backgroundColor: '#E9C46E', backgroundImage: 'none' }
+// โทนแดง (เจ้าของโปรเจกต์กำหนด): คิงที่ถูก Check และทุกอย่างที่เป็นการกิน
+const RED = '#C8352B'
 const CHECK: CSSProperties = {
-  backgroundImage: 'radial-gradient(circle, rgba(179, 38, 30, 0.8) 0%, transparent 72%)',
+  backgroundImage:
+    'radial-gradient(circle, rgba(200, 40, 32, 0.95) 0%, rgba(200, 40, 32, 0.6) 48%, rgba(200, 40, 32, 0.18) 80%)',
+  boxShadow: `inset 0 0 0 0.6cqw ${RED}`,
 }
-// จุดทองขอบน้ำเงินเข้ม = ช่องว่างที่เดินไปได้, กรอบทอง = ช่องที่กินได้
+// จุดทองขอบน้ำเงินเข้ม = ช่องว่างที่เดินไปได้
 const DOT: CSSProperties = {
   backgroundImage: 'radial-gradient(circle, #D8A73E 0 13%, #1E2A6B 14% 18%, transparent 19%)',
 }
-const RING: CSSProperties = { boxShadow: 'inset 0 0 0 0.75cqw #C9A45C', borderRadius: '28%' }
-
+// กรอบแดงพื้นแดงจาง = หมากที่กินได้ (หรือจะถูกกิน), จุดแดง = ช่องว่างที่เดินไปแล้วได้กิน (กินผ่าน กินข้าม หนีบ)
+const CAPTURE: CSSProperties = {
+  backgroundImage: 'linear-gradient(rgba(200, 53, 43, 0.3), rgba(200, 53, 43, 0.3))',
+  boxShadow: `inset 0 0 0 0.75cqw ${RED}`,
+  borderRadius: '28%',
+}
+const CAPTURE_DOT: CSSProperties = {
+  backgroundImage: `radial-gradient(circle, ${RED} 0 13%, #5A1410 14% 18%, transparent 19%)`,
+}
+// เส้นทางเดินเมื่อชี้ที่หมาก: เส้นทอง ถ้าปลายเส้นเป็นการกินเป็นเส้นแดง
+const LINE_GOLD = '#C9973A'
+const NO_REACH: PieceReach = { targets: [], captures: [], victims: [] }
 
 export function GameBoard({ state, online, errorSeq, session, sendMove }: Props) {
   const { set } = useSetPrefs()
+  // กระดานแบ่งครึ่ง: ครึ่งของฝั่งไหนและตัวหมากของฝั่งนั้นใช้ชุดที่ผู้เล่นฝั่งนั้นเลือกไว้ในห้องรอ
+  const whiteSet = sideSets(set, state.players).w
+  const blackSet = sideSets(set, state.players).b
+  const sets = useMemo(() => ({ w: whiteSet, b: blackSet }), [whiteSet, blackSet])
   const styles = useStylePrefs()
+  // ช่องที่เมาส์ชี้อยู่ (บนจอสัมผัสคือช่องที่แตะล่าสุด)
+  const [hover, setHover] = useState<string | null>(null)
   const [pending, setPending] = useState<Pending | null>(null)
   const [selected, setSelected] = useState<{ square: string; ply: number } | null>(null)
   const [promotion, setPromotion] = useState<{ from: string; to: string; ply: number } | null>(null)
@@ -79,13 +104,38 @@ export function GameBoard({ state, online, errorSeq, session, sendMove }: Props)
   const game = gameOf(state)
   // หมากฮอสระหว่างกินหลายต่อ: เลือกหมากที่ต้องกินต่อให้เอง
   const activeSelected = pickedSquare ?? (canMove ? chainSquare(state) : null)
-  const targets = canMove && activeSelected ? targetsFor(state, activeSelected) : []
+  const picked = useMemo(
+    () => (canMove && activeSelected ? reachOf(state, activeSelected) : NO_REACH),
+    [canMove, activeSelected, state],
+  )
+  const targets = picked.targets
+  // ชี้ที่หมากตัวไหนก็ได้ (ของเราหรือของคู่แข่ง): บอกชื่อหมาก และลากเส้นทางที่มันเดินได้
+  // ไม่แสดงระหว่างรอเซิร์ฟเวอร์ยืนยันตาเดิน เพราะกระดานที่เห็นยังไม่ใช่ตำแหน่งที่คำนวณได้
+  const hoverPiece = hover ? (boardOf(fen).get(hover) ?? null) : null
+  const hovered = useMemo(
+    () => (hover && hoverPiece && !activePending ? reachOf(state, hover) : NO_REACH),
+    [hover, hoverPiece, activePending, state],
+  )
+  const arrows = useMemo(
+    () =>
+      hover
+        ? lineEnds(hover, hovered.targets).map((to) => ({
+            startSquare: hover,
+            endSquare: to,
+            color: hovered.captures.includes(to) ? RED : LINE_GOLD,
+          }))
+        : [],
+    [hover, hovered],
+  )
   const fx = useBoardFx(state)
 
   // หมากที่เพิ่งเดินเด้งลงช่องหนึ่งครั้งต่อตาเดิน
   const landOn = lastMove?.to
   const landKey = state.ply + (activePending ? 1 : 0)
-  const pieces = useMemo(() => piecesFor(set, { landOn, landKey, styles }), [set, landOn, landKey, styles])
+  const pieces = useMemo(
+    () => piecesFor(set, { landOn, landKey, styles, bySide: sets }),
+    [set, sets, landOn, landKey, styles],
+  )
 
   function commit(from: string, to: string, promo: Promo): boolean {
     const next = previewFor(state, from, to, promo)
@@ -120,19 +170,29 @@ export function GameBoard({ state, online, errorSeq, session, sendMove }: Props)
   }
 
   const occupied = useMemo(() => occupiedSquares(state.fen), [state.fen])
-  const squareStyles: Record<string, CSSProperties> = {}
+  // พื้นของทุกช่อง: ครึ่งกระดานของฝั่งไหนใช้สีและลายของชุดฝั่งนั้น แล้วไฮไลต์วางทับ
+  const baseStyles = useMemo(() => halfBoardStyles(sets), [sets])
+  const squareStyles: Record<string, CSSProperties> = { ...baseStyles }
+  const mark = (sq: string, style: CSSProperties) => {
+    squareStyles[sq] = { ...squareStyles[sq], ...style }
+  }
   if (lastMove) {
-    squareStyles[lastMove.from] = LAST_MOVE
-    squareStyles[lastMove.to] = LAST_MOVE
+    mark(lastMove.from, LAST_MOVE)
+    mark(lastMove.to, LAST_MOVE)
   }
   const checked = checkSquareFor(state, fen)
   const position = useMemo(() => boardPosition(game, fen), [game, fen])
-  if (checked) squareStyles[checked] = { ...squareStyles[checked], ...CHECK }
-  if (activeSelected) squareStyles[activeSelected] = SELECTED
+  if (checked) mark(checked, CHECK)
+  if (activeSelected) mark(activeSelected, SELECTED)
   for (const sq of targets) {
-    // ช่องปลายทางที่ไม่มีหมากแต่เป็นการกิน (กินผ่าน) ก็แสดงเป็นจุด ซึ่งพอสำหรับบอกว่าเดินไปได้
-    squareStyles[sq] = { ...squareStyles[sq], ...(occupied.has(sq) ? RING : DOT) }
+    if (picked.captures.includes(sq)) mark(sq, occupied.has(sq) ? CAPTURE : CAPTURE_DOT)
+    else mark(sq, DOT)
   }
+  // หมากที่จะถูกกิน: ทั้งของตาที่เลือกอยู่ และของหมากที่ชี้อยู่ (ชี้หมากคู่แข่ง = เห็นว่าตัวไหนของเราจะโดนกิน)
+  for (const sq of [...picked.victims, ...hovered.victims]) mark(sq, CAPTURE)
+  for (const sq of hovered.captures) if (!occupied.has(sq)) mark(sq, CAPTURE_DOT)
+  const tip = hover && hoverPiece ? pieceTip(game, hoverPiece) : null
+  const bottomSet = sets[flipped ? 'b' : 'w']
 
   return (
     <div className="board">
@@ -145,12 +205,15 @@ export function GameBoard({ state, online, errorSeq, session, sendMove }: Props)
             boardOrientation: flipped ? 'black' : 'white',
             allowDragging: canMove,
             allowDrawingArrows: false,
+            arrows,
             animationDurationInMs: 150,
             squareStyles,
-            darkSquareStyle: squareStyle(set, true),
-            lightSquareStyle: squareStyle(set, false),
-            darkSquareNotationStyle: { color: set.light, fontWeight: 700 },
-            lightSquareNotationStyle: { color: set.dark, fontWeight: 700 },
+            darkSquareStyle: squareStyle(bottomSet, true),
+            lightSquareStyle: squareStyle(bottomSet, false),
+            darkSquareNotationStyle: { color: bottomSet.light, fontWeight: 700 },
+            lightSquareNotationStyle: { color: bottomSet.dark, fontWeight: 700 },
+            onMouseOverSquare: ({ square }) => setHover(square),
+            onMouseOutSquare: ({ square }) => setHover((h) => (h === square ? null : h)),
             canDragPiece: ({ piece }) => canMove && pieceColor(piece.pieceType) === myColor,
             onPieceDrop: ({ sourceSquare, targetSquare }) =>
               targetSquare !== null && tryMove(sourceSquare, targetSquare),
@@ -159,12 +222,25 @@ export function GameBoard({ state, online, errorSeq, session, sendMove }: Props)
         />
       </div>
 
+      {tip && hover && (
+        <div
+          className={`piece-tip${squarePosition(hover, flipped).top < 20 ? ' below' : ''}`}
+          style={toPercent(squarePosition(hover, flipped))}
+          role="tooltip"
+        >
+          <div className="piece-tip-box">
+            <b>{tip.name}</b>
+            {tip.desc && <span>{tip.desc}</span>}
+          </div>
+        </div>
+      )}
+
       {fx && <BoardFx key={fx.seq} event={fx.event} flipped={flipped} game={game} />}
 
       {activePromotion && myColor !== '' && (
         <PromotionDialog
           color={myColor}
-          set={set}
+          set={sets[myColor]}
           styles={styles}
           onPick={(promo) => {
             commit(activePromotion.from, activePromotion.to, promo)
@@ -175,6 +251,25 @@ export function GameBoard({ state, online, errorSeq, session, sendMove }: Props)
       )}
     </div>
   )
+}
+
+const ALL_SQUARES = Array.from({ length: 64 }, (_, i) => String.fromCharCode(97 + (i % 8)) + (1 + (i >> 3)))
+
+/** สีและลายของทุกช่อง: แถว 1–4 ใช้ชุดของฝั่งขาว แถว 5–8 ใช้ชุดของฝั่งดำ */
+function halfBoardStyles(sets: Record<'w' | 'b', BoardSetLike>): Record<string, CSSProperties> {
+  const out: Record<string, CSSProperties> = {}
+  for (const sq of ALL_SQUARES) out[sq] = squareStyle(sets[halfOf(sq)], isDarkSquare(sq))
+  return out
+}
+
+type BoardSetLike = Parameters<typeof squareStyle>[0]
+
+/** ชื่อของหมาก (พร้อมฝั่ง) และวิธีเดินสั้น ๆ จากหน้ากฎของเกมนั้น */
+function pieceTip(game: GameId, piece: string): { name: string; desc: string } {
+  const kind = piece.toUpperCase() as Kind
+  const side = colorName(piece === kind ? 'w' : 'b')
+  const info = RULES[game].pieces.find((p) => p.kind === kind)
+  return { name: `${info?.name ?? 'หมาก'} (${side})`, desc: info?.desc ?? '' }
 }
 
 /** ช่องที่มีหมากอยู่ อ่านจากส่วนตำแหน่งของ FEN */
