@@ -6218,6 +6218,11 @@ a.cb-card:focus-visible {
   font-weight: 700;
 }
 
+.rematch-note.gone {
+  color: var(--error);
+  font-weight: 700;
+}
+
 /* คู่แข่งกดเล่นต่อแล้ว: ปุ่มของเรากะพริบเบา ๆ ให้รู้ว่ามีคนรอ */
 .btn.nudge {
   animation: chatNudge 1.6s ease-in-out infinite;

@@ -130,6 +130,8 @@ export interface RematchView {
   asked: boolean
   /** อีกฝ่ายกดเล่นต่อแล้ว กำลังรอผู้ดู */
   opponentAsked: boolean
+  /** อีกฝ่ายออกจากห้องไปแล้ว (ไม่ได้เชื่อมต่ออยู่) จึงเล่นต่อไม่ได้จนกว่าจะกลับมา */
+  opponentLeft: boolean
   /** ข้อความบนปุ่ม และข้อความบอกสถานะ ('' = ไม่มี) */
   button: string
   note: string
@@ -141,14 +143,27 @@ export function rematchView(state: StateMsg): RematchView {
   const votes = state.rematch ?? []
   if (state.status !== 'finished' || you === '') {
     const note = state.status === 'finished' && votes.length > 0 ? `ฝ่าย${colorName(votes[0])}ขอเล่นต่อ รออีกฝ่ายตอบ` : ''
-    return { canAsk: false, asked: false, opponentAsked: false, button: '', note }
+    return { canAsk: false, asked: false, opponentAsked: false, opponentLeft: false, button: '', note }
   }
   const asked = votes.includes(you)
   const opponentAsked = votes.some((c) => c !== you)
+  // เจ้าของโปรเจกต์กำหนด: ถ้าอีกฝ่ายออกไปแล้ว ต้องบอกให้เห็น ไม่ปล่อยให้รอโดยไม่รู้
+  const opponent = state.players?.[you === 'w' ? 'b' : 'w']
+  if (opponent && !opponent.connected) {
+    return {
+      canAsk: true,
+      asked,
+      opponentAsked: false,
+      opponentLeft: true,
+      button: 'คู่แข่งออกไปแล้ว',
+      note: 'คู่แข่งออกจากห้องไปแล้ว เล่นต่อในห้องนี้ไม่ได้ สร้างห้องใหม่เพื่อเล่นเกมถัดไปได้เลย',
+    }
+  }
   return {
     canAsk: true,
     asked,
     opponentAsked,
+    opponentLeft: false,
     button: asked ? 'รอคู่แข่งกดเล่นต่อ…' : 'เล่นต่อ',
     note: asked
       ? 'เกมใหม่จะเริ่มเมื่อคู่แข่งกดเล่นต่อด้วย แล้วสุ่มฝ่ายใหม่'

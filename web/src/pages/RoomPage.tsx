@@ -178,10 +178,10 @@ export function RoomPage({ roomId, navigate }: Props) {
                 <button
                   type="button"
                   className={`btn mini pink${rematch.opponentAsked && !rematch.asked ? ' nudge' : ''}`}
-                  disabled={!online || rematch.asked}
+                  disabled={!online || rematch.asked || rematch.opponentLeft}
                   onClick={game.sendRematch}
                 >
-                  {rematch.asked ? 'รอคู่แข่ง…' : 'เล่นต่อ'}
+                  {rematch.opponentLeft ? 'คู่แข่งออกไปแล้ว' : rematch.asked ? 'รอคู่แข่ง…' : 'เล่นต่อ'}
                 </button>
               ) : (
                 <button type="button" className="btn mini pink" onClick={() => navigate('/play')}>
@@ -589,7 +589,10 @@ function GameOverDialog({
         </h2>
         {reason && <p>{reason}</p>}
         {rematch.note && (
-          <p className={`small pretty rematch-note${rematch.opponentAsked && !rematch.asked ? ' hot' : ''}`} role="status">
+          <p
+            className={`small pretty rematch-note${rematch.opponentAsked && !rematch.asked ? ' hot' : ''}${rematch.opponentLeft ? ' gone' : ''}`}
+            role="status"
+          >
             {rematch.note}
           </p>
         )}
@@ -599,7 +602,7 @@ function GameOverDialog({
               type="button"
               className="btn pink strong"
               autoFocus
-              disabled={!online || rematch.asked}
+              disabled={!online || rematch.asked || rematch.opponentLeft}
               onClick={sendRematch}
             >
               {rematch.button}
@@ -610,7 +613,7 @@ function GameOverDialog({
             </button>
           )}
           {rematch.canAsk && (
-            <button type="button" className="btn" onClick={() => navigate('/play')}>
+            <button type="button" className={`btn${rematch.opponentLeft ? ' pink' : ''}`} onClick={() => navigate('/play')}>
               สร้างห้องใหม่
             </button>
           )}

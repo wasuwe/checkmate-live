@@ -119,6 +119,18 @@ describe('rematch after the game', () => {
     expect(waited.note).toContain('คู่แข่งอยากเล่นต่อ')
   })
 
+  test('when the opponent has left the room the player is told, whether or not they asked first', () => {
+    const players = { w: { connected: true }, b: { connected: false } }
+    for (const votes of [[], ['w']] as const) {
+      const view = rematchView(done({ players, rematch: [...votes] }))
+      expect(view).toMatchObject({ opponentLeft: true, button: 'คู่แข่งออกไปแล้ว' })
+      expect(view.note).toContain('คู่แข่งออกจากห้องไปแล้ว')
+    }
+    // กลับเข้ามาแล้ว: ขอเล่นต่อได้ตามปกติ
+    const back = rematchView(done({ players: { w: { connected: true }, b: { connected: true } } }))
+    expect(back).toMatchObject({ opponentLeft: false, button: 'เล่นต่อ' })
+  })
+
   test('a spectator cannot ask but is told that a player did', () => {
     const watch = { role: 'spectator', color: '' } as const
     expect(rematchView(done({ you: watch }))).toMatchObject({ canAsk: false, note: '' })
