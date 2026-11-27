@@ -1045,6 +1045,66 @@ body:has(.home)::before {
   font-size: 140px;
 }
 
+/* ตัวหมากตัวละครลอยกระจายทั่วหน้าแรก อยู่หลังเนื้อหาและกดผ่านได้ */
+.home-floaters {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.home > :not(.home-scene, .home-floaters) {
+  position: relative;
+  z-index: 1;
+}
+
+.home-floater {
+  position: absolute;
+  translate: -50% -50%;
+  rotate: var(--tilt);
+  animation: homeFloat 6s ease-in-out infinite;
+  filter: drop-shadow(0 8px 10px rgba(20, 25, 70, 0.28)) drop-shadow(0 0 10px rgba(255, 226, 140, 0.45));
+}
+
+.home-floater-piece {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+@keyframes homeFloat {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(6deg);
+  }
+}
+
+/* จอแคบ: ตัวหมากอยู่ในแถบฉากเวทีด้านบน และเลื่อนไปพร้อมหน้า */
+.home-floaters.narrow {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 200px;
+}
+
+.home-floaters.wide {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .home-floaters.wide {
+    display: block;
+  }
+
+  .home-floaters.narrow {
+    display: none;
+  }
+}
+
 @media (min-width: 960px) {
   .app:has(> .home) {
     padding-left: 46vw;
