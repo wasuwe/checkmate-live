@@ -147,7 +147,7 @@ export function RegisterPage({ navigate }: Props) {
   }
 
   return (
-    <main className="screen" style={{ paddingTop: 12 }}>
+    <main className="screen auth register">
       {/* ฉากเวทีด้านซ้าย แสดงเฉพาะจอกว้าง */}
       <StageScene className="auth-scene">
         <span className="stage-actor">

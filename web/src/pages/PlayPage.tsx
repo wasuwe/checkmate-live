@@ -38,7 +38,7 @@ export function PlayPage({ navigate }: Props) {
   }
 
   return (
-    <main className="screen medium" style={{ gap: 20 }}>
+    <main className="screen medium play">
       <h1 className="title">เลือกเกมที่อยากเล่น</h1>
       <div className="game-grid">
         {GAMES.map((g) => (

@@ -33,7 +33,7 @@ export function Lobby({ state, lobby, stateAt, online, sendReady, sendKick, chat
   const kick = lobby.canKick && online && seconds === null ? sendKick : undefined
 
   return (
-    <main className="screen wide lobby" style={{ gap: 16 }}>
+    <main className="screen wide lobby">
       {!online && (
         <p className="banner" role="status">
           การเชื่อมต่อหลุด กำลังเชื่อมต่อใหม่…
@@ -49,63 +49,64 @@ export function Lobby({ state, lobby, stateAt, online, sendReady, sendKick, chat
         </a>
       </div>
 
+      {/* สี่ส่วนเป็นลูกของตารางโดยตรง CSS จึงจัดตำแหน่งตามขนาดจอได้: จอกว้างสองคอลัมน์ จอแคบเรียงลงมา */}
       <div className="lobby-grid">
-        <div className="lobby-col">
-          <section className="card side lobby-invite" aria-label="เชิญเพื่อน">
+        <section className="card side lobby-invite" aria-label="เชิญเพื่อน">
+          <div className="lobby-code">
             <div className="tiny">รหัสห้อง</div>
             <div className="room-code huge">{formatRoomCode(state.room)}</div>
-            <div className="row wrap" style={{ justifyContent: 'center' }}>
-              <CopyLinkButton />
-              <ShareButton />
+          </div>
+          <div className="row wrap lobby-share">
+            <CopyLinkButton />
+            <ShareButton />
+          </div>
+        </section>
+
+        <section className="card side lobby-players" aria-label="ผู้เล่น">
+          <div className="lobby-seats">
+            <SeatCard seat={lobby.seats[0]} onKick={kick} />
+            <span className="lobby-vs" aria-hidden="true">
+              VS
+            </span>
+            <SeatCard seat={lobby.seats[1]} onKick={kick} />
+          </div>
+
+          {seconds !== null ? (
+            <div className="lobby-countdown" role="status" aria-live="assertive">
+              <span>เริ่มใน</span>
+              {/* key ทำให้ตัวเลขเด้งทุกครั้งที่เปลี่ยน */}
+              <b key={seconds}>{seconds}</b>
             </div>
-          </section>
+          ) : (
+            <p className="lobby-hint pretty" role="status">
+              {lobbyHint(lobby)}
+            </p>
+          )}
 
-          <section className="card side" aria-label="ผู้เล่น">
-            <div className="lobby-seats">
-              <SeatCard seat={lobby.seats[0]} onKick={kick} />
-              <span className="lobby-vs" aria-hidden="true">
-                VS
-              </span>
-              <SeatCard seat={lobby.seats[1]} onKick={kick} />
-            </div>
+          {me && (
+            <button
+              type="button"
+              className={`btn big block${me.ready ? '' : ' pink strong'}`}
+              aria-pressed={me.ready}
+              disabled={!online}
+              onClick={() => sendReady(!me.ready)}
+            >
+              {me.ready ? 'ยกเลิกพร้อม' : 'พร้อม!'}
+            </button>
+          )}
+        </section>
 
-            {seconds !== null ? (
-              <div className="lobby-countdown" role="status" aria-live="assertive">
-                <span>เริ่มใน</span>
-                {/* key ทำให้ตัวเลขเด้งทุกครั้งที่เปลี่ยน */}
-                <b key={seconds}>{seconds}</b>
-              </div>
-            ) : (
-              <p className="lobby-hint pretty" role="status">
-                {lobbyHint(lobby)}
-              </p>
-            )}
+        <section className="card side lobby-sets" aria-label="ชุดหมากรุก">
+          <div className="row lobby-sets-head">
+            <h2 className="card-title grow">เลือกชุดหมากรุกระหว่างรอ</h2>
+            <a className="small" href="/profile" target="_blank" rel="noopener">
+              จัดการชุด
+            </a>
+          </div>
+          <PiecePicker />
+        </section>
 
-            {me && (
-              <button
-                type="button"
-                className={`btn big block${me.ready ? '' : ' pink strong'}`}
-                aria-pressed={me.ready}
-                disabled={!online}
-                onClick={() => sendReady(!me.ready)}
-              >
-                {me.ready ? 'ยกเลิกพร้อม' : 'พร้อม!'}
-              </button>
-            )}
-          </section>
-
-          <section className="card side" aria-label="ชุดหมากรุก">
-            <div className="row">
-              <h2 className="card-title grow">เลือกชุดหมากรุกระหว่างรอ</h2>
-              <a className="small" href="/profile" target="_blank" rel="noopener">
-                จัดการชุด
-              </a>
-            </div>
-            <PiecePicker />
-          </section>
-        </div>
-
-        <div className="lobby-col lobby-chat">{chat}</div>
+        <div className="lobby-chat">{chat}</div>
       </div>
     </main>
   )

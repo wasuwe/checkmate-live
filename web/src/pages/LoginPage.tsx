@@ -43,7 +43,7 @@ export function LoginPage({ navigate }: Props) {
   }
 
   return (
-    <main className="screen" style={{ maxWidth: 440, paddingTop: 12 }}>
+    <main className="screen auth login">
       {/* ฉากเวทีด้านซ้าย แสดงเฉพาะจอกว้าง */}
       <StageScene className="auth-scene">
         <span className="stage-actor">
