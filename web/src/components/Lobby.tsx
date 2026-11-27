@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { describeTimeControl } from '../lib/clock'
 import { gameName, gameOf } from '../lib/games'
 import { countdownSeconds, lobbyHint, mySeat, SEAT_STATUS_TEXT, seatName, seatStatus } from '../lib/lobby'
@@ -14,6 +15,8 @@ interface Props {
   stateAt: number
   online: boolean
   sendReady: (ready: boolean) => boolean
+  /** เชิญผู้เล่นอีกคนออกจากที่นั่ง (ใช้ได้เฉพาะเจ้าของห้อง เซิร์ฟเวอร์ตรวจอีกชั้น) */
+  sendKick: () => boolean
   /** แผงแชทของห้อง (ใช้ตัวเดียวกับระหว่างเกม) */
   chat: ReactNode
 }
@@ -22,10 +25,12 @@ interface Props {
  * ห้องรอก่อนเกม: รหัสห้อง ที่นั่งของผู้เล่นสองคน ปุ่มพร้อม และแชท
  * เกมเริ่มเมื่อผู้เล่นทั้งสองกดพร้อมและนับถอยหลังครบ (เซิร์ฟเวอร์เป็นผู้นับ)
  */
-export function Lobby({ state, lobby, stateAt, online, sendReady, chat }: Props) {
+export function Lobby({ state, lobby, stateAt, online, sendReady, sendKick, chat }: Props) {
   const me = mySeat(lobby)
   const seconds = useCountdown(lobby, stateAt)
   const gameId = gameOf(state)
+  // เชิญออกได้เฉพาะที่นั่งของอีกคน และเฉพาะก่อนเริ่มนับถอยหลัง (ระหว่างนับปุ่มหายไป กันกดพลาดตอนเกมกำลังเริ่ม)
+  const kick = lobby.canKick && online && seconds === null ? sendKick : undefined
 
   return (
     <main className="screen wide lobby" style={{ gap: 16 }}>
@@ -57,11 +62,11 @@ export function Lobby({ state, lobby, stateAt, online, sendReady, chat }: Props)
 
           <section className="card side" aria-label="ผู้เล่น">
             <div className="lobby-seats">
-              <SeatCard seat={lobby.seats[0]} />
+              <SeatCard seat={lobby.seats[0]} onKick={kick} />
               <span className="lobby-vs" aria-hidden="true">
                 VS
               </span>
-              <SeatCard seat={lobby.seats[1]} />
+              <SeatCard seat={lobby.seats[1]} onKick={kick} />
             </div>
 
             {seconds !== null ? (
@@ -106,16 +111,60 @@ export function Lobby({ state, lobby, stateAt, online, sendReady, chat }: Props)
   )
 }
 
-function SeatCard({ seat }: { seat: LobbySeat | undefined }) {
+function SeatCard({ seat, onKick }: { seat: LobbySeat | undefined; onKick?: () => void }) {
   const status = seatStatus(seat)
+  const [confirming, setConfirming] = useState(false)
+  // ปุ่มเชิญออกอยู่บนที่นั่งของอีกคนเท่านั้น
+  const canKick = !!seat && !seat.you && !!onKick
   return (
     <div className={`lobby-seat ${status}`}>
       {seat ? <Avatar avatar={seat.avatar ?? ''} size={56} /> : <span className="lobby-seat-empty" aria-hidden="true" />}
       <b className="lobby-seat-name">{seat ? seatName(seat) : 'ที่นั่งว่าง'}</b>
+      {seat?.host && <span className="lobby-seat-host">เจ้าของห้อง</span>}
       <span className="pill lobby-seat-status">
         {status === 'ready' && <span aria-hidden="true">✓ </span>}
         {SEAT_STATUS_TEXT[status]}
       </span>
+      {canKick && (
+        <button type="button" className="lobby-kick" onClick={() => setConfirming(true)}>
+          เชิญออก
+        </button>
+      )}
+      {/* วางที่ body: หน้าห้องรอมีการเคลื่อนไหวตอนเปิด ซึ่งทำให้กล่องที่อยู่ข้างในไม่คลุมเต็มจอ */}
+      {canKick &&
+        confirming &&
+        createPortal(
+          <div className="overlay" onClick={() => setConfirming(false)}>
+            <div
+              className="dialog narrow"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="kick-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="dialog-title" id="kick-title">
+                เชิญ {seat.name || 'ผู้เล่นคนนี้'} ออกจากที่นั่ง?
+              </h2>
+              <p>ที่นั่งจะว่างให้คนอื่นเข้ามาแทน คนที่ถูกเชิญออกยังดูเกมได้ แต่กลับมานั่งในห้องนี้ไม่ได้</p>
+              <div className="row wrap" style={{ justifyContent: 'center' }}>
+                <button type="button" className="btn mint" autoFocus onClick={() => setConfirming(false)}>
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  className="btn danger"
+                  onClick={() => {
+                    setConfirming(false)
+                    onKick()
+                  }}
+                >
+                  เชิญออก
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { GalleryPage } from './pages/GalleryPage'
 import { HomePage } from './pages/HomePage'
 import { PieceStudioPage } from './pages/PieceStudioPage'
 import { LoginPage } from './pages/LoginPage'
+import { MembersPage } from './pages/MembersPage'
 import { PlayPage } from './pages/PlayPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -48,6 +49,8 @@ function App() {
         return <GalleryPage navigate={navigate} />
       case 'admin':
         return <AdminPage navigate={navigate} />
+      case 'members':
+        return <MembersPage navigate={navigate} />
       case 'room':
         // key ทำให้เปลี่ยนห้องแล้วได้ state ใหม่ทั้งหมด
         return <RoomPage key={route.roomId} roomId={route.roomId} navigate={navigate} />

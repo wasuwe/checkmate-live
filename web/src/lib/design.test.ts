@@ -178,6 +178,7 @@ describe('pages', () => {
       ['/gallery', 'gallery'],
       ['/piece-studio', 'pieces'],
       ['/backstage', 'admin'],
+      ['/backstage/members', 'members'],
       ['/admin', 'not_found'], // ชื่อที่เดาง่ายไม่ได้พาไปหน้าจัดการ
     ]) {
       expect(parseRoute(path).page, path).toBe(page)
@@ -208,6 +209,7 @@ describe('result popup', () => {
 
   test('room codes are shown as two groups of three', () => {
     expect(formatRoomCode('482915')).toBe('482 915')
+    expect(formatRoomCode('K7Q2XM')).toBe('K7Q 2XM')
   })
 })
 

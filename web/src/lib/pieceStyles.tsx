@@ -25,10 +25,8 @@ export type ChessKind = 'K' | 'Q' | 'R' | 'B' | 'N' | 'P'
 export const CHESS_KINDS: ChessKind[] = ['K', 'Q', 'R', 'B', 'N', 'P']
 export const KIND_NAMES: Record<ChessKind, string> = { K: 'คิง', Q: 'ควีน', R: 'เรือ', B: 'บิชอป', N: 'ม้า', P: 'เบี้ย' }
 
-const INK = '#3B2F4A'
-const VS = '︎' // บังคับให้สัญลักษณ์แสดงเป็นตัวอักษร ไม่ใช่ emoji สี
-const GLYPH_FONT = "'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Apple Symbols', 'DejaVu Sans', sans-serif"
-const GLYPH: Record<ChessKind, string> = { K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟' }
+const INK = '#2B2A33'
+const GOLD = '#C9A45C'
 
 export interface Paint {
   /** สีตัวหมากตามชุดสีที่เลือก */
@@ -54,12 +52,92 @@ export interface PieceStyle {
 
 const stroke = (ink: string, width = 1.7) => ({ stroke: ink, strokeWidth: width, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const })
 
-/** รูปแบบเดิม: สัญลักษณ์หมากรุกจากฟอนต์ของเครื่อง */
-function drawGlyph(kind: ChessKind, { fill, ink }: Paint): JSX.Element {
+// ---------- รูปแบบคลาสสิก (ค่าเริ่มต้น) ----------
+// ตัวหมากทรงมาตรฐานวาดเป็นเวกเตอร์ หน้าตาเหมือนกันทุกเครื่อง (ไม่ขึ้นกับฟอนต์ของเครื่อง)
+// ทุกตัวใช้ฐานเดียวกันและคาดแหวนทองที่คอ สีตัวหมากมาจากชุดสีที่ผู้เล่นเลือก
+
+/** ฐานสองชั้นของตัวหมากคลาสสิก */
+const FOOT = (
+  <>
+    <rect x="13.5" y="33.4" width="18" height="2.8" rx="1.4" />
+    <path d="M11.5 39.5 Q11.5 36.6 14.5 36.2 H30.5 Q33.5 36.6 33.5 39.5 Z" />
+  </>
+)
+
+/** แหวนทองที่คอ */
+const collar = (y: number, rx: number) => <ellipse cx="22.5" cy={y} rx={rx} ry="1.7" fill={GOLD} />
+
+/** ลำตัวทรงกลึงของตัวหมากสูง: บานที่ฐาน คอดที่คอ */
+const STEM = <path d="M15.8 33.4 Q20.2 28 18.8 22.4 H26.2 Q24.8 28 29.2 33.4 Z" />
+
+/** `detail` คือสีเส้นรายละเอียดบนตัวหมาก (ต้องตัดกับสีตัวหมาก) */
+const classic = (detail: string): Record<ChessKind, JSX.Element> => ({
+  P: (
+    <>
+      <path d="M18 33.4 Q21.4 27.5 20.4 21.6 H24.6 Q23.6 27.5 27 33.4 Z" />
+      {collar(21.2, 5.4)}
+      <circle cx="22.5" cy="14.6" r="5.6" />
+      {FOOT}
+    </>
+  ),
+  R: (
+    <>
+      <path d="M16.8 18 H28.2 L29.4 33.4 H15.6 Z" />
+      <path d="M14.2 8.6 h3.8 v2.8 h2.6 V8.6 h3.8 v2.8 h2.6 V8.6 h3.8 v7 q0 2 -2 2.4 H16.2 q-2 -0.4 -2 -2.4 Z" />
+      {collar(18.6, 7.2)}
+      {FOOT}
+    </>
+  ),
+  N: (
+    <>
+      <path d="M16 33.4 C16.2 28.6 20.6 26.4 20.9 22.6 C18.6 23.2 16.4 25.6 13.8 24.7 C11.7 24 11 21.7 12.1 20 L17.2 12.8 L18 7.4 L21.8 10.6 C28.6 11.2 32.6 18 31.4 33.4 Z" />
+      <path d="M24.2 13.6 C28 17.2 29.2 23 28.6 30" fill="none" stroke={detail} strokeWidth="1" opacity="0.6" />
+      <circle cx="17.6" cy="16.8" r="1" fill={detail} stroke="none" />
+      {FOOT}
+    </>
+  ),
+  B: (
+    <>
+      <path d="M17.6 33.4 Q21.2 27 20.2 20.8 H24.8 Q23.8 27 27.4 33.4 Z" />
+      {collar(20.4, 6)}
+      <path d="M22.5 6.8 C27.6 11.2 28.8 15.2 26.4 18.6 H18.6 C16.2 15.2 17.4 11.2 22.5 6.8 Z" />
+      <path d="M24.9 10.6 L21.9 14.8" fill="none" stroke={detail} />
+      <circle cx="22.5" cy="5.2" r="1.7" />
+      {FOOT}
+    </>
+  ),
+  Q: (
+    <>
+      {STEM}
+      <path d="M14.4 20.2 L12 10.6 L17.2 15.2 L19.4 8.2 L22.5 14.6 L25.6 8.2 L27.8 15.2 L33 10.6 L30.6 20.2 Z" />
+      <circle cx="12" cy="9.4" r="1.6" />
+      <circle cx="19.4" cy="7" r="1.6" />
+      <circle cx="25.6" cy="7" r="1.6" />
+      <circle cx="33" cy="9.4" r="1.6" />
+      {collar(21.6, 8.4)}
+      {FOOT}
+    </>
+  ),
+  K: (
+    <>
+      {STEM}
+      <path d="M21.3 3 h2.4 v2.7 h2.7 v2.4 h-2.7 v3.4 h-2.4 v-3.4 h-2.7 v-2.4 h2.7 Z" />
+      <path d="M15.2 20.2 Q12.6 13.8 17.6 12 Q22.5 10.6 27.4 12 Q32.4 13.8 29.8 20.2 Z" />
+      {collar(21.6, 8.4)}
+      {FOOT}
+    </>
+  ),
+})
+
+const CLASSIC_ON_LIGHT = classic(INK)
+const CLASSIC_ON_DARK = classic('#FFF6DC')
+
+/** รูปแบบเริ่มต้น: ตัวหมากคลาสสิกวาดในระบบ */
+function drawClassic(kind: ChessKind, { fill, ink, color }: Paint): JSX.Element {
   return (
-    <text x="22.5" y="25" textAnchor="middle" dominantBaseline="middle" fontSize="35" fontFamily={GLYPH_FONT} fill={fill} stroke={ink} strokeWidth="1.5" paintOrder="stroke" strokeLinejoin="round">
-      {GLYPH[kind] + VS}
-    </text>
+    <g fill={fill} {...stroke(ink, 1.3)}>
+      {(color === 'w' ? CLASSIC_ON_LIGHT : CLASSIC_ON_DARK)[kind]}
+    </g>
   )
 }
 
@@ -127,17 +205,21 @@ function drawLetter(kind: ChessKind, { fill, ink, color }: Paint): JSX.Element {
   return (
     <g>
       <rect x="6.5" y="6.5" width="32" height="32" rx="10" fill={fill} {...stroke(ink, 2)} />
-      <text x="22.5" y="24" textAnchor="middle" dominantBaseline="middle" fontSize="21" fontFamily="'Mitr', sans-serif" fontWeight="600" fill={color === 'w' ? ink : '#FFFFFF'}>
+      <text x="22.5" y="24" textAnchor="middle" dominantBaseline="middle" fontSize="21" fontFamily="'IBM Plex Sans Thai', sans-serif" fontWeight="700" fill={color === 'w' ? ink : '#FFFFFF'}>
         {kind}
       </text>
     </g>
   )
 }
 
+/** รหัสของรูปแบบ "ตัวละครนิทาน": ตัวหมากเป็นตัวละครของชุดหมากรุกที่ใช้อยู่ (วาดใน pieceSets เพราะต้องรู้ว่าใช้ชุดไหน) */
+export const FABLE_STYLE = 'fable'
+
 export const PIECE_STYLES: PieceStyle[] = [
-  { id: 'glyph', name: 'สัญลักษณ์', desc: 'สัญลักษณ์หมากรุกจากฟอนต์ของเครื่อง (แบบเดิม)', draw: drawGlyph },
-  { id: 'shape', name: 'เรขาคณิต', desc: 'รูปทรงเรียบ ๆ วาดในระบบ หน้าตาเหมือนกันทุกเครื่อง (ตัวอย่าง)', draw: drawShape },
-  { id: 'letter', name: 'ตัวอักษร', desc: 'ป้ายตัวอักษรย่อ K Q R B N P (ตัวอย่าง)', draw: drawLetter },
+  { id: 'classic', name: 'คลาสสิก', desc: 'ตัวหมากทรงมาตรฐาน คาดแหวนทอง', draw: drawClassic },
+  { id: FABLE_STYLE, name: 'ตัวละครนิทาน', desc: 'ตัวละครในนิทานของชุดหมากรุกที่ใช้อยู่', draw: drawClassic },
+  { id: 'shape', name: 'เรขาคณิต', desc: 'รูปทรงเรียบ ๆ', draw: drawShape },
+  { id: 'letter', name: 'ตัวอักษร', desc: 'ป้ายตัวอักษรย่อ K Q R B N P', draw: drawLetter },
 ]
 
 export const DEFAULT_STYLE = PIECE_STYLES[0].id
@@ -231,7 +313,8 @@ export function stylesFor(kind: ChessKind): PieceStyle[] {
 /** รูปแบบที่ผู้เล่นเลือกของตัวหมากแต่ละชนิด */
 export type StylePrefs = Record<ChessKind, string>
 
-export const DEFAULT_STYLES: StylePrefs = { K: DEFAULT_STYLE, Q: DEFAULT_STYLE, R: DEFAULT_STYLE, B: DEFAULT_STYLE, N: DEFAULT_STYLE, P: DEFAULT_STYLE }
+/** ค่าเริ่มต้น: ตัวหมากคลาสสิกทุกตัว ยกเว้นเบี้ยที่เป็นตัวละครนิทานของชุด */
+export const DEFAULT_STYLES: StylePrefs = { K: DEFAULT_STYLE, Q: DEFAULT_STYLE, R: DEFAULT_STYLE, B: DEFAULT_STYLE, N: DEFAULT_STYLE, P: FABLE_STYLE }
 
 /**
  * ทำให้ค่าที่อ่านมาใช้ได้เสมอ: ค่าที่ไม่ใช่รหัสรูปแบบกลับไปเป็นแบบเริ่มต้น
@@ -243,7 +326,8 @@ export function cleanStylePrefs(value: unknown): StylePrefs {
   const out = { ...DEFAULT_STYLES }
   for (const kind of CHESS_KINDS) {
     const id = raw[kind]
-    if (typeof id === 'string' && /^[a-z0-9_-]{1,40}$/.test(id)) out[kind] = id
+    // 'glyph' คือรูปแบบสัญลักษณ์จากฟอนต์ของเครื่องที่เลิกใช้แล้ว ค่าที่เก็บไว้จึงกลับเป็นค่าเริ่มต้น
+    if (typeof id === 'string' && id !== 'glyph' && /^[a-z0-9_-]{1,40}$/.test(id)) out[kind] = id
   }
   return out
 }
@@ -273,7 +357,7 @@ export function drawPiece(styleId: string | undefined, kind: ChessKind, paint: P
   if (style.images) {
     return <image href={`${style.images}/${paint.color}${kind}.svg`} x="2" y="2" width="41" height="41" preserveAspectRatio="xMidYMid meet" />
   }
-  return (style.draw ?? drawGlyph)(kind, paint)
+  return (style.draw ?? drawClassic)(kind, paint)
 }
 
 // ---------- ค่าที่ผู้เล่นเลือก ----------

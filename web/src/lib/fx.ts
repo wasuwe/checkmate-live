@@ -8,12 +8,13 @@ export type FxType = 'none' | 'stars' | 'hearts' | 'confetti' | 'bubbles' | 'rin
 export type FxEventKind = 'capture' | 'check' | 'mate'
 
 export const FX_TYPES: { id: FxType; name: string; icon: string; color: string }[] = [
-  { id: 'none', name: 'ไม่มี', icon: '–', color: '#3B2F4A' },
-  { id: 'stars', name: 'ดาวกระจาย', icon: '★', color: '#FFD36E' },
-  { id: 'hearts', name: 'หัวใจลอย', icon: '♥', color: '#FF8FB1' },
-  { id: 'confetti', name: 'คอนเฟตตี', icon: '✦', color: '#9FE3C9' },
-  { id: 'bubbles', name: 'ฟองสบู่', icon: '◯', color: '#A9D6F7' },
-  { id: 'ring', name: 'คลื่นกระแทก', icon: '◎', color: '#C9BDFF' },
+  // สไตล์นิทาน: ทุกแบบเป็นแสงทอง ดาว และของบนเวที (id เดิมคงไว้ ค่าที่ผู้เล่นเลือกไว้จึงยังใช้ได้)
+  { id: 'none', name: 'ไม่มี', icon: '–', color: '#2B2A33' },
+  { id: 'stars', name: 'ประกายดาว', icon: '✦', color: '#C9A45C' },
+  { id: 'hearts', name: 'กลีบกุหลาบ', icon: '❀', color: '#C77B86' },
+  { id: 'confetti', name: 'กระดาษทองโปรย', icon: '❖', color: '#B08A45' },
+  { id: 'bubbles', name: 'หิ่งห้อย', icon: '✺', color: '#D8B56C' },
+  { id: 'ring', name: 'วงแสงทอง', icon: '◎', color: '#6F7FCF' },
 ]
 
 export const FX_EVENTS: { id: FxEventKind; label: string; desc: string }[] = [

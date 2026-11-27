@@ -1,7 +1,9 @@
 import { useIsAdmin } from '../lib/admin'
 import { useState, type ClipboardEvent, type FormEvent } from 'react'
 import { AccountPanel } from '../components/AccountPanel'
-import { VS } from '../lib/pieceSets'
+import { Emblem } from '../components/Emblem'
+import { HomeFloaters } from '../components/HomeFloaters'
+import { StageScene } from '../components/StageScene'
 import { extractRoomId, isRoomId, ROOM_ID_LENGTH } from '../lib/protocol'
 import { roomPath, ADMIN_PATH, PIECE_STUDIO_PATH } from '../lib/router'
 
@@ -12,11 +14,12 @@ interface Props {
 const CODE_LENGTH = ROOM_ID_LENGTH
 
 /**
- * เหลือเฉพาะตัวเลขของรหัสห้อง
- * ช่องกรอกไม่ตั้ง maxLength เพราะรหัสที่คัดลอกมาอาจมีช่องว่างคั่น (เช่น "482 915") ซึ่งจะถูกตัดท้ายก่อนถึงตรงนี้
+ * เหลือเฉพาะตัวอักษรภาษาอังกฤษและตัวเลข ตัวเล็กถูกแปลงเป็นตัวใหญ่
+ * ตัวที่ไม่มีในรหัส (0 O 1 I L) ยังพิมพ์ได้ให้เห็น แต่รหัสจะไม่ผ่านและปุ่มเข้าห้องกดไม่ได้
+ * ช่องกรอกไม่ตั้ง maxLength เพราะรหัสที่คัดลอกมาอาจมีช่องว่างคั่น (เช่น "K7Q 2XM") ซึ่งจะถูกตัดท้ายก่อนถึงตรงนี้
  */
 function cleanCode(value: string): string {
-  return value.replace(/\D/g, '').slice(0, CODE_LENGTH)
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, CODE_LENGTH)
 }
 
 export function HomePage({ navigate }: Props) {
@@ -41,17 +44,13 @@ export function HomePage({ navigate }: Props) {
 
   return (
     <main className="screen home">
+      {/* ฉากเวทีกลางคืน: จอกว้างอยู่ครึ่งซ้ายของหน้า จอแคบเป็นแถบด้านบน */}
+      <StageScene className="home-scene">
+        {/* ตัวหมากจากชุดนิทานลอยอยู่ในฉาก */}
+        <HomeFloaters />
+      </StageScene>
       <div className="hero">
-        <div className="hero-pieces" aria-hidden="true">
-          <span style={{ color: '#FFB8CC', transform: 'rotate(-14deg) translateY(6px)' }}>{'♜' + VS}</span>
-          <span className="tall" style={{ color: '#FFDC85', transform: 'rotate(-4deg)' }}>
-            {'♚' + VS}
-          </span>
-          <span className="tall" style={{ color: '#9FE3C9', transform: 'rotate(5deg)' }}>
-            {'♛' + VS}
-          </span>
-          <span style={{ color: '#C9BDFF', transform: 'rotate(14deg) translateY(6px)' }}>{'♞' + VS}</span>
-        </div>
+        <Emblem />
         <h1 className="hero-name">
           CheckMate <em>Live</em>
         </h1>
@@ -95,10 +94,11 @@ export function HomePage({ navigate }: Props) {
                 onPaste={onPaste}
                 autoFocus
                 autoComplete="off"
-                inputMode="numeric"
-                pattern="[0-9]*"
+                inputMode="text"
+                autoCapitalize="characters"
+                autoCorrect="off"
                 spellCheck={false}
-                aria-label="รหัสห้อง 6 หลัก"
+                aria-label="รหัสห้อง 6 ตัว (ตัวอักษรและตัวเลข)"
               />
             </div>
             <button type="submit" className={`btn strong${ready ? ' pink' : ''}`} disabled={!ready}>

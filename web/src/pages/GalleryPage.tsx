@@ -1,4 +1,5 @@
 import { useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { StageScene } from '../components/StageScene'
 import { LinkCard } from '../components/LinkCard'
 import {
   initialOf,
@@ -57,7 +58,7 @@ function Characters({ data }: { data: CreditsData }) {
 
   const list = ocsOf(data, filter)
   const oc = data.ocs.find((o) => o.id === selectedId) ?? data.ocs[0]
-  const color = safeColor(oc.color, '#FF8FB1')
+  const color = safeColor(oc.color, '#C9A45C')
   const image = safeImage(oc.image)
 
   function pickFilter(id: string) {
@@ -110,12 +111,12 @@ function Characters({ data }: { data: CreditsData }) {
                 aria-label={`${o.name} ของ ${owner.name}`}
                 onClick={() => setSelectedId(o.id)}
               >
-                <span className="oc-card-slash" style={{ background: safeColor(o.color, '#FF8FB1') }} />
+                <span className="oc-card-slash" style={{ background: safeColor(o.color, '#C9A45C') }} />
                 {face ? <img className="oc-card-face" src={face} alt="" loading="lazy" /> : <span className="oc-card-initial">{initialOf(o.name)}</span>}
                 <span className="oc-card-no">{ocNumber(data, o)}</span>
                 <span className="oc-card-name">
                   <span>{o.name}</span>
-                  <span style={{ color: safeColor(o.color, '#FF8FB1') }}>{owner.name}</span>
+                  <span style={{ color: safeColor(o.color, '#C9A45C') }}>{owner.name}</span>
                 </span>
                 {on && <span className="oc-card-p1">P1</span>}
               </button>
@@ -125,10 +126,9 @@ function Characters({ data }: { data: CreditsData }) {
 
         {/* เวทีตัวละคร: key ทำให้การเคลื่อนไหวเล่นใหม่ทุกครั้งที่เปลี่ยนตัว */}
         <div className="oc-detail" aria-live="polite">
-          <div className="oc-stage" key={oc.id} style={{ '--oc': color, background: safeColor(oc.pale) } as CSSProperties}>
-            <div className="oc-slash a" />
-            <div className="oc-slash b" />
-            <div className="oc-slash c" />
+          {/* ตัวละครยืนบนเวทีในซุ้มโค้ง ภาพใหญ่กว่ากรอบและล้นออกนอกกรอบด้านบน */}
+          <div className="oc-stage" key={oc.id} style={{ '--oc': color, '--oc-pale': safeColor(oc.pale) } as CSSProperties}>
+            <StageScene className="oc-frame" />
             <div className="oc-stage-no" aria-hidden="true">
               {ocNumber(data, oc)}
             </div>

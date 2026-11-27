@@ -11,7 +11,7 @@ import {
   previewFor,
   targetsFor,
 } from '../lib/moves'
-import { piecesFor, useSetPrefs } from '../lib/pieceSets'
+import { piecesFor, squareStyle, useSetPrefs } from '../lib/pieceSets'
 import { useStylePrefs } from '../lib/pieceStyles'
 import type { GameId, Promo, StateMsg } from '../lib/protocol'
 import { FxBurst } from './Fx'
@@ -38,16 +38,17 @@ interface Pending {
   session: number
 }
 
-const LAST_MOVE: CSSProperties = { backgroundColor: '#FFE27A' }
-const SELECTED: CSSProperties = { backgroundColor: '#FFC23D' }
+// สไตล์นิทาน: ตาที่เพิ่งเดินและหมากที่เลือกเป็นแสงทอง คิงที่ถูกรุกเป็นแสงแดงทับทิม
+const LAST_MOVE: CSSProperties = { backgroundColor: '#F3DC9C' }
+const SELECTED: CSSProperties = { backgroundColor: '#E9C46E' }
 const CHECK: CSSProperties = {
-  backgroundImage: 'radial-gradient(circle, rgba(194, 24, 91, 0.85) 0%, transparent 72%)',
+  backgroundImage: 'radial-gradient(circle, rgba(179, 38, 30, 0.8) 0%, transparent 72%)',
 }
-// จุดสีชมพูขอบ Ink = ช่องว่างที่เดินไปได้, กรอบสีชมพู = ช่องที่กินได้
+// จุดทองขอบน้ำเงินเข้ม = ช่องว่างที่เดินไปได้, กรอบทอง = ช่องที่กินได้
 const DOT: CSSProperties = {
-  backgroundImage: 'radial-gradient(circle, #FF5C8D 0 13%, #3B2F4A 14% 18%, transparent 19%)',
+  backgroundImage: 'radial-gradient(circle, #D8A73E 0 13%, #1E2A6B 14% 18%, transparent 19%)',
 }
-const RING: CSSProperties = { boxShadow: 'inset 0 0 0 0.75cqw #FF5C8D', borderRadius: '28%' }
+const RING: CSSProperties = { boxShadow: 'inset 0 0 0 0.75cqw #C9A45C', borderRadius: '28%' }
 
 
 export function GameBoard({ state, online, errorSeq, session, sendMove }: Props) {
@@ -146,8 +147,8 @@ export function GameBoard({ state, online, errorSeq, session, sendMove }: Props)
             allowDrawingArrows: false,
             animationDurationInMs: 150,
             squareStyles,
-            darkSquareStyle: { backgroundColor: set.dark },
-            lightSquareStyle: { backgroundColor: set.light },
+            darkSquareStyle: squareStyle(set, true),
+            lightSquareStyle: squareStyle(set, false),
             darkSquareNotationStyle: { color: set.light, fontWeight: 700 },
             lightSquareNotationStyle: { color: set.dark, fontWeight: 700 },
             canDragPiece: ({ piece }) => canMove && pieceColor(piece.pieceType) === myColor,

@@ -9,7 +9,7 @@ import (
 	"math/big"
 	mrand "math/rand/v2"
 	"net/http"
-	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -254,23 +254,35 @@ func (h *Hub) Close() {
 	h.wg.Wait()
 }
 
-// รหัสห้องเป็นตัวเลข 6 หลัก ตั้งแต่ 100000 ถึง 999999 (เจ้าของโปรเจกต์กำหนด 2026-11-26 ให้พิมพ์และบอกต่อง่าย)
+// รหัสห้องเป็นตัวอักษรผสมตัวเลข 6 ตัว เช่น "K7Q 2XM" (เจ้าของโปรเจกต์กำหนด 2026-11-27 แทนตัวเลขล้วน 6 หลัก
+// ที่มีแค่ 900,000 แบบและเดาได้ง่ายเกินไป)
 //
-// รหัสมีแค่ 900,000 แบบ จึงเดาได้ถ้าลองมากพอ สิ่งที่ชดเชย:
-//   - จำกัดจำนวนครั้งที่ IP หนึ่งลองเข้าห้อง (Config.JoinRate) ทั้งที่ถูกและผิด
-//   - ห้องที่จบแล้วหรือว่างนานถูกปิด รหัสจึงใช้ได้ช่วงสั้น
-//   - คนที่เดาเข้ามาได้เป็นได้แค่ผู้ชม เว้นแต่ห้องยังรอคู่แข่งอยู่
+//   - ใช้ตัวอักษรภาษาอังกฤษพิมพ์ใหญ่และตัวเลข ยกเว้นตัวที่สับสนกันง่าย: 0 O 1 I L (เหลือ 31 ตัว)
+//   - ต้องมีทั้งตัวอักษรและตัวเลขอย่างน้อยอย่างละหนึ่งตัว จึงไม่ซ้ำกับคำภาษาอังกฤษหรือตัวเลขทั่วไปในข้อความ
+//   - จำนวนรหัสที่เป็นไปได้: 31^6 − 23^6 − 8^6 ≈ 739 ล้านแบบ (เดิม 900,000) ร่วมกับการจำกัดจำนวนครั้งที่ IP หนึ่ง
+//     ลองเข้าห้อง (Config.JoinRate) การสุ่มเดาให้เจอห้องที่เปิดอยู่จึงแทบเป็นไปไม่ได้
+//   - คนที่เดาเข้ามาได้ก็ยังเป็นได้แค่ผู้ชม เว้นแต่ห้องยังรอคู่แข่งอยู่
 //
 // รหัสถูกนำกลับมาใช้ใหม่ได้หลังห้องปิด ตารางที่อ้างรหัสห้องจึงต้องไม่ถือว่ารหัสไม่ซ้ำตลอดกาล
-const (
-	roomIDMin   = 100_000
-	roomIDCount = 900_000
-)
+const roomIDAlphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+
+const roomIDLength = 6
 
 func newRoomID() (string, error) {
-	n, err := rand.Int(rand.Reader, big.NewInt(roomIDCount))
-	if err != nil {
-		return "", err
+	max := big.NewInt(int64(len(roomIDAlphabet)))
+	for {
+		b := make([]byte, roomIDLength)
+		for i := range b {
+			n, err := rand.Int(rand.Reader, max)
+			if err != nil {
+				return "", err
+			}
+			b[i] = roomIDAlphabet[n.Int64()]
+		}
+		if id := string(b); roomIDRe.MatchString(id) && strings.ContainsAny(id, "23456789") && strings.IndexFunc(id, isLetter) >= 0 {
+			return id, nil
+		}
 	}
-	return strconv.FormatInt(roomIDMin+n.Int64(), 10), nil
 }
+
+func isLetter(r rune) bool { return r >= 'A' && r <= 'Z' }

@@ -21,6 +21,7 @@ const (
 	msgChat   = "chat"
 	msgReport = "report"
 	msgReady  = "ready"
+	msgKick   = "kick"
 )
 
 // inbound คือข้อความขาเข้าทุกชนิดรวมกัน field ที่ไม่รู้จักจะถูกปฏิเสธ
@@ -42,7 +43,9 @@ var (
 
 	squareRe = regexp.MustCompile(`^[a-h][1-8]$`)
 	promoRe  = regexp.MustCompile(`^[qrbn]?$`)
-	roomIDRe = regexp.MustCompile(`^[1-9][0-9]{5}$`)
+	// ตัวอักษรผสมตัวเลข 6 ตัว (ดู newRoomID) หรือรหัสตัวเลข 6 หลักแบบเดิม ซึ่งยังรับไว้ให้ห้องที่เปิดค้างก่อนเปลี่ยน
+	// กู้คืนและเข้าได้จนกว่าจะปิดไปเอง
+	roomIDRe = regexp.MustCompile(`^(?:[A-HJKMNP-Z2-9]{6}|[1-9][0-9]{5})$`)
 )
 
 // decodeInbound แปลงและตรวจรูปแบบข้อความ ห้ามมี field แปลกปลอมหรือข้อมูลต่อท้าย
@@ -92,6 +95,8 @@ func decodeInbound(data []byte) (inbound, error) {
 			!squareRe.MatchString(m.From) || !squareRe.MatchString(m.To) || !promoRe.MatchString(m.Promo) {
 			return inbound{}, errBadMessage
 		}
+	case msgKick:
+		// ไม่มี field เพิ่ม: คนที่ถูกให้ออกคือผู้เล่นอีกคนในห้องรอเสมอ เซิร์ฟเวอร์ไม่รับว่าจะให้ใครออกจาก client
 	case msgResign:
 		// ไม่มี field เพิ่ม: ผู้แพ้คือเจ้าของ connection เซิร์ฟเวอร์ไม่รับ winner/color จาก client
 	case msgChat:
@@ -195,6 +200,8 @@ type lobbySeat struct {
 	// You คือที่นั่งของผู้รับข้อความนี้
 	You    bool   `json:"you,omitempty"`
 	Sender string `json:"sender,omitempty"`
+	// Host คือที่นั่งของเจ้าของห้อง
+	Host bool `json:"host,omitempty"`
 }
 
 // lobbyInfo คือสถานะของห้องรอ มีเฉพาะตอน status เป็น waiting และเปิดใช้ห้องรอ
@@ -202,6 +209,10 @@ type lobbyInfo struct {
 	Seats []lobbySeat `json:"seats"`
 	// Countdown คือมิลลิวินาทีที่เหลือก่อนเกมเริ่ม (มีเฉพาะตอนทุกคนพร้อมแล้ว)
 	Countdown int64 `json:"countdown,omitempty"`
+	// CanKick คือผู้รับข้อความนี้เป็นเจ้าของห้อง และมีผู้เล่นอีกคนที่ให้ออกจากที่นั่งได้
+	CanKick bool `json:"canKick,omitempty"`
+	// Removed คือผู้รับข้อความนี้ถูกเจ้าของห้องให้ออกจากที่นั่งแล้ว (ยังดูเกมได้ แต่กลับมานั่งไม่ได้)
+	Removed bool `json:"removed,omitempty"`
 }
 
 // clockInfo คือเวลาที่เหลือของแต่ละฝั่งเป็นมิลลิวินาที ณ ตอนที่ส่งข้อความ

@@ -42,8 +42,13 @@ describe('รูปแบบตัวหมากรุก', () => {
   })
 
   it('เลือกต่างกันเป็นรายตัวได้', () => {
-    const prefs = cleanStylePrefs({ K: 'shape', Q: 'letter', N: 'glyph' })
-    expect([prefs.K, prefs.Q, prefs.N, prefs.R]).toEqual(['shape', 'letter', 'glyph', DEFAULT_STYLE])
+    const prefs = cleanStylePrefs({ K: 'shape', Q: 'letter', N: 'fable' })
+    expect([prefs.K, prefs.Q, prefs.N, prefs.R]).toEqual(['shape', 'letter', 'fable', DEFAULT_STYLE])
+  })
+
+  it('ค่าเริ่มต้นคือตัวหมากคลาสสิก โดยเบี้ยเป็นตัวละครนิทาน และรูปแบบสัญลักษณ์เดิมที่เลิกใช้กลับเป็นค่าเริ่มต้น', () => {
+    expect(DEFAULT_STYLES).toEqual({ K: 'classic', Q: 'classic', R: 'classic', B: 'classic', N: 'classic', P: 'fable' })
+    expect(cleanStylePrefs({ K: 'glyph', P: 'glyph', N: 'shape' })).toEqual({ ...DEFAULT_STYLES, N: 'shape' })
   })
 
   it('ตัวหมากรุกไทยใช้รูปแบบของตัวที่หน้าตาตรงกัน ส่วนหมากฮอสและหมากหนีบไม่มีรูปแบบ', () => {

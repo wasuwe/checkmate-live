@@ -2,6 +2,7 @@ package hub
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -69,14 +70,29 @@ func TestNewRoomIDFormat(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		// ตัวเลข 6 หลักที่ไม่ขึ้นต้นด้วย 0 และตรงกับรูปแบบที่ join รับ
-		if len(id) != 6 || id < "100000" || id > "999999" || !roomIDRe.MatchString(id) {
-			t.Fatalf("room id %q is not a six-digit code", id)
+		// ตัวอักษรผสมตัวเลข 6 ตัว ไม่มีตัวที่สับสนง่าย ต้องมีทั้งตัวอักษรและตัวเลข และตรงกับรูปแบบที่ join รับ
+		if len(id) != 6 || strings.ContainsAny(id, "01OIL") || !strings.ContainsAny(id, "23456789") ||
+			strings.Trim(id, "23456789") == "" || strings.IndexAny(id, "ABCDEFGHJKMNPQRSTUVWXYZ") < 0 || !roomIDRe.MatchString(id) {
+			t.Fatalf("room id %q is not a six-character mixed code", id)
 		}
 		seen[id] = true
 	}
-	// รหัสมี 900,000 แบบ การสุ่ม 2,000 ครั้งซ้ำกันได้บ้าง แต่ต้องกระจายเกือบทั้งหมด
-	if len(seen) < 1900 {
+	// รหัสมีราว 739 ล้านแบบ การสุ่ม 2,000 ครั้งไม่ควรซ้ำกันเลย
+	if len(seen) < 1999 {
 		t.Fatalf("only %d distinct ids out of 2000; the ids are not random enough", len(seen))
+	}
+}
+
+func TestRoomIDPattern(t *testing.T) {
+	for _, ok := range []string{"K7Q2XM", "AB2CD3", "482915", "100000"} {
+		if !roomIDRe.MatchString(ok) {
+			t.Errorf("%q should be accepted", ok)
+		}
+	}
+	// ตัวพิมพ์เล็ก ตัวที่สับสนง่าย ความยาวผิด และตัวเลขที่ขึ้นต้นด้วย 0
+	for _, bad := range []string{"k7q2xm", "K7Q2X0", "K7Q2XO", "K7Q2X1", "K7Q2XI", "K7Q2XL", "K7Q2X", "K7Q2XMM", "082915", "K7Q 2XM", ""} {
+		if roomIDRe.MatchString(bad) {
+			t.Errorf("%q should be rejected", bad)
+		}
 	}
 }

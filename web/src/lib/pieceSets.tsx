@@ -8,10 +8,11 @@
 /* oxlint-disable react/only-export-components */
 
 import { cloneElement, useSyncExternalStore, type CSSProperties, type JSX } from 'react'
-import { drawPiece, styleKind, type StylePrefs } from './pieceStyles'
+import { FABLE_PATTERNS, fablePiece } from './fables'
+import { DEFAULT_STYLES, drawPiece, FABLE_STYLE, styleKind, type StylePrefs } from './pieceStyles'
 import type { Color } from './protocol'
 
-export const INK = '#3B2F4A'
+export const INK = '#2B2A33'
 /** บังคับให้สัญลักษณ์แสดงเป็นตัวอักษร ไม่ใช่ emoji สี */
 export const VS = '︎'
 export const GLYPH_FONT =
@@ -44,6 +45,8 @@ export type SetColor = 'pink' | 'green' | 'purple' | 'yellow' | 'blue' | 'brown'
 export interface BoardSet {
   id: string
   name: string
+  /** ข้อคิดสั้น ๆ ของนิทานที่เป็นชื่อชุด */
+  tale: string
   color: SetColor
   /** สีช่องอ่อนและช่องเข้ม */
   light: string
@@ -53,33 +56,45 @@ export interface BoardSet {
   b: string
 }
 
+// ชุดหมากรุกตั้งต้นตั้งชื่อตามนิทานอีสปที่คนรู้จักดี สีของแต่ละชุดมาจากฉากในนิทานเรื่องนั้น
+// ทุกชุดเป็นโทนสไตล์นิทาน: ช่องอ่อนสีกระดาษงาช้าง ช่องเข้มเป็นสีหม่น ตัวหมากฝั่งดำสีเข้มลึก
+// id เดิมของแต่ละชุดคงไว้ ชุดที่ผู้เล่นเก็บไว้ในเบราว์เซอร์จึงยังใช้ได้ (เปลี่ยนแค่สีกับชื่อ)
 export const SETS: BoardSet[] = [
-  { id: 'sakura', name: 'ซากุระ', color: 'pink', light: '#FFE8EF', dark: '#F7A1BC', w: '#FFFFFF', b: '#B0477A' },
-  { id: 'strawberry', name: 'สตรอว์เบอร์รี', color: 'pink', light: '#FFF0F0', dark: '#FF8E9E', w: '#FFF7F2', b: '#8A2338' },
-  { id: 'mint', name: 'มิ้นต์ช็อก', color: 'green', light: '#E8FAF2', dark: '#86D9B9', w: '#FFFFFF', b: '#2E6B57' },
-  { id: 'matcha', name: 'มัทฉะ', color: 'green', light: '#F1F5DF', dark: '#A8C47A', w: '#FFFDF4', b: '#3F5222' },
-  { id: 'lavender', name: 'ลาเวนเดอร์', color: 'purple', light: '#F1EDFF', dark: '#B9AAF5', w: '#FFFFFF', b: '#4A3A8C' },
-  { id: 'grape', name: 'องุ่น', color: 'purple', light: '#F5E9FA', dark: '#C78BDB', w: '#FFF9FF', b: '#5B2470' },
-  { id: 'honey', name: 'น้ำผึ้ง', color: 'yellow', light: '#FFF7DA', dark: '#FFD36E', w: '#FFFFFF', b: '#8A5A12' },
-  { id: 'lemon', name: 'เลมอน', color: 'yellow', light: '#FDFBE1', dark: '#E9DC6A', w: '#FFFFFF', b: '#6B5E0E' },
-  { id: 'sky', name: 'ท้องฟ้า', color: 'blue', light: '#E6F4FF', dark: '#8CC7F2', w: '#FFFFFF', b: '#1F4E78' },
-  { id: 'soda', name: 'โซดา', color: 'blue', light: '#E4FBFB', dark: '#79D2D6', w: '#FFFFFF', b: '#18575A' },
-  { id: 'cocoa', name: 'โกโก้', color: 'brown', light: '#F7E9D7', dark: '#C69B72', w: '#FFF8EE', b: '#4A2E1E' },
-  { id: 'classic', name: 'คลาสสิก', color: 'brown', light: '#EEEED2', dark: '#769656', w: '#FFFFFF', b: '#2B2B2B' },
+  { id: 'sky', name: 'ลมเหนือกับดวงอาทิตย์', tale: 'ความอ่อนโยนชนะความรุนแรง', color: 'blue', light: '#F7F1E3', dark: '#A9B3E6', w: '#FFFDF8', b: '#1E2A6B' },
+  { id: 'soda', name: 'กากับเหยือกน้ำ', tale: 'ความเพียรกับไหวพริบพาไปถึงเป้าหมาย', color: 'blue', light: '#EEF2F4', dark: '#86A9C4', w: '#FFFFFF', b: '#1D2433' },
+  { id: 'mint', name: 'กระต่ายกับเต่า', tale: 'ช้าแต่มั่นคง ย่อมถึงเส้นชัย', color: 'green', light: '#F2F2E6', dark: '#93B8A2', w: '#FFFDF6', b: '#1F4A3A' },
+  { id: 'matcha', name: 'เด็กเลี้ยงแกะ', tale: 'โกหกบ่อย ๆ วันที่พูดจริงจะไม่มีใครเชื่อ', color: 'green', light: '#F0F0DE', dark: '#A3AE74', w: '#FFFBEA', b: '#3A3A38' },
+  { id: 'grape', name: 'สุนัขจิ้งจอกกับองุ่นเปรี้ยว', tale: 'เอื้อมไม่ถึง อย่าแกล้งว่าไม่อยากได้', color: 'purple', light: '#F2EBF2', dark: '#A086AC', w: '#FFF9FF', b: '#3D2347' },
+  { id: 'lavender', name: 'ผูกกระดิ่งแมว', tale: 'พูดนั้นง่าย ลงมือทำนั้นยาก', color: 'purple', light: '#F4F0F8', dark: '#A99BD2', w: '#FFFFFF', b: '#3A2C66' },
+  { id: 'honey', name: 'ห่านทองคำ', tale: 'โลภมาก ลาภหาย', color: 'yellow', light: '#FAF3E0', dark: '#D8B56C', w: '#FFFDF6', b: '#5C3D0E' },
+  { id: 'lemon', name: 'มดกับตั๊กแตน', tale: 'เตรียมพร้อมไว้ก่อนฤดูหนาวมาถึง', color: 'yellow', light: '#FBF6E6', dark: '#D9C27A', w: '#FFFFFF', b: '#4A3212' },
+  { id: 'cocoa', name: 'ราชสีห์กับหนู', tale: 'ผู้ตัวเล็กก็ช่วยผู้ยิ่งใหญ่ได้', color: 'brown', light: '#F4E6CF', dark: '#C49A62', w: '#FFF8EE', b: '#5A3414' },
+  { id: 'classic', name: 'หนูเมืองกับหนูบ้านนอก', tale: 'ความสงบเรียบง่ายมีค่ากว่าความหรูหรา', color: 'brown', light: '#F5EFE1', dark: '#B9AF9B', w: '#FFFFFF', b: '#2B2A33' },
+  { id: 'sakura', name: 'สุนัขจิ้งจอกกับอีกา', tale: 'ระวังคำเยินยอของคนที่หวังผล', color: 'pink', light: '#F7EEE8', dark: '#D9A08E', w: '#FFFDF8', b: '#6E2A1E' },
+  { id: 'strawberry', name: 'หมาป่าในคราบแกะ', tale: 'อย่าตัดสินจากเปลือกนอก', color: 'pink', light: '#F6ECE3', dark: '#C77B86', w: '#FFFBF5', b: '#5A1730' },
 ]
 
 export const SET_FILTERS: { id: SetColor | 'all'; label: string; swatch: string }[] = [
-  { id: 'all', label: 'ทั้งหมด', swatch: 'conic-gradient(#F7A1BC 0 17%,#86D9B9 0 33%,#B9AAF5 0 50%,#FFD36E 0 67%,#8CC7F2 0 83%,#C69B72 0)' },
-  { id: 'pink', label: 'ชมพู', swatch: '#F7A1BC' },
-  { id: 'green', label: 'เขียว', swatch: '#86D9B9' },
-  { id: 'purple', label: 'ม่วง', swatch: '#B9AAF5' },
-  { id: 'yellow', label: 'เหลือง', swatch: '#FFD36E' },
-  { id: 'blue', label: 'ฟ้า', swatch: '#8CC7F2' },
-  { id: 'brown', label: 'น้ำตาล', swatch: '#C69B72' },
+  { id: 'all', label: 'ทั้งหมด', swatch: 'conic-gradient(#A9B3E6 0 17%,#D9A08E 0 33%,#93B8A2 0 50%,#A99BD2 0 67%,#D8B56C 0 83%,#C49A62 0)' },
+  { id: 'blue', label: 'ฟ้าคราม', swatch: '#A9B3E6' },
+  { id: 'pink', label: 'แดงอิฐ', swatch: '#D9A08E' },
+  { id: 'green', label: 'มรกต', swatch: '#93B8A2' },
+  { id: 'purple', label: 'ม่วง', swatch: '#A99BD2' },
+  { id: 'yellow', label: 'ทอง', swatch: '#D8B56C' },
+  { id: 'brown', label: 'น้ำตาล', swatch: '#C49A62' },
 ]
 
 export function setById(id: string | null | undefined): BoardSet {
   return SETS.find((s) => s.id === id) ?? SETS[0]
+}
+
+/** สีและลายของช่องกระดาน: ลายตามนิทานของชุดวางทับสีช่อง */
+export function squareStyle(set: BoardSet, dark: boolean): CSSProperties {
+  const pattern = FABLE_PATTERNS[set.id]?.[dark ? 'dark' : 'light']
+  return {
+    backgroundColor: dark ? set.dark : set.light,
+    ...(pattern ? { backgroundImage: pattern, backgroundSize: '100% 100%' } : {}),
+  }
 }
 
 // ---------- การวาดตัวหมาก ----------
@@ -108,13 +123,21 @@ export function pieceSvg(
   if (kind === 'C' || kind === 'H' || kind === 'O') return discSvg(set, color, kind === 'H', opts)
   // รูปทรงมาจากรูปแบบที่ผู้เล่นเลือกของตัวหมากรุกสากลที่ตรงกัน (เม็ด=ควีน โคน=บิชอป เบี้ยหงาย=เบี้ย)
   const base = styleKind(kind) ?? 'P'
-  const body = drawPiece(opts.styles?.[base], base, { fill: color === 'w' ? set.w : set.b, ink: INK, color })
+  const paint = { fill: color === 'w' ? set.w : set.b, ink: INK, color }
+  // ค่าเริ่มต้น: ตัวหมากคลาสสิก ส่วนเบี้ยเป็นตัวละครในนิทานของชุด (DEFAULT_STYLES)
+  // รูปแบบ "ตัวละครนิทาน" วาดที่นี่เพราะต้องรู้ว่าใช้ชุดไหน ชุดที่ไม่มีตัวละครใช้แบบคลาสสิกแทน
+  const styleId = opts.styles?.[base] ?? DEFAULT_STYLES[base]
+  const fable = styleId === FABLE_STYLE ? fablePiece(set.id, base, paint) : undefined
+  const body = fable ?? drawPiece(styleId, base, paint)
+  // ป้ายบอกชนิดหมากที่มุม: ใช้เฉพาะเมื่อรูปทรงไม่ได้บอกชนิดเอง คือตัวละครนิทานที่ไม่ใช่เบี้ย และรูปที่ทีมงานอัปโหลด
+  const needsBadge = fable ? base !== 'P' : styleId.startsWith('u-')
   return (
     <svg key={opts.key} viewBox="0 0 45 45" className={opts.className ?? 'piece'} style={opts.style}>
       {FLIPPED[kind] ? cloneElement(body, { transform: 'rotate(180 22.5 22.5)' }) : body}
-      {opts.badge !== false && (
+      {opts.badge !== false && needsBadge && (
         <>
-          <circle cx="7.2" cy="7.2" r="5.6" fill="#fff" stroke={INK} strokeWidth="0.9" />
+          {/* ป้ายชนิดหมาก: วงกลมสีกระดาษงาช้าง ขอบทอง */}
+          <circle cx="7.2" cy="7.2" r="5.6" fill="#FBF8F1" stroke="#B08A45" strokeWidth="0.9" />
           <text
             x="7.2"
             y="7.7"
@@ -155,20 +178,14 @@ function discSvg(
         <>
           {disc(26)}
           {disc(20)}
-          <text
-            x="22.5"
-            y="21"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize="15"
-            fontFamily={GLYPH_FONT}
-            fill={color === 'w' ? INK : '#FFFFFF'}
+          {/* มงกุฎของฮอส วาดเป็นเวกเตอร์ให้เหมือนกันทุกเครื่อง */}
+          <path
+            d="M16 23.6 L14.8 16.4 L18.9 19.6 L22.5 14.4 L26.1 19.6 L30.2 16.4 L29 23.6 Z"
+            fill="#C9A45C"
             stroke={INK}
-            strokeWidth="0.8"
-            paintOrder="stroke"
-          >
-            {'♛' + VS}
-          </text>
+            strokeWidth="1.1"
+            strokeLinejoin="round"
+          />
         </>
       ) : (
         disc(22.5)
@@ -198,17 +215,21 @@ export function piecesFor(set: BoardSet, opts: PieceOptions = {}): PieceRenderer
   return out
 }
 
-/** กระดานตัวอย่าง 4×4 ของชุด: ม้ากับควีนของทั้งสองฝั่ง */
-const PREVIEW: Record<number, [Kind, Color]> = { 1: ['N', 'b'], 2: ['Q', 'b'], 13: ['Q', 'w'], 14: ['N', 'w'] }
+/** กระดานตัวอย่าง 4×4 ของชุด: เบี้ย (ตัวละครในนิทาน) กับควีนของทั้งสองฝั่ง */
+const PREVIEW: Record<number, [Kind, Color]> = { 1: ['P', 'b'], 2: ['Q', 'b'], 13: ['Q', 'w'], 14: ['P', 'w'] }
 
-export function previewCells(set: BoardSet): { bg: string; glyph: string; color: string }[] {
+export function previewCells(
+  set: BoardSet,
+): { bg: string; style: CSSProperties; glyph: string; color: string; piece: [Kind, Color] | null }[] {
   return Array.from({ length: 16 }, (_, i) => {
     const dark = ((i >> 2) + (i & 3)) % 2 === 1
-    const piece = PREVIEW[i]
+    const piece = PREVIEW[i] ?? null
     return {
       bg: dark ? set.dark : set.light,
+      style: squareStyle(set, dark),
       glyph: piece ? GLYPH[piece[0]] + VS : '',
       color: piece ? (piece[1] === 'w' ? set.w : set.b) : 'transparent',
+      piece,
     }
   })
 }
@@ -224,7 +245,7 @@ export interface SetPrefs {
   active: number
 }
 
-export const DEFAULT_PREFS: SetPrefs = { slots: ['sakura', 'mint', 'honey'], active: 0 }
+export const DEFAULT_PREFS: SetPrefs = { slots: ['sky', 'mint', 'cocoa'], active: 0 }
 
 /** ทำให้ค่าที่อ่านมาใช้ได้เสมอ ไม่ว่าในที่เก็บจะเป็นอะไร */
 export function cleanPrefs(value: unknown): SetPrefs {

@@ -99,33 +99,40 @@ export async function resizeAvatar(file: Blob): Promise<Blob> {
 }
 
 /** รูปโปรไฟล์สำเร็จรูป: รูปหมากบนพื้นสี วาดในเบราว์เซอร์แล้วอัปโหลดเหมือนรูปทั่วไป */
-export const AVATAR_PRESETS: { glyph: string; bg: string; name: string }[] = [
-  { glyph: '♞', bg: '#FFB8CC', name: 'ม้า' },
-  { glyph: '♛', bg: '#C9BDFF', name: 'ควีน' },
-  { glyph: '♜', bg: '#9FE3C9', name: 'เรือ' },
-  { glyph: '♝', bg: '#FFDC85', name: 'บิชอป' },
-  { glyph: '♚', bg: '#A9D6F7', name: 'คิง' },
-  { glyph: '♟', bg: '#E2C2A2', name: 'เบี้ย' },
+/** รูปโปรไฟล์สำเร็จรูป: ตัวหมากคลาสสิกสีงาช้างบนพื้นสีเข้ม */
+export const AVATAR_PRESETS: { kind: 'K' | 'Q' | 'R' | 'B' | 'N' | 'P'; bg: string; name: string }[] = [
+  { kind: 'N', bg: '#27347C', name: 'ม้า' },
+  { kind: 'Q', bg: '#5A1730', name: 'ควีน' },
+  { kind: 'R', bg: '#1F4A3A', name: 'เรือ' },
+  { kind: 'B', bg: '#3A2C66', name: 'บิชอป' },
+  { kind: 'K', bg: '#5C3D0E', name: 'คิง' },
+  { kind: 'P', bg: '#2B2A33', name: 'เบี้ย' },
 ]
 
-export async function presetAvatarBlob(glyph: string, bg: string, font: string): Promise<Blob> {
+/**
+ * ทำรูปโปรไฟล์จากตัวหมากที่แสดงบนปุ่ม: วาด SVG ของตัวหมากลงบนพื้นสี แล้วคืนเป็นไฟล์ PNG
+ * ใช้ SVG ที่อยู่บนหน้าอยู่แล้ว รูปที่ได้จึงตรงกับที่ผู้ใช้เห็นบนปุ่ม
+ */
+export async function presetAvatarBlob(svg: SVGSVGElement, bg: string): Promise<Blob> {
+  const clone = svg.cloneNode(true) as SVGSVGElement
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+  clone.setAttribute('width', String(AVATAR_SIDE))
+  clone.setAttribute('height', String(AVATAR_SIDE))
+  const image = new Image()
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve()
+    image.onerror = () => reject(new Error('draw failed'))
+    image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(clone))
+  })
   const canvas = document.createElement('canvas')
   canvas.width = canvas.height = AVATAR_SIDE
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('no canvas')
   ctx.fillStyle = bg
   ctx.fillRect(0, 0, AVATAR_SIDE, AVATAR_SIDE)
-  ctx.font = `${AVATAR_SIDE * 0.62}px ${font}`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.lineJoin = 'round'
-  ctx.lineWidth = AVATAR_SIDE * 0.035
-  ctx.strokeStyle = '#3B2F4A'
-  ctx.fillStyle = '#ffffff'
-  // U+FE0E ให้ได้รูปตัวอักษร ไม่ใช่ emoji สี
-  const text = glyph + '︎'
-  ctx.strokeText(text, AVATAR_SIDE / 2, AVATAR_SIDE * 0.54)
-  ctx.fillText(text, AVATAR_SIDE / 2, AVATAR_SIDE * 0.54)
+  // ตัวหมากกินพื้นที่ราวสามในสี่ของรูป อยู่กึ่งกลาง
+  const size = AVATAR_SIDE * 0.78
+  ctx.drawImage(image, (AVATAR_SIDE - size) / 2, (AVATAR_SIDE - size) / 2, size, size)
   return new Promise<Blob>((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('encode failed'))), 'image/png'),
   )

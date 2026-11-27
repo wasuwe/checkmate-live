@@ -15,11 +15,15 @@ const REASONS: Record<string, string> = {
   blocked: 'ไม่มีตาเดินเหลือ',
 }
 
-/** เหตุผลที่เกมจบเป็นข้อความ บางเหตุผลมีความหมายต่างกันตามเกม */
-function reasonText(state: StateMsg): string {
+/** เหตุผลที่เกมจบเป็นข้อความ บางเหตุผลมีความหมายต่างกันตามเกม (ใช้ทั้งในเกมและในประวัติเกม) */
+export function reasonLabel(reason: string | undefined, game: string): string {
   // หมากหนีบชนะเมื่อคู่แข่งเหลือหมากไม่เกิน 2 ตัว ไม่ต้องกินจนหมด
-  if (state.reason === 'wipeout' && gameOf(state) === 'neeb') return 'คู่แข่งเหลือหมากไม่เกิน 2 ตัว'
-  return REASONS[state.reason ?? ''] ?? ''
+  if (reason === 'wipeout' && game === 'neeb') return 'คู่แข่งเหลือหมากไม่เกิน 2 ตัว'
+  return REASONS[reason ?? ''] ?? ''
+}
+
+function reasonText(state: StateMsg): string {
+  return reasonLabel(state.reason, gameOf(state))
 }
 
 const ERRORS: Record<string, string> = {
@@ -114,7 +118,7 @@ export function resultParts(state: StateMsg): {
     : { headline: 'คุณแพ้', reason, outcome: 'loss' }
 }
 
-/** รหัสห้อง 6 หลักแบ่งเป็นสองกลุ่ม เช่น "482 915" ให้อ่านและบอกต่อง่าย */
+/** รหัสห้อง 6 ตัวแบ่งเป็นสองกลุ่ม เช่น "K7Q 2XM" ให้อ่านและบอกต่อง่าย */
 export function formatRoomCode(roomId: string): string {
   return roomId.replace(/(.{3})(?=.)/g, '$1 ')
 }

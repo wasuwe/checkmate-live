@@ -1,7 +1,8 @@
+import { PieceIcon } from '../components/PieceIcon'
 import { useEffect, useState, type FormEvent } from 'react'
 import { PasswordInput } from '../components/PasswordInput'
+import { StageScene } from '../components/StageScene'
 import { setPendingName, useMe } from '../lib/me'
-import { VS } from '../lib/pieceSets'
 import { NAME_MAX } from '../lib/profile'
 import { PASSWORD_MIN, passwordChecks, validateField, validateRegistration, type RegisterField } from '../lib/registration'
 import { loginAvailable, signUp, type AuthResult } from '../lib/session'
@@ -147,9 +148,15 @@ export function RegisterPage({ navigate }: Props) {
 
   return (
     <main className="screen" style={{ paddingTop: 12 }}>
+      {/* ฉากเวทีด้านซ้าย แสดงเฉพาะจอกว้าง */}
+      <StageScene className="auth-scene">
+        <span className="stage-actor">
+          <PieceIcon kind="P" />
+        </span>
+      </StageScene>
       <div className="auth-head">
         <div className="medal" style={{ background: 'var(--mint)' }} aria-hidden="true">
-          {'♟' + VS}
+          <PieceIcon kind="P" color="b" />
         </div>
         <h1 className="title">สมัครสมาชิก</h1>
         <p className="small center">สร้างบัญชีเพื่อตั้งชื่อและรูปโปรไฟล์ที่คู่แข่งเห็น</p>

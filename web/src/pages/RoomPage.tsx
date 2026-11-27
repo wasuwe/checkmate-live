@@ -1,5 +1,8 @@
+import { PieceIcon } from '../components/PieceIcon'
+import type { Kind } from '../lib/pieceSets'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChatPanel } from '../components/ChatPanel'
+import { Emblem } from '../components/Emblem'
 import { ClockRow } from '../components/ClockRow'
 import { CoinToss } from '../components/CoinToss'
 import { Lobby } from '../components/Lobby'
@@ -11,10 +14,11 @@ import { useGameSocket } from '../hooks/useGameSocket'
 import { clockAt, describeTimeControl } from '../lib/clock'
 import { gameName, gameOf } from '../lib/games'
 import { chatNames } from '../lib/lobby'
-import { VS } from '../lib/pieceSets'
 import { absences } from '../lib/presence'
 import type { ChatItem, Color, StateMsg } from '../lib/protocol'
-import { becameMyTurn, playChime, setTurnSound, turnSoundOn, useTurnSound } from '../lib/turnAlert'
+import { capturedSquares } from '../lib/fx'
+import { playMoveSound } from '../lib/sound'
+import { becameMyTurn, setTurnSound, turnSoundOn, useTurnSound } from '../lib/turnAlert'
 import { shouldToss, tossView, type TossView } from '../lib/toss'
 import {
   colorName,
@@ -83,8 +87,11 @@ export function RoomPage({ roomId, navigate }: Props) {
 
   // ก่อนเกมเริ่ม: ห้องรอ (รอคน แชท กดพร้อม)
   if (state.status === 'waiting' && state.lobby) {
-    return <Lobby state={state} lobby={state.lobby} stateAt={game.stateAt} online={online} sendReady={game.sendReady} chat={chat} />
+    return <Lobby state={state} lobby={state.lobby} stateAt={game.stateAt} online={online} sendReady={game.sendReady} sendKick={game.sendKick} chat={chat} />
   }
+
+  // ตราในแผงข้างกระดานเป็นสีทองเมื่อถึงตาของผู้ดู
+  const myTurn = state.status === 'playing' && state.you.color !== '' && state.turn === state.you.color
 
   // ระหว่างเกมและหลังจบ: กระดานใหญ่เต็มพื้นที่ ห้องยุบเป็นแถบด้านบน แชทอยู่ด้านล่าง
   return (
@@ -145,6 +152,17 @@ export function RoomPage({ roomId, navigate }: Props) {
                 เล่นเกมใหม่
               </button>
             )}
+          </div>
+
+          {/* จอกว้าง: กลางแผงข้างกระดานมีตรากับสถานะตัวใหญ่ (จอแคบซ่อนไว้)
+              เป็นสำเนาของแถบสถานะด้านบน จึงซ่อนจากโปรแกรมอ่านหน้าจอ */}
+          <div className="game-side" aria-hidden="true">
+            <Emblem width={190} className={myTurn ? 'gold' : undefined} />
+            <p className="game-side-status starred">{statusText(state)}</p>
+            <p className="small">
+              {gameName(gameId)} · {describeTimeControl(state.tc)}
+            </p>
+            <p className="tiny game-side-tip">แตะรูปคู่แข่งเพื่อเปิดแชท</p>
           </div>
 
           {state.status === 'waiting' && <WaitingCard roomId={roomId} />}
@@ -307,7 +325,7 @@ function ChatPopover({ pop, children }: { pop: ChatPopup; children: React.ReactN
 }
 
 /**
- * เตือนเมื่อถึงตาผู้เล่น: เสียง (ถ้าเปิดไว้) สั่นบนมือถือ และชื่อแท็บเปลี่ยนเมื่ออยู่หน้าต่างอื่น
+ * เสียงวางหมากทุกตาเดิน (ถ้าเปิดไว้) และเตือนเมื่อถึงตาผู้เล่น: สั่นบนมือถือ และชื่อแท็บเปลี่ยนเมื่ออยู่หน้าต่างอื่น
  * คืนเลขที่เพิ่มทุกครั้งที่ถึงตา (ให้แถบผู้เล่นกะพริบ) และว่าป้ายบนกระดานยังแสดงอยู่หรือไม่ (หายเองหลังเล่นจบ)
  */
 function useTurnAlert(state: StateMsg | null): [number, boolean] {
@@ -318,11 +336,15 @@ function useTurnAlert(state: StateMsg | null): [number, boolean] {
   useEffect(() => {
     const before = prev.current
     prev.current = state
+    // เสียงวางหมากทุกตาเดิน (ทั้งของเราและของคู่แข่ง หมากฮอสที่กินต่อดังทุกต่อ) ตาที่กินมีเสียงหนักกว่า
+    // ไม่ดังตอนเข้าห้องหรือเชื่อมต่อใหม่ที่ข้ามไปหลายตา
+    if (state && before && state.ply === before.ply + 1 && turnSoundOn()) {
+      playMoveSound(capturedSquares(before, state).length > 0 ? 'capture' : 'move')
+    }
     if (!state || !becameMyTurn(before, state)) return
     const next = seq + 1
     setSeq(next)
     setToastSeq(next)
-    if (turnSoundOn()) playChime()
     navigator.vibrate?.(80)
     const timer = setTimeout(() => setToastSeq((t) => (t === next ? 0 : t)), TOAST_MS)
     return () => clearTimeout(timer)
@@ -351,7 +373,7 @@ function useTurnAlert(state: StateMsg | null): [number, boolean] {
 /** ป้าย "ถึงตาคุณแล้ว!" แสดงนานเท่ากับการเคลื่อนไหวของมัน (turnToast ใน index.css) */
 const TOAST_MS = 1800
 
-/** ปุ่มเปิด/ปิดเสียงเตือนเมื่อถึงตา */
+/** ปุ่มเปิด/ปิดเสียงวางหมาก */
 function TurnSoundToggle() {
   const on = useTurnSound()
   return (
@@ -361,10 +383,10 @@ function TurnSoundToggle() {
       aria-pressed={on}
       onClick={() => {
         setTurnSound(!on)
-        if (!on) playChime() // ให้ได้ยินตัวอย่างตอนเปิด
+        if (!on) playMoveSound('move') // ให้ได้ยินตัวอย่างตอนเปิด
       }}
     >
-      {on ? 'เสียงเตือนเมื่อถึงตา: เปิด' : 'เสียงเตือนเมื่อถึงตา: ปิด'}
+      {on ? 'เสียงหมาก: เปิด' : 'เสียงหมาก: ปิด'}
     </button>
   )
 }
@@ -473,10 +495,11 @@ function GameOverDialog({ state, navigate }: { state: StateMsg; navigate: (to: s
         aria-labelledby="result-title"
         onClick={(e) => e.stopPropagation()}
       >
+        <Emblem width={170} className="gold" />
         <div className="medal result-medal" style={{ background: medal.bg }} aria-hidden="true">
-          {medal.glyph + VS}
+          <PieceIcon kind={medal.kind} color="b" />
         </div>
-        <h2 className="title" id="result-title">
+        <h2 className="title starred" id="result-title">
           {headline}
         </h2>
         {reason && <p>{reason}</p>}
@@ -498,11 +521,11 @@ function GameOverDialog({ state, navigate }: { state: StateMsg; navigate: (to: s
 
 const RESULT_DELAY_MS = 4200
 
-const MEDALS: Record<'win' | 'loss' | 'draw' | 'watch', { glyph: string; bg: string }> = {
-  win: { glyph: '♚', bg: 'var(--butter)' },
-  loss: { glyph: '♟', bg: 'var(--lavender)' },
-  draw: { glyph: '♜', bg: 'var(--mint)' },
-  watch: { glyph: '♛', bg: 'var(--sky)' },
+const MEDALS: Record<'win' | 'loss' | 'draw' | 'watch', { kind: Kind; bg: string }> = {
+  win: { kind: 'K', bg: 'var(--butter)' },
+  loss: { kind: 'P', bg: 'var(--lavender)' },
+  draw: { kind: 'R', bg: 'var(--mint)' },
+  watch: { kind: 'Q', bg: 'var(--sky)' },
 }
 
 /** แจ้งเมื่อเซิร์ฟเวอร์ปฏิเสธตาเดิน แล้วหายเองใน 3 วินาที */

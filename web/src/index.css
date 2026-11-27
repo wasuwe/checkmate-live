@@ -1,25 +1,38 @@
-/* ระบบดีไซน์ "สติกเกอร์": เส้นขอบ Ink หนา มุมโค้ง เงาแข็ง สีพาสเทล
-   ค่าสีและขนาดมาจากเอกสาร Design Improve ของโปรเจกต์ */
+/* ระบบดีไซน์ "ละครเวทีนิทาน": กระดาษสีงาช้าง เส้นบาง เงานุ่ม ขอบทอง ฉากฟ้ากลางคืนมีดาว
+   ปุ่มหลักเป็นแคปซูลสีเข้ม หัวข้อใช้ฟอนต์มีเชิง (ตัวอย่างดีไซน์ทุกหน้าอยู่ในหน้าตัวอย่างสไตล์ แบบ K)
+   ชื่อตัวแปรสีเดิม (pink, mint, butter ...) ยังใช้อยู่ทั้งไฟล์ จึงคงชื่อไว้แต่เปลี่ยนค่าให้เข้าโทนใหม่ */
 
 :root {
-  --ink: #3b2f4a;
-  --cream: #fff7ec;
-  --pink: #ff8fb1;
-  --pink-strong: #ff5c8d;
-  --mint: #9fe3c9;
-  --lavender: #c9bdff;
-  --butter: #ffdc85;
-  --sky: #a9d6f7;
-  --error: #c2185b;
-  --line: #ebdccb;
-  --muted: #9c8fa8;
-  --link: #d9467a;
-  --picked: #fff1c9;
+  --ink: #2b2a33;
+  --cream: #f7f3ea; /* กระดาษงาช้าง พื้นหลักของหน้า */
+  --paper: #fbf8f1; /* กระดาษการ์ด สว่างกว่าพื้นนิดหนึ่ง */
+  --frame: #cfc6b2; /* เส้นขอบบาง */
+  --gold: #c9a45c;
+  --gold-ink: #8a5a1e; /* ตัวหนังสือสีทอง อ่านได้บนพื้นงาช้าง */
+  --pill: #2f2d36; /* ปุ่มหลัก */
+  --night-1: #1e2a6b;
+  --night-2: #3a4ba8;
+  --night-3: #8c9be0;
+  --pink: #ead7ab; /* ทองอ่อน ใช้แทนสีเน้นเดิม */
+  --pink-strong: #b07a2a;
+  --mint: #d6e8dd;
+  --lavender: #dcdcf3;
+  --butter: #f3e3b6;
+  --sky: #d6def6;
+  --error: #b3261e;
+  --line: #e3dbc9;
+  --muted: #77717f;
+  --link: #8a5a1e;
+  --picked: #f6eac8;
 
-  --bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ring: 0 0 0 3px #fff, 0 0 0 6px var(--pink-strong);
-  --font-head: 'Mitr', 'Mali', system-ui, sans-serif;
-  --font-body: 'Mali', system-ui, 'Segoe UI', 'Noto Sans Thai', sans-serif;
+  /* การเคลื่อนไหว: นุ่มและสงบแบบม่านเวที ไม่เด้งแรง
+     --ease-out ใช้กับการปรากฏของหน้าและป็อปอัป --bounce เด้งเบามาก ใช้กับของชิ้นเล็กที่ตอบสนองการกด */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --bounce: cubic-bezier(0.3, 1.25, 0.45, 1);
+  --ring: 0 0 0 2px var(--paper), 0 0 0 4px var(--gold);
+  --lift: 0 10px 28px rgba(30, 42, 107, 0.12);
+  --font-head: 'Noto Serif Thai', Georgia, serif;
+  --font-body: 'IBM Plex Sans Thai', system-ui, 'Segoe UI', 'Noto Sans Thai', sans-serif;
   --font-glyph: 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Apple Symbols', 'DejaVu Sans', sans-serif;
 
   font: 16px/1.5 var(--font-body);
@@ -38,10 +51,37 @@ body {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
+  position: relative;
   background: var(--cream);
-  background-image: radial-gradient(#f3dfc6 1.5px, transparent 1.5px);
-  background-size: 22px 22px;
   color: var(--ink);
+}
+
+/* ฉากฟ้ากลางคืนมีดาวที่หัวหน้า ขอบล่างเป็นคลื่นเหมือนผ้าม่าน แถบบนวางอยู่บนฉากนี้ */
+body::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 auto;
+  height: 104px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12C16 13 13 16 12 24C11 16 8 13 0 12C8 11 11 8 12 0Z' fill='%23ffe9a8'/%3E%3C/svg%3E")
+      8% 22px / 20px no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12C16 13 13 16 12 24C11 16 8 13 0 12C8 11 11 8 12 0Z' fill='%23ffffff'/%3E%3C/svg%3E")
+      31% 70px / 11px no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12C16 13 13 16 12 24C11 16 8 13 0 12C8 11 11 8 12 0Z' fill='%23ffd86b'/%3E%3C/svg%3E")
+      57% 22px / 16px no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12C16 13 13 16 12 24C11 16 8 13 0 12C8 11 11 8 12 0Z' fill='%23ffffff'/%3E%3C/svg%3E")
+      78% 64px / 10px no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12C16 13 13 16 12 24C11 16 8 13 0 12C8 11 11 8 12 0Z' fill='%23ffe9a8'/%3E%3C/svg%3E")
+      94% 18px / 22px no-repeat,
+    linear-gradient(180deg, var(--night-1) 0%, var(--night-2) 60%, var(--night-3) 100%);
+  /* ขอบล่างโค้งเรียบ มีเส้นทองบาง ๆ สองเส้นเหมือนขอบม่านเวที */
+  border-radius: 0 0 50% 50% / 0 0 22px 22px;
+  box-shadow:
+    0 2px 0 var(--gold),
+    0 5px 0 var(--cream),
+    0 6px 0 rgba(201, 164, 92, 0.55);
+  pointer-events: none;
 }
 
 input,
@@ -121,8 +161,7 @@ input::placeholder {
 @keyframes rise {
   from {
     opacity: 0;
-    translate: 0 18px;
-    scale: 0.96;
+    translate: 0 16px;
   }
   to {
     opacity: 1;
@@ -132,30 +171,78 @@ input::placeholder {
 }
 
 @keyframes pop {
-  0% {
+  from {
     opacity: 0;
-    scale: 0.5;
+    scale: 0.86;
   }
-  60% {
+  to {
     opacity: 1;
-    scale: 1.08;
-  }
-  100% {
     scale: 1;
   }
 }
 
+/* ป็อปอัปค่อย ๆ ลอยขึ้นมาอยู่กลางจอ ปุ่มข้างในแทบไม่ขยับตำแหน่ง กดได้ทันที */
+@keyframes dialogIn {
+  from {
+    opacity: 0;
+    translate: 0 14px;
+    scale: 0.97;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+/* เส้นลายของตราถูกวาดออกมา (ใช้กับ path ที่มี pathLength=1) */
+@keyframes draw {
+  from {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ดาวประดับหัวข้อกะพริบช้า ๆ */
+@keyframes starPulse {
+  0%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+  50% {
+    opacity: 0.45;
+    scale: 0.8;
+  }
+}
+
+/* แสงทองหายใจช้า ๆ รอบของที่อยากให้สังเกต */
+@keyframes goldBreath {
+  from {
+    box-shadow:
+      0 0 0 2px var(--gold),
+      0 0 14px rgba(255, 216, 107, 0.35);
+  }
+  to {
+    box-shadow:
+      0 0 0 2px var(--gold),
+      0 0 30px rgba(255, 216, 107, 0.75);
+  }
+}
+
+/* หมากวางลงช่อง: ยกเล็กน้อยแล้ววางลงนุ่ม ๆ */
 @keyframes land {
   0% {
-    scale: 1.35;
-    translate: 0 -18%;
+    scale: 1.16;
+    translate: 0 -10%;
   }
-  55% {
-    scale: 0.86;
+  60% {
+    scale: 0.97;
     translate: 0 0;
-  }
-  80% {
-    scale: 1.06;
   }
   100% {
     scale: 1;
@@ -280,7 +367,7 @@ input::placeholder {
 }
 
 .anim-pop {
-  animation: pop 0.45s var(--bounce) both;
+  animation: pop 0.35s var(--ease-out) both;
 }
 
 .anim-shake {
@@ -320,39 +407,75 @@ input::placeholder {
 
 /* ส่วนต่าง ๆ ของหน้าลอยขึ้นทีละส่วน */
 .screen > * {
-  animation: rise 0.6s var(--bounce) both;
+  animation: rise 0.7s var(--ease-out) both;
 }
 
 .screen > *:nth-child(2) {
-  animation-delay: 0.05s;
+  animation-delay: 0.07s;
 }
 
 .screen > *:nth-child(3) {
-  animation-delay: 0.1s;
+  animation-delay: 0.14s;
 }
 
 .screen > *:nth-child(4) {
-  animation-delay: 0.15s;
+  animation-delay: 0.21s;
 }
 
 .screen > *:nth-child(5) {
-  animation-delay: 0.2s;
+  animation-delay: 0.28s;
 }
 
 .screen > *:nth-child(n + 6) {
-  animation-delay: 0.25s;
+  animation-delay: 0.35s;
 }
 
 .title {
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: clamp(24px, 6.5vw, 30px);
+}
+
+/* หัวข้อหลักของหน้ามีดาวสี่แฉกสีทองขนาบสองข้าง (✦ หัวข้อ ✦) */
+h1.title::before,
+h1.title::after,
+.starred::before,
+.starred::after {
+  content: '✦';
+  display: inline-block;
+  margin: 0 0.45em;
+  color: var(--gold);
+  font-size: 0.5em;
+  vertical-align: 0.35em;
+}
+
+h1.title::before {
+  margin-left: 0;
+}
+
+h1.title::before,
+h1.title::after,
+.starred::before,
+.starred::after,
+.hero-name::before,
+.hero-name::after {
+  animation: starPulse 3.4s ease-in-out infinite;
+}
+
+h1.title::after,
+.starred::after,
+.hero-name::after {
+  animation-delay: -1.7s;
+}
+
+.emblem.gold .emblem-crown {
+  fill: var(--gold);
 }
 
 .subtitle {
   font-family: var(--font-head);
-  font-weight: 500;
-  font-size: 21px;
+  font-weight: 700;
+  font-size: 20px;
 }
 
 .small {
@@ -406,39 +529,42 @@ input::placeholder {
 /* ---------- ปุ่ม ---------- */
 
 .btn {
-  --depth: 5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   min-height: 44px;
-  padding: 12px 18px;
-  border: 3px solid var(--ink);
-  border-radius: 18px;
-  background: #fff;
-  box-shadow: 0 var(--depth) 0 var(--ink);
-  font-family: var(--font-head);
-  font-weight: 500;
-  font-size: 18px;
+  padding: 11px 22px;
+  border: 1px solid #b9ae97; /* ปุ่มรองใช้เส้นขอบสีกระดาษเข้ม ไม่ใช่เส้นดำ ให้ปุ่มหลักสีเข้มเด่นอยู่ปุ่มเดียว */
+  border-radius: 999px;
+  background: var(--paper);
+  box-shadow: 0 2px 8px rgba(30, 42, 107, 0.08);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 17px;
   color: var(--ink);
   text-align: center;
   white-space: nowrap;
   transition:
-    translate 0.35s var(--bounce),
-    scale 0.35s var(--bounce),
-    box-shadow 0.2s ease,
+    translate 0.25s var(--ease-out),
+    scale 0.2s var(--ease-out),
+    box-shadow 0.25s ease,
+    border-color 0.25s ease,
     background-color 0.25s ease,
     opacity 0.2s ease;
 }
 
+/* ชี้ปุ่ม: ยกขึ้นเล็กน้อย เงาลึกขึ้น ขอบเป็นสีทอง */
 .btn:hover:not(:disabled) {
-  translate: 0 -2px;
+  translate: 0 -1px;
+  border-color: var(--gold);
+  box-shadow: 0 6px 16px rgba(30, 42, 107, 0.14);
 }
 
 .btn:active:not(:disabled) {
-  translate: 0 calc(var(--depth) - 2px);
+  translate: 0 1px;
   scale: 0.97;
-  box-shadow: 0 2px 0 var(--ink);
+  box-shadow: none;
 }
 
 .btn.block {
@@ -446,27 +572,19 @@ input::placeholder {
 }
 
 .btn.big {
-  --depth: 6px;
-  padding: clamp(14px, 4vw, 18px);
-  border-radius: 22px;
-  font-weight: 600;
-  font-size: clamp(20px, 6vw, 24px);
+  padding: clamp(13px, 3.6vw, 16px) 28px;
+  font-size: clamp(18px, 5vw, 20px);
 }
 
 .btn.strong {
   font-weight: 600;
 }
 
-/* ปุ่มเล็กในการ์ด: เส้นบางลงและไม่มีเงา */
+/* ปุ่มเล็กในการ์ด: เตี้ยลงและไม่มีเงา */
 .btn.mini {
-  --depth: 0px;
   min-height: 40px;
-  padding: 8px 14px;
-  border-width: 2.5px;
-  border-radius: 14px;
+  padding: 7px 16px;
   box-shadow: none;
-  font-family: var(--font-body);
-  font-weight: 700;
   font-size: 14px;
 }
 
@@ -478,14 +596,14 @@ input::placeholder {
 .btn.icon {
   width: 44px;
   padding: 0;
-  border-radius: 14px;
-  --depth: 3px;
   font-size: 20px;
 }
 
-/* ปุ่มย้อนกลับ: พื้นสีเนยและลูกศรเส้นหนา ให้เป็นสติกเกอร์แบบเดียวกับปุ่มอื่น */
+/* ปุ่มย้อนกลับ: วงกลมสีงาช้างบนฉากฟ้ากลางคืน ลูกศรสีเข้ม */
 .btn.icon.back {
-  background: var(--butter);
+  border-color: var(--paper);
+  background: var(--paper);
+  color: var(--ink);
 }
 
 .btn.icon.back:hover:not(:disabled) .arrow-icon {
@@ -498,24 +616,51 @@ input::placeholder {
   transition: translate 0.25s var(--bounce);
 }
 
+/* ปุ่มหลักของหน้า: แคปซูลสีเข้ม ตัวหนังสือสีงาช้าง มีเส้นในบาง ๆ เหมือนกรอบป้าย */
 .btn.pink {
-  background: var(--pink);
+  border-color: var(--pill);
+  background: var(--pill);
+  color: var(--cream);
+  box-shadow:
+    inset 0 0 0 2px var(--pill),
+    inset 0 0 0 3px #8a8494,
+    0 6px 16px rgba(30, 42, 107, 0.18);
 }
 
 .btn.pink:hover:not(:disabled) {
-  background: #ff9fbc;
+  border-color: var(--pill);
+  background: #3a3842;
+  box-shadow:
+    inset 0 0 0 2px var(--pill),
+    inset 0 0 0 3px var(--gold),
+    0 8px 20px rgba(30, 42, 107, 0.24);
 }
 
-.btn.mint {
-  background: var(--mint);
+/* แสงทองกวาดผ่านปุ่มหลักเมื่อชี้ */
+.btn.pink {
+  position: relative;
+  overflow: hidden;
 }
 
-.btn.lavender {
-  background: var(--lavender);
+.btn.pink::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 38%, rgba(255, 233, 168, 0.3) 50%, transparent 62%);
+  translate: -110% 0;
+  pointer-events: none;
 }
 
+.btn.pink:hover:not(:disabled)::after {
+  translate: 110% 0;
+  transition: translate 0.8s var(--ease-out);
+}
+
+/* ปุ่มรองทุกสีเป็นแคปซูลเส้นขอบบนกระดาษ ให้ปุ่มหลักสีเข้มเด่นอยู่ปุ่มเดียว */
+.btn.mint,
+.btn.lavender,
 .btn.butter {
-  background: var(--butter);
+  background: var(--paper);
 }
 
 .btn.danger {
@@ -525,10 +670,10 @@ input::placeholder {
 /* ---------- การ์ดและช่องกรอก ---------- */
 
 .card {
-  background: #fff;
-  border: 3px solid var(--ink);
-  border-radius: 24px;
-  box-shadow: 0 6px 0 var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--frame);
+  border-radius: 18px;
+  box-shadow: var(--lift);
   padding: clamp(16px, 4.5vw, 22px);
   display: flex;
   flex-direction: column;
@@ -536,8 +681,8 @@ input::placeholder {
 }
 
 .card.side {
-  border-radius: 22px;
-  box-shadow: 0 5px 0 var(--ink);
+  border-radius: 16px;
+  box-shadow: var(--lift);
   padding: 16px;
   gap: 12px;
 }
@@ -554,7 +699,7 @@ input::placeholder {
 
 .card-title {
   font-family: var(--font-head);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 18px;
 }
 
@@ -570,10 +715,10 @@ input::placeholder {
 .input {
   width: 100%;
   min-width: 0;
-  padding: 13px 14px;
-  border: 2.5px solid var(--ink);
-  border-radius: 14px;
-  background: var(--cream);
+  padding: 12px 16px;
+  border: 1px solid var(--frame);
+  border-radius: 12px;
+  background: var(--paper);
   font-family: var(--font-body);
   font-size: 16px;
   color: var(--ink);
@@ -584,8 +729,9 @@ input::placeholder {
 }
 
 .input:focus {
-  background: #fff;
-  border-color: var(--pink-strong);
+  background: #fffdf8;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201, 164, 92, 0.25);
 }
 
 .input[aria-invalid='true'] {
@@ -608,9 +754,9 @@ input::placeholder {
   translate: 0 -50%;
   min-height: 36px;
   padding: 4px 10px;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 10px;
-  background: #fff;
+  background: var(--paper);
   font-size: 12px;
   font-weight: 700;
 }
@@ -626,9 +772,9 @@ input::placeholder {
   width: 30px;
   height: 30px;
   flex: none;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 9px;
-  background: #fff;
+  background: var(--paper);
   font-size: 16px;
   font-weight: 700;
   display: flex;
@@ -654,9 +800,9 @@ input::placeholder {
   gap: 8px;
   min-height: 44px; /* ปุ่มสูงไม่ต่ำกว่า 44px บนมือถือ */
   padding: 6px 12px 6px 6px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
-  background: #fff;
+  background: var(--paper);
   font-family: var(--font-body);
   font-weight: 600;
   font-size: 14px;
@@ -667,38 +813,41 @@ input::placeholder {
 }
 
 .chip:hover:not(:disabled) {
-  translate: 0 -2px;
+  translate: 0 -1px;
+  border-color: var(--gold);
 }
 
 .chip[aria-pressed='true'] {
-  background: var(--butter);
+  border-color: var(--pill);
+  background: var(--pill);
+  color: var(--cream);
 }
 
 .chip.dark[aria-pressed='true'] {
-  background: var(--ink);
-  color: #fff;
+  background: var(--pill);
+  color: var(--cream);
 }
 
 .swatch {
   width: 26px;
   height: 26px;
   flex: none;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 50%;
 }
 
 .pill {
   padding: 4px 10px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
-  background: #fff;
+  background: var(--paper);
   font-size: 12px;
   font-weight: 700;
 }
 
 .banner {
   padding: 10px 14px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
   background: var(--butter);
   font-weight: 600;
@@ -718,6 +867,7 @@ input::placeholder {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-bottom: 26px; /* ให้เนื้อหาเริ่มใต้ขอบคลื่นของฉากฟ้า */
 }
 
 .brand {
@@ -730,15 +880,15 @@ input::placeholder {
   border: none;
   background: none;
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: clamp(16px, 4.5vw, 20px);
   white-space: nowrap;
+  color: var(--cream); /* แถบบนวางบนฉากฟ้ากลางคืน */
 }
 
 .brand .glyph {
-  color: var(--pink);
-  -webkit-text-stroke: 1.5px var(--ink);
-  font-size: 26px;
+  font-size: 34px;
+  filter: drop-shadow(0 0 8px rgba(255, 226, 140, 0.55));
 }
 
 .brand-name {
@@ -758,9 +908,9 @@ input::placeholder {
   min-width: 0;
   min-height: 44px;
   padding: 4px 14px 4px 4px;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
-  background: #fff;
+  background: var(--paper);
   font-weight: 600;
   font-size: 14px;
   white-space: nowrap;
@@ -776,7 +926,7 @@ input::placeholder {
 
 .avatar {
   flex: none;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 50%;
   object-fit: cover;
   background: var(--lavender);
@@ -786,10 +936,7 @@ input::placeholder {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-glyph);
   line-height: 1;
-  color: #fff;
-  -webkit-text-stroke: 1.5px var(--ink);
 }
 
 /* ---------- หน้าแรก ---------- */
@@ -797,7 +944,7 @@ input::placeholder {
 .home {
   align-items: center;
   gap: 22px;
-  padding-top: 28px;
+  padding-top: 232px; /* เว้นที่ให้ฉากเวทีด้านบน */
 }
 
 .hero {
@@ -808,49 +955,319 @@ input::placeholder {
   padding: 26px 10px 0;
 }
 
-.hero-pieces {
-  display: flex;
-  gap: 2px;
-  align-items: flex-end;
-  font-family: var(--font-glyph);
-  font-size: clamp(46px, 14vw, 64px);
-  line-height: 1;
-  -webkit-text-stroke: 2.5px var(--ink);
-}
-
-.hero-pieces > span {
-  animation: float 3.2s ease-in-out infinite;
-}
-
-.hero-pieces > span:nth-child(2) {
-  animation-delay: -0.8s;
-}
-
-.hero-pieces > span:nth-child(3) {
-  animation-delay: -1.6s;
-}
-
-.hero-pieces > span:nth-child(4) {
-  animation-delay: -2.4s;
-}
-
-.hero-pieces .tall {
-  font-size: clamp(60px, 18vw, 84px);
-}
-
 .hero-name {
   font-family: var(--font-head);
-  font-weight: 600;
-  font-size: clamp(32px, 10vw, 44px);
-  line-height: 1.05;
+  font-weight: 700;
+  font-size: clamp(30px, 9vw, 40px);
+  line-height: 1.15;
   text-align: center;
-  margin-top: 10px;
-  letter-spacing: -0.5px;
+  margin-top: 4px;
+}
+
+.hero-name::before,
+.hero-name::after {
+  content: '✦';
+  display: inline-block;
+  margin: 0 0.4em;
+  color: var(--gold);
+  font-size: 0.45em;
+  vertical-align: 0.4em;
 }
 
 .hero-name em {
   font-style: normal;
-  color: var(--pink-strong);
+  color: var(--gold-ink);
+}
+
+/* ---------- ฉากเวทีกลางคืน (StageScene) ---------- */
+/* ฟ้ากลางคืนไล่สี พระจันทร์เสี้ยว ซุ้มโค้งเส้นทองสองซุ้ม ดาวสี่แฉก และพื้นเวทีลายตารางหมากรุกที่ทอดไปหาขอบฟ้า */
+
+.stage-scene {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #151d52 0%, var(--night-1) 28%, var(--night-2) 66%, #8493dc 100%);
+  pointer-events: none;
+}
+
+.stage-moon {
+  position: absolute;
+  right: 15%;
+  top: 8%;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  box-shadow: inset -13px 5px 0 0 #ffe9a8;
+  filter: drop-shadow(0 0 12px rgba(255, 233, 168, 0.55));
+  animation: moonGlow 5s ease-in-out infinite alternate;
+}
+
+@keyframes moonGlow {
+  from {
+    filter: drop-shadow(0 0 8px rgba(255, 233, 168, 0.4));
+  }
+  to {
+    filter: drop-shadow(0 0 20px rgba(255, 233, 168, 0.8));
+  }
+}
+
+.stage-arch {
+  position: absolute;
+  bottom: 21%;
+  border: 1.5px solid rgba(255, 236, 180, 0.75);
+  border-bottom: none;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(180deg, rgba(255, 236, 180, 0.2), rgba(255, 236, 180, 0.03));
+}
+
+/* เส้นทองชั้นในของซุ้ม */
+.stage-arch::after {
+  content: '';
+  position: absolute;
+  inset: 7px 7px 0;
+  border: 1px solid rgba(255, 236, 180, 0.35);
+  border-bottom: none;
+  border-radius: inherit;
+}
+
+.stage-arch.a {
+  left: 9%;
+  width: 27%;
+  height: 50%;
+}
+
+.stage-arch.b {
+  left: 45%;
+  width: 36%;
+  height: 64%;
+}
+
+.stage-star {
+  position: absolute;
+  animation: twinkle 3.6s ease-in-out infinite;
+}
+
+.stage-star:nth-of-type(2n) {
+  animation-delay: -1.4s;
+}
+
+.stage-star:nth-of-type(3n) {
+  animation-delay: -2.3s;
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+  50% {
+    opacity: 0.55;
+    scale: 0.8;
+  }
+}
+
+/* พื้นเวที: ลายตารางหมากรุกเอนไปหาขอบฟ้า มีหมอกแสงจางที่ขอบฟ้า */
+.stage-floor {
+  position: absolute;
+  inset: auto 0 0;
+  height: 21%;
+  overflow: hidden;
+  border-top: 1.5px solid rgba(255, 236, 180, 0.75);
+  container-type: size; /* ให้มุมมองและขนาดช่องของพื้นแปรตามความสูงของพื้น (หน่วย cqh) */
+}
+
+/* ระยะมุมมอง 3.6 เท่าของความสูงพื้น กับมุมเอน 74° ทำให้ขอบฟ้าของลายตารางอยู่ที่ขอบบนของพื้นพอดี */
+.stage-floor::before {
+  content: '';
+  position: absolute;
+  left: -200%;
+  right: -200%;
+  bottom: 0;
+  height: 1600cqh;
+  transform-origin: 50% 100%;
+  transform: perspective(360cqh) rotateX(74deg);
+  background: conic-gradient(#efe6cf 90deg, #2a3784 0 180deg, #efe6cf 0 270deg, #2a3784 0) 50% 100% / 84cqh 84cqh;
+}
+
+/* หมอกแสงที่ขอบฟ้า กลืนลายตารางช่วงไกลเข้ากับท้องฟ้า */
+.stage-floor::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(132, 147, 220, 0.95) 0%, rgba(132, 147, 220, 0.35) 38%, rgba(132, 147, 220, 0) 75%);
+}
+
+/* ตัวละครบนเวที: ตัวหมากตัวใหญ่ยืนบนพื้นเวที ขนาดตาม font-size */
+.stage-actor {
+  position: absolute;
+  line-height: 1;
+  filter: drop-shadow(0 14px 18px rgba(10, 14, 50, 0.45));
+  animation: float 4.5s ease-in-out infinite;
+}
+
+/* ตัวหมากคลาสสิกที่ใช้เป็นไอคอน ขนาดตามตัวอักษรของกล่องที่ครอบ */
+.piece-icon {
+  display: block;
+  width: 1em;
+  height: 1em;
+  overflow: visible;
+}
+
+.emblem {
+  display: block;
+  color: var(--ink);
+}
+
+.emblem .emblem-crown {
+  fill: currentColor;
+}
+
+/* ตราวาดตัวเองตอนปรากฏ: มงกุฎขึ้นก่อน ลายม้วนถูกวาดตาม แล้วเพชรกับเส้นหางปิดท้าย
+   ถ้าปิดการเคลื่อนไหว ตราแสดงครบทันที (สถานะปกติไม่มีเส้นประ) */
+.emblem .emblem-fill {
+  animation: fade 0.6s ease 0.1s both;
+}
+
+.emblem .emblem-line {
+  animation: draw 0.9s var(--ease-out) 0.25s both;
+}
+
+.emblem .emblem-line.late {
+  animation-delay: 0.6s;
+}
+
+.emblem .emblem-fill.late {
+  animation-delay: 0.95s;
+}
+
+/* ฉากเวทีที่วางเป็นแผงในหน้า: ทรงซุ้มโค้ง กรอบทองสองชั้น */
+.auth-scene,
+.home-scene {
+  border-radius: 50% 50% 24px 24px / 24% 24% 24px 24px;
+  box-shadow:
+    0 0 0 1px var(--gold),
+    0 0 0 6px var(--cream),
+    0 0 0 7px var(--gold),
+    0 24px 50px rgba(20, 25, 70, 0.22);
+}
+
+/* ---------- เข้าสู่ระบบ / สมัคร: ฉากเวทีด้านซ้ายเฉพาะจอกว้าง ---------- */
+
+.auth-scene {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .app:has(.auth-scene) {
+    padding-left: 42vw;
+  }
+
+  .auth-scene {
+    display: block;
+    position: fixed;
+    z-index: 1;
+    inset: 124px auto 22px 22px; /* เริ่มใต้แถบฟ้าด้านบน ไม่ทับแถบ */
+    width: calc(42vw - 48px);
+    animation: none;
+  }
+
+  .auth-scene .stage-actor {
+    left: 50%;
+    bottom: 13%;
+    translate: -50% 0;
+    font-size: 220px;
+  }
+}
+
+/* หัวข้อในแถวที่ตัดบรรทัดได้ ไม่ถูกบีบจนเหลือบรรทัดละไม่กี่ตัวอักษร ข้อความข้าง ๆ จะลงไปแถวใหม่แทน */
+.row.wrap > .title.grow,
+.row.wrap > .subtitle.grow,
+.row.wrap > .card-title.grow {
+  min-width: min(100%, 9em);
+}
+
+/* ---------- หน้าแรก: ฉากเวทีด้านซ้าย (จอกว้าง) หรือด้านบน (จอแคบ) ---------- */
+
+body:has(.home)::before {
+  display: none;
+}
+
+.home-scene {
+  position: absolute;
+  inset: 12px 12px auto;
+  height: 214px;
+  border-radius: 24px;
+  animation: none;
+}
+
+.home > :not(.home-scene) {
+  position: relative;
+  z-index: 1;
+}
+
+/* ตัวหมากลอยอยู่ในฉากเวทีของหน้าแรก เป็นของประดับ */
+.home-floaters {
+  position: absolute;
+  inset: 0;
+}
+
+.home-floater {
+  position: absolute;
+  translate: -50% -50%;
+  rotate: var(--tilt);
+  animation:
+    homeFloat 6s ease-in-out infinite,
+    fade 0.9s ease both;
+  filter: drop-shadow(0 12px 14px rgba(10, 14, 50, 0.4));
+}
+
+.home-floater-piece {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+@keyframes homeFloat {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(3deg);
+  }
+}
+
+.home-floaters.wide {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .home-floaters.wide {
+    display: block;
+  }
+
+  .home-floaters.narrow {
+    display: none;
+  }
+
+  .app:has(> .home) {
+    padding-left: 46vw;
+  }
+
+  .home {
+    justify-content: center;
+    min-height: calc(100vh - 68px);
+    padding-top: 20px;
+  }
+
+  .home-scene {
+    position: fixed;
+    inset: 22px auto 22px 22px;
+    width: calc(46vw - 52px);
+    height: auto;
+    border-radius: 50% 50% 24px 24px / 24% 24% 24px 24px;
+  }
 }
 
 .menu {
@@ -869,10 +1286,10 @@ input::placeholder {
 .join-panel {
   width: 100%;
   padding: 16px;
-  border: 3px solid var(--ink);
-  border-radius: 20px;
-  background: var(--mint);
-  box-shadow: 0 5px 0 var(--ink);
+  border: 1px solid var(--frame);
+  border-radius: 16px;
+  background: var(--paper);
+  box-shadow: 0 5px 15px rgba(30, 42, 107, 0.14);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -887,9 +1304,9 @@ input::placeholder {
 
 .code-box {
   aspect-ratio: 0.85;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 14px;
-  background: #fff;
+  background: var(--paper);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -930,31 +1347,35 @@ input::placeholder {
   gap: 12px;
 }
 
-/* ลิงก์ท้ายหน้าแรก: ป้ายเล็กแบบสติกเกอร์ ไม่ตัดคำกลางลิงก์ ถ้าที่ไม่พอจะขึ้นแถวใหม่ทั้งป้าย */
+/* ลิงก์ท้ายหน้าแรก: ตัวหนังสือเรียบ คั่นด้วยดาวสีทอง ไม่ตัดคำกลางลิงก์ ถ้าที่ไม่พอจะขึ้นแถวใหม่ทั้งลิงก์ */
 .footer-links {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
+  align-items: center;
+  gap: 0 4px;
   font-size: 14px;
 }
 
 .footer-links button.link {
   min-height: 44px;
-  padding: 6px 14px;
-  border: 2.5px solid var(--ink);
-  border-radius: 999px;
-  background: #fff;
+  padding: 6px 8px;
   color: var(--ink);
-  font-weight: 700;
+  font-weight: 500;
   white-space: nowrap;
-  transition: translate 0.35s var(--bounce);
+}
+
+.footer-links button.link + button.link::before {
+  content: '✦';
+  margin-right: 12px;
+  color: var(--gold);
+  font-size: 10px;
+  vertical-align: 2px;
 }
 
 .footer-links button.link:hover:not(:disabled) {
-  translate: 0 -2px;
+  color: var(--gold-ink);
   text-decoration: none;
-  background: var(--butter);
 }
 
 /* ---------- เข้าสู่ระบบ / สมัคร ---------- */
@@ -981,20 +1402,22 @@ input::placeholder {
   gap: 4px;
 }
 
+/* เหรียญเป็นซุ้มโค้งกรอบทอง มีหมากอยู่ข้างใน */
 .medal {
   width: 84px;
-  height: 84px;
-  border: 3px solid var(--ink);
-  border-radius: 50%;
-  box-shadow: 0 5px 0 var(--ink);
+  height: 100px;
+  border: 1px solid var(--gold);
+  border-radius: 50% 50% 10px 10px / 46px 46px 10px 10px;
+  box-shadow:
+    0 0 0 3px var(--paper),
+    0 0 0 4px var(--gold),
+    var(--lift);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-glyph);
-  font-size: 52px;
+  font-size: 60px;
   line-height: 1;
-  color: #fff;
-  -webkit-text-stroke: 2px var(--ink);
+  color: var(--ink);
   margin-bottom: 10px;
 }
 
@@ -1011,24 +1434,30 @@ input::placeholder {
   display: flex;
   gap: 14px;
   padding: 18px 0;
-  border-bottom: 2px dashed var(--line);
+  border-bottom: 1px solid var(--line);
 }
 
 .terms-item:last-child {
   border-bottom: none;
 }
 
+/* เลขข้อเป็นวงกลมกรอบทองสองชั้น */
 .num {
   width: 34px;
   height: 34px;
   flex: none;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--gold);
   border-radius: 50%;
+  box-shadow:
+    0 0 0 2px var(--paper),
+    0 0 0 3px var(--gold);
+  background: var(--paper);
+  color: var(--gold-ink);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .rule-grid {
@@ -1038,9 +1467,9 @@ input::placeholder {
 }
 
 .rule-card {
-  border: 3px solid var(--ink);
-  border-radius: 22px;
-  box-shadow: 0 5px 0 var(--ink);
+  border: 1px solid var(--frame);
+  border-radius: 16px;
+  box-shadow: var(--lift);
   padding: 18px;
   display: flex;
   flex-direction: column;
@@ -1062,7 +1491,7 @@ input::placeholder {
 .mini-board {
   container-type: inline-size;
   aspect-ratio: 1;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 12px;
   overflow: hidden;
   display: grid;
@@ -1091,12 +1520,16 @@ input::placeholder {
 
 .mini-board.five > div {
   font-size: 15cqw;
-  -webkit-text-stroke: 0.7cqw var(--ink);
+}
+
+.mini-board .mini-piece {
+  width: 92%;
+  height: 92%;
+  overflow: visible;
 }
 
 .mini-board.four > div {
   font-size: 19cqw;
-  -webkit-text-stroke: 0.8cqw var(--ink);
 }
 
 .mini-dot {
@@ -1119,14 +1552,13 @@ input::placeholder {
   width: 28px;
   height: 28px;
   flex: none;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 50%;
-  background: #fff;
+  background: var(--paper);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-glyph);
-  font-size: 18px;
+  font-size: 20px;
   line-height: 1;
 }
 
@@ -1151,7 +1583,7 @@ input::placeholder {
 
 .dashed-list > div {
   padding: 14px 0;
-  border-bottom: 2px dashed var(--line);
+  border-bottom: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -1172,15 +1604,16 @@ input::placeholder {
 .game-card {
   position: relative;
   min-width: 0;
-  text-align: left;
-  padding: clamp(10px, 3vw, 18px);
-  border: 3px solid var(--ink);
-  border-radius: clamp(18px, 4vw, 24px);
-  background: #fff;
-  box-shadow: 0 4px 0 var(--ink);
+  text-align: center;
+  padding: clamp(10px, 3vw, 16px) clamp(10px, 3vw, 16px) clamp(14px, 3.6vw, 20px);
+  border: 1px solid var(--frame);
+  border-radius: 50% 50% 14px 14px / 120px 120px 14px 14px; /* ซุ้มโค้งแบบเวที */
+  background: var(--paper);
+  box-shadow: var(--lift);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
   font-family: var(--font-body);
   transition:
     translate 0.35s var(--bounce),
@@ -1189,32 +1622,38 @@ input::placeholder {
 }
 
 .game-card:hover:not(:disabled) {
-  translate: 0 -2px;
+  translate: 0 -4px;
+  border-color: var(--gold);
+  box-shadow: 0 18px 34px rgba(30, 42, 107, 0.2);
 }
 
 .game-card.picked {
-  background: var(--picked);
-  box-shadow: 0 7px 0 var(--ink);
+  border-color: var(--gold);
+  box-shadow:
+    0 0 0 3px rgba(201, 164, 92, 0.35),
+    var(--lift);
   translate: 0 -3px;
 }
 
+/* รูปเกมในซุ้มโค้ง: ตัวหมากสีงาช้างบนฟ้ากลางคืน สีประจำเกม (games.ts) เป็นแสงเรืองหลังตัวหมาก */
 .game-art {
-  height: clamp(76px, 22vw, 110px);
-  border: 2.5px solid var(--ink);
-  border-radius: 16px;
+  background:
+    radial-gradient(closest-side at 50% 58%, color-mix(in srgb, var(--game, #fff) 60%, transparent), transparent),
+    linear-gradient(180deg, #151d52 0%, var(--night-1) 35%, var(--night-2) 100%);
+  align-self: stretch;
+  height: clamp(96px, 28vw, 150px);
+  border-radius: 50% 50% 8px 8px / 90px 90px 8px 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-glyph);
-  font-size: clamp(46px, 14vw, 72px);
+  font-size: clamp(64px, 19vw, 108px);
   line-height: 1;
-  color: #fff;
-  -webkit-text-stroke: 2.5px var(--ink);
+  color: var(--ink);
 }
 
 .game-name {
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: clamp(17px, 4.5vw, 21px);
 }
 
@@ -1238,9 +1677,9 @@ input::placeholder {
 .tc {
   min-height: 44px;
   padding: 10px 4px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 14px;
-  background: #fff;
+  background: var(--paper);
   font-family: var(--font-body);
   display: flex;
   flex-direction: column;
@@ -1249,7 +1688,9 @@ input::placeholder {
 }
 
 .tc[aria-pressed='true'] {
-  background: var(--butter);
+  border-color: var(--pill);
+  background: var(--pill);
+  color: var(--cream);
 }
 
 .tc b {
@@ -1266,7 +1707,7 @@ input::placeholder {
   position: fixed;
   inset: 0;
   z-index: 20;
-  background: rgba(59, 47, 74, 0.45);
+  background: rgba(30, 32, 50, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1275,18 +1716,22 @@ input::placeholder {
   animation: fade 0.25s ease both;
 }
 
+/* ป็อปอัปเป็นกระดาษงาช้างมีกรอบทองสองชั้น */
 .dialog {
   width: 100%;
   max-width: 460px;
-  background: #fff;
-  border: 3px solid var(--ink);
-  border-radius: 24px;
-  box-shadow: 0 8px 0 var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--gold);
+  border-radius: 18px;
+  box-shadow:
+    0 0 0 5px var(--paper),
+    0 0 0 6px var(--gold),
+    0 30px 60px rgba(0, 0, 0, 0.3);
   padding: clamp(16px, 4.5vw, 22px);
   display: flex;
   flex-direction: column;
   gap: 12px;
-  animation: pop 0.45s var(--bounce) both;
+  animation: dialogIn 0.4s var(--ease-out) both;
 }
 
 .dialog.narrow {
@@ -1297,7 +1742,7 @@ input::placeholder {
 
 .dialog-title {
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 21px;
 }
 
@@ -1305,9 +1750,10 @@ input::placeholder {
   width: 44px;
   height: 44px;
   flex: none;
-  border: 2.5px solid var(--ink);
-  border-radius: 12px;
-  background: #fff;
+  border: none;
+  border-radius: 50%;
+  background: var(--pill);
+  color: var(--cream);
   font-size: 15px;
   padding: 0;
 }
@@ -1322,9 +1768,9 @@ input::placeholder {
 .promo {
   min-height: 44px;
   padding: 8px 4px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
-  background: #fff;
+  background: var(--paper);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1344,8 +1790,8 @@ input::placeholder {
 
 .result-medal {
   width: 96px;
-  height: 96px;
-  font-size: 58px;
+  height: 116px;
+  font-size: 68px;
   margin: 0;
 }
 
@@ -1384,7 +1830,7 @@ input::placeholder {
 .count-chip {
   align-self: flex-start;
   padding: 4px 12px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
   background: var(--butter);
   font-family: var(--font-head);
@@ -1397,14 +1843,15 @@ input::placeholder {
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 18px;
-  background: #fff;
+  background: var(--paper);
   transition: background-color 0.25s ease;
 }
 
 .clock-row.running {
-  background: var(--butter);
+  border-color: var(--gold);
+  background: linear-gradient(90deg, rgba(201, 164, 92, 0.32), rgba(201, 164, 92, 0.06)), var(--paper);
 }
 
 .clock-player {
@@ -1440,23 +1887,24 @@ input::placeholder {
   font-size: clamp(19px, 5.5vw, 24px);
   font-variant-numeric: tabular-nums;
   padding: 2px 10px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 12px;
-  background: #fff;
+  background: var(--paper);
 }
 
 .clock-time.low {
   color: var(--error);
 }
 
+/* กรอบกระดานเป็นเส้นทองสองชั้นบนกระดาษงาช้าง เหมือนกรอบรูปบนเวที */
 .board {
   position: relative;
   width: 100%;
   aspect-ratio: 1;
-  border: 4px solid var(--ink);
-  border-radius: 20px;
-  box-shadow: 0 7px 0 var(--ink);
-  background: #fff;
+  border: 6px double var(--gold);
+  border-radius: 10px;
+  box-shadow: 0 18px 40px rgba(20, 25, 70, 0.3);
+  background: var(--paper);
   container-type: inline-size;
 }
 
@@ -1464,7 +1912,7 @@ input::placeholder {
 .board-clip {
   width: 100%;
   height: 100%;
-  border-radius: 15px;
+  border-radius: 4px;
   overflow: hidden;
 }
 
@@ -1476,7 +1924,7 @@ input::placeholder {
 }
 
 .piece.land {
-  animation: land 0.55s var(--bounce);
+  animation: land 0.38s var(--ease-out);
   transform-origin: center;
 }
 
@@ -1494,7 +1942,7 @@ input::placeholder {
 .fx-flash {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.85), rgba(255, 143, 177, 0.55) 60%, transparent 100%);
+  background: radial-gradient(circle at 50% 50%, rgba(255, 251, 232, 0.85), rgba(169, 179, 230, 0.5) 60%, transparent 100%);
   opacity: 0;
   animation: fxFlash 0.7s ease-out both;
 }
@@ -1578,10 +2026,11 @@ input::placeholder {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: radial-gradient(circle, #fff 0 30%, rgba(255, 220, 133, 0.9) 45%, rgba(255, 92, 141, 0.6) 62%, transparent 70%);
+  background: radial-gradient(circle, #fffbe8 0 30%, rgba(242, 207, 110, 0.9) 45%, rgba(169, 179, 230, 0.6) 62%, transparent 70%);
   box-shadow:
-    0 0 0 4px var(--ink),
-    0 0 0 10px #fff;
+    0 0 0 3px var(--gold),
+    0 0 0 8px rgba(255, 246, 220, 0.85),
+    0 0 30px rgba(255, 216, 107, 0.8);
   animation: fxImpact 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) both;
 }
 
@@ -1659,9 +2108,13 @@ input::placeholder {
 }
 
 .room-code.huge {
-  font-size: clamp(24px, 7vw, 34px);
-  letter-spacing: 3px;
+  font-weight: 700;
+  font-size: clamp(28px, 8vw, 40px);
+  letter-spacing: 6px;
   text-align: center;
+  padding: 2px 18px;
+  border-top: 1px solid var(--gold);
+  border-bottom: 1px solid var(--gold);
 }
 
 .waiting {
@@ -1686,7 +2139,7 @@ input::placeholder {
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  animation: msg 0.45s var(--bounce) both;
+  animation: msg 0.35s var(--ease-out) both;
 }
 
 .chat-list li.mine {
@@ -1700,7 +2153,7 @@ input::placeholder {
 
 .chat-text {
   padding: 8px 12px;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
   background: #e8faf2;
   font-size: 15px;
@@ -1709,7 +2162,7 @@ input::placeholder {
 }
 
 .chat-list li.mine .chat-text {
-  background: #ffe8ef;
+  background: #e6e8f7;
 }
 
 .chat-actions {
@@ -1746,10 +2199,10 @@ input::placeholder {
   translate: -50% 0;
   z-index: 30;
   padding: 10px 16px;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 4px 0 var(--ink);
+  background: var(--paper);
+  box-shadow: 0 4px 12px rgba(30, 42, 107, 0.14);
   font-weight: 600;
   animation: pop 0.3s var(--bounce) both;
 }
@@ -1767,7 +2220,7 @@ input::placeholder {
   width: clamp(92px, 26vw, 120px);
   height: clamp(92px, 26vw, 120px);
   border-width: 3.5px;
-  box-shadow: 0 5px 0 var(--ink);
+  box-shadow: 0 5px 15px rgba(30, 42, 107, 0.14);
 }
 
 .profile-fields {
@@ -1781,18 +2234,15 @@ input::placeholder {
 .avatar-choice {
   width: 48px;
   height: 48px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--gold);
   border-radius: 50%;
-  font-family: var(--font-glyph);
-  font-size: 28px;
+  font-size: 34px;
   line-height: 1;
-  color: #fff;
-  -webkit-text-stroke: 1.5px var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  transition: translate 0.35s var(--bounce);
+  transition: translate 0.25s var(--ease-out);
 }
 
 .avatar-choice:hover:not(:disabled) {
@@ -1808,17 +2258,27 @@ input::placeholder {
 .slot {
   position: relative;
   padding: 10px;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 4px 0 var(--ink);
+  background: var(--paper);
+  box-shadow: 0 4px 12px rgba(30, 42, 107, 0.14);
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
+/* ข้อคิดของนิทานที่เป็นชื่อชุดหมากรุก */
+.set-tale {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-head);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--gold-ink);
+}
+
 .slot.editing {
-  background: #ffe8ef;
+  background: linear-gradient(180deg, rgba(201, 164, 92, 0.22), rgba(201, 164, 92, 0.05)), var(--paper);
   box-shadow: var(--ring);
 }
 
@@ -1835,7 +2295,7 @@ input::placeholder {
 
 .slot-add {
   min-height: 180px;
-  border: 3px dashed var(--ink);
+  border: 1px dashed var(--frame);
   border-radius: 20px;
   background: transparent;
   font-family: var(--font-head);
@@ -1848,7 +2308,7 @@ input::placeholder {
 }
 
 .slot-add:hover {
-  background: #fff;
+  background: var(--paper);
 }
 
 .catalog {
@@ -1859,9 +2319,9 @@ input::placeholder {
 
 .catalog-item {
   padding: 8px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 18px;
-  background: #fff;
+  background: var(--paper);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1871,12 +2331,13 @@ input::placeholder {
 }
 
 .catalog-item:hover {
-  translate: 0 -2px;
+  translate: 0 -1px;
+  border-color: var(--gold);
 }
 
 .catalog-item[aria-pressed='true'] {
   background: var(--picked);
-  box-shadow: 0 4px 0 var(--ink);
+  box-shadow: 0 4px 12px rgba(30, 42, 107, 0.14);
 }
 
 .fx-row {
@@ -1884,7 +2345,7 @@ input::placeholder {
   flex-direction: column;
   gap: 10px;
   padding: 14px 0;
-  border-top: 2px dashed var(--line);
+  border-top: 1px solid var(--line);
 }
 
 .fx-options {
@@ -1898,10 +2359,10 @@ input::placeholder {
   overflow: hidden;
   min-height: 78px;
   padding: 10px 6px 8px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 3px 0 var(--ink);
+  background: var(--paper);
+  box-shadow: 0 3px 9px rgba(30, 42, 107, 0.14);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1922,7 +2383,7 @@ input::placeholder {
   font-family: var(--font-glyph);
   font-size: 26px;
   line-height: 1;
-  -webkit-text-stroke: 1.5px var(--ink);
+  text-shadow: 0 0 6px rgba(255, 216, 107, 0.55); /* ไอคอนสีทึบมีแสงทองจาง ๆ ไม่มีเส้นขอบหนา */
 }
 
 /* ---------- โยนเหรียญหาคนเริ่มก่อน ---------- */
@@ -1930,7 +2391,7 @@ input::placeholder {
 /* พื้นทึบ: กระดานข้างหลังบอกผลอยู่แล้ว (ด้านที่นั่ง แถบตาเดิน) จึงต้องบังไว้จนเหรียญหยุด */
 .overlay.toss {
   cursor: pointer;
-  background: var(--cream);
+  background: linear-gradient(180deg, #151d52 0%, var(--night-1) 30%, var(--night-2) 75%, #8493dc 100%);
 }
 
 .toss-box {
@@ -1938,18 +2399,21 @@ input::placeholder {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 20px 28px 16px;
-  background: #fff;
-  border: 3px solid var(--ink);
-  border-radius: 24px;
-  box-shadow: 0 8px 0 var(--ink);
+  padding: 22px 30px 16px;
+  background: var(--paper);
+  border: 1px solid var(--gold);
+  border-radius: 18px;
+  box-shadow:
+    0 0 0 5px var(--paper),
+    0 0 0 6px var(--gold),
+    0 30px 60px rgba(0, 0, 0, 0.35);
   text-align: center;
-  animation: pop 0.4s var(--bounce) both;
+  animation: dialogIn 0.45s var(--ease-out) both;
 }
 
 .toss-title {
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 18px;
 }
 
@@ -1992,21 +2456,33 @@ input::placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 3px solid var(--ink);
+  /* เหรียญทอง: ขอบนูนสองชั้นและเงาไล่สีเหมือนโลหะ */
+  border: 1px solid #8a6a2a;
   border-radius: 50%;
-  box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.55), inset 0 0 0 8.5px var(--ink);
+  box-shadow:
+    inset 0 0 0 5px rgba(255, 246, 220, 0.55),
+    inset 0 0 0 6.5px #a8823a,
+    inset 0 -10px 18px rgba(138, 90, 30, 0.35);
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 24px;
+  color: #4a3212;
   backface-visibility: hidden;
 }
 
 .coin-face.front {
-  background: var(--butter);
+  background: radial-gradient(circle at 35% 28%, #fff3c4, #e9c46e 55%, #c9973a 100%);
 }
 
+/* อีกด้านเป็นเหรียญเงินอมฟ้า ให้แยกสองฝั่งออกจากกันได้ */
 .coin-face.back {
-  background: var(--lavender);
+  background: radial-gradient(circle at 35% 28%, #ffffff, #cfd6f2 55%, #8f9ccf 100%);
+  border-color: #5a6396;
+  box-shadow:
+    inset 0 0 0 5px rgba(255, 255, 255, 0.6),
+    inset 0 0 0 6.5px #7a86bd,
+    inset 0 -10px 18px rgba(60, 70, 130, 0.35);
+  color: #1e2a6b;
   transform: rotateX(180deg);
 }
 
@@ -2018,7 +2494,7 @@ input::placeholder {
   height: 14px;
   margin-left: -48px;
   border-radius: 50%;
-  background: rgba(59, 47, 74, 0.28);
+  background: rgba(30, 42, 107, 0.25);
   animation: coinShadow 2.4s both;
 }
 
@@ -2152,7 +2628,7 @@ input::placeholder {
 .role-pill {
   display: inline-block;
   padding: 4px 12px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
   font-family: var(--font-head);
   font-weight: 600;
@@ -2165,7 +2641,7 @@ input::placeholder {
   gap: 12px;
   min-height: 44px;
   padding: 8px 12px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
   background: var(--cream);
   color: var(--ink);
@@ -2183,7 +2659,7 @@ a.link-card:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 50%;
   font-family: var(--font-head);
   font-weight: 600;
@@ -2224,9 +2700,9 @@ a.link-card:hover {
   aspect-ratio: 3 / 4;
   padding: 0;
   overflow: hidden;
-  border: 3px solid var(--ink);
-  border-radius: 16px;
-  box-shadow: 0 4px 0 var(--ink);
+  border: 1px solid var(--frame);
+  border-radius: 50% 50% 12px 12px / 34% 34% 12px 12px; /* ซุ้มโค้ง */
+  box-shadow: var(--lift);
   color: var(--ink);
   font-family: var(--font-body);
   cursor: pointer;
@@ -2241,30 +2717,37 @@ a.link-card:hover {
 
 .oc-card.on {
   transform: translateY(-4px);
+  border-color: var(--gold);
   box-shadow:
-    0 0 0 3px #fff,
-    0 0 0 6px var(--pink-strong),
-    0 9px 0 6px var(--ink);
+    0 0 0 3px var(--paper),
+    0 0 0 4px var(--gold),
+    0 12px 26px rgba(30, 42, 107, 0.25);
 }
 
+/* สีประจำตัวละครเป็นวงแสงนุ่มหลังตัวอักษรหรือรูป */
 .oc-card-slash {
   position: absolute;
-  inset: 0;
-  clip-path: polygon(60% 0, 100% 0, 40% 100%, 0 100%);
+  left: 50%;
+  top: 36%;
+  width: 78%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  opacity: 0.5;
+  filter: blur(6px);
 }
 
 .oc-card-initial {
   position: absolute;
   left: 0;
   right: 0;
-  top: 8%;
+  top: 20%;
   text-align: center;
   font-family: var(--font-head);
-  font-weight: 600;
-  font-size: 46px;
+  font-weight: 700;
+  font-size: 38px;
   line-height: 1;
-  color: #fff;
-  -webkit-text-stroke: 2px var(--ink);
+  color: var(--ink);
 }
 
 .oc-card-face {
@@ -2278,10 +2761,10 @@ a.link-card:hover {
 
 .oc-card-no {
   position: absolute;
-  top: 5px;
+  top: 26%;
   left: 7px;
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 12px;
 }
 
@@ -2291,8 +2774,8 @@ a.link-card:hover {
   right: 0;
   bottom: 0;
   padding: 5px 4px;
-  background: var(--ink);
-  color: #fff;
+  background: var(--pill);
+  color: var(--cream);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2315,13 +2798,13 @@ a.link-card:hover {
 
 .oc-card-p1 {
   position: absolute;
-  top: 4px;
+  top: 24%;
   right: 4px;
   padding: 1px 7px;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--gold);
   border-radius: 999px;
-  background: var(--pink-strong);
-  color: #fff;
+  background: var(--pill);
+  color: #ffe9a8;
   font-family: var(--font-head);
   font-weight: 600;
   font-size: 12px;
@@ -2335,62 +2818,74 @@ a.link-card:hover {
   gap: 14px;
 }
 
+/* เวทีของตัวละคร: กรอบซุ้มโค้งอยู่ช่วงล่าง ภาพตัวละครสูงกว่ากรอบ จึงล้นออกนอกกรอบด้านบน */
 .oc-stage {
   position: relative;
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  min-height: 300px;
-  overflow: hidden;
-  border: 3.5px solid var(--ink);
-  border-radius: 26px;
-  box-shadow: 0 7px 0 var(--ink);
+  width: min(100%, 620px);
+  margin-inline: auto;
+  aspect-ratio: 4 / 3.4;
+  min-height: 340px;
+  margin-top: 28px; /* เผื่อที่ให้ภาพตัวละครที่ล้นขึ้นไปเหนือเวที */
+  isolation: isolate;
 }
 
-.oc-slash {
+.oc-frame {
   position: absolute;
-  inset: 0;
+  z-index: -1;
+  left: 4%;
+  right: 4%;
+  top: 22%;
+  bottom: 0;
+  border: 1px solid var(--gold);
+  border-radius: 50% 50% 16px 16px / 34% 34% 16px 16px;
+  box-shadow:
+    0 0 0 5px var(--paper),
+    0 0 0 6px var(--gold),
+    0 20px 44px rgba(20, 25, 70, 0.3);
 }
 
-.oc-slash.a {
-  background: var(--oc);
-  clip-path: polygon(56% 0, 90% 0, 44% 100%, 10% 100%);
-}
-
-.oc-slash.b {
-  background: var(--ink);
-  clip-path: polygon(92% 0, 95% 0, 49% 100%, 46% 100%);
-}
-
-.oc-slash.c {
-  background: #fff;
-  clip-path: polygon(97% 0, 100% 0, 54% 100%, 51% 100%);
+/* สีประจำตัวละครเป็นแสงเรืองหลังตัวละคร */
+.oc-frame::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  width: 70%;
+  height: 70%;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--oc), transparent);
+  opacity: 0.55;
 }
 
 .oc-stage-no {
   position: absolute;
-  top: 14px;
-  left: 18px;
+  z-index: 1;
+  top: 32%;
+  left: 11%;
   font-family: var(--font-head);
-  font-weight: 600;
-  font-size: clamp(44px, 10vw, 96px);
+  font-weight: 700;
+  font-size: clamp(36px, 8vw, 72px);
   line-height: 1;
   color: transparent;
-  -webkit-text-stroke: 2.5px var(--ink);
-  opacity: 0.35;
+  -webkit-text-stroke: 1.5px #ffe9a8;
+  opacity: 0.7;
   pointer-events: none;
 }
 
-/* ภาพตัวละครสไลด์เข้าจากขวา */
+/* ภาพตัวละครใหญ่เต็มความสูงเวที ยืนบนพื้นของกรอบ ส่วนหัวโผล่พ้นซุ้มขึ้นไป */
 .oc-art {
   position: absolute;
-  top: 0;
-  right: 0;
+  z-index: 1;
+  top: -6%;
   bottom: 0;
-  width: 72%;
+  left: 50%;
+  width: 82%;
+  translate: -50% 0;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  animation: ocArt 0.45s var(--bounce) both;
+  animation: ocArt 0.6s var(--ease-out) both;
 }
 
 .oc-art img {
@@ -2398,31 +2893,33 @@ a.link-card:hover {
   height: 100%;
   object-fit: contain;
   object-position: bottom center;
+  filter: drop-shadow(0 14px 22px rgba(10, 14, 50, 0.45));
 }
 
 .oc-art-initial {
   align-self: center;
   font-family: var(--font-head);
-  font-weight: 600;
-  font-size: clamp(120px, 28vw, 240px);
+  font-weight: 700;
+  font-size: clamp(140px, 32vw, 300px);
   line-height: 1;
-  color: #fff;
-  -webkit-text-stroke: 4px var(--ink);
-  opacity: 0.9;
+  color: var(--cream);
+  filter: drop-shadow(0 14px 22px rgba(10, 14, 50, 0.45));
 }
 
 /* ป้ายชื่อเอียงพุ่งเข้าจากซ้าย */
 .oc-plate {
   position: absolute;
-  left: -10px;
+  z-index: 2;
+  left: -6px;
   bottom: 22px;
   max-width: 78%;
   padding: 10px 24px 10px 30px;
-  background: var(--ink);
+  border: 1px solid var(--gold);
+  background: var(--pill);
   transform: skewX(-14deg);
   box-shadow: 6px 6px 0 var(--oc);
   pointer-events: none;
-  animation: ocPlate 0.4s var(--bounce) 0.08s both;
+  animation: ocPlate 0.5s var(--ease-out) 0.12s both;
 }
 
 .oc-plate > div {
@@ -2442,10 +2939,10 @@ a.link-card:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: clamp(26px, 5vw, 44px);
-  line-height: 1.1;
-  color: #fff;
+  line-height: 1.25;
+  color: var(--cream);
 }
 
 .oc-links {
@@ -2501,10 +2998,10 @@ a.link-card:hover {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   padding: 6px;
-  border: 3px solid var(--ink);
-  border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 5px 0 var(--ink);
+  border: 1px solid var(--frame);
+  border-radius: 999px;
+  background: var(--paper);
+  box-shadow: var(--lift);
 }
 
 .admin-tab {
@@ -2515,11 +3012,11 @@ a.link-card:hover {
   gap: 8px;
   min-height: 48px;
   padding: 6px 8px;
-  border: 2.5px solid transparent;
-  border-radius: 14px;
+  border: none;
+  border-radius: 999px;
   background: transparent;
   font-family: var(--font-head);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 16px;
   color: var(--ink);
   cursor: pointer;
@@ -2530,16 +3027,17 @@ a.link-card:hover {
 }
 
 .admin-tab[aria-selected='true'] {
-  border-color: var(--ink);
-  background: var(--butter);
+  background: var(--pill);
+  color: var(--cream);
 }
 
 .admin-tab-count {
   min-width: 26px;
   padding: 1px 7px;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
-  background: #fff;
+  background: var(--paper);
+  color: var(--ink);
   font-family: var(--font-body);
   font-weight: 700;
   font-size: 13px;
@@ -2552,7 +3050,7 @@ a.link-card:hover {
   right: 7px;
   width: 12px;
   height: 12px;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 50%;
   background: var(--pink-strong);
 }
@@ -2573,15 +3071,15 @@ a.link-card:hover {
 
 /* การ์ดของหนึ่งรายการ */
 .admin-row {
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 18px;
-  background: #fff;
-  box-shadow: 0 3px 0 var(--ink);
+  background: var(--paper);
+  box-shadow: 0 3px 9px rgba(30, 42, 107, 0.14);
   overflow: hidden;
 }
 
 .admin-row.open {
-  box-shadow: 0 5px 0 var(--ink);
+  box-shadow: 0 5px 15px rgba(30, 42, 107, 0.14);
 }
 
 /* รายการที่พิมพ์ไว้แต่ยังไม่ได้บันทึก */
@@ -2598,7 +3096,7 @@ a.link-card:hover {
 }
 
 .admin-row.open > .admin-row-head {
-  border-bottom: 2.5px dashed var(--ink);
+  border-bottom: 1px solid var(--line);
   background: var(--cream);
 }
 
@@ -2655,7 +3153,7 @@ a.link-card:hover {
   flex: none;
   width: 40px;
   height: 40px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 12px;
 }
 
@@ -2667,7 +3165,7 @@ a.link-card:hover {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 10px;
   font-family: var(--font-head);
   font-weight: 600;
@@ -2734,7 +3232,7 @@ a.link-card:hover {
   align-items: center;
   gap: 8px;
   padding-top: 10px;
-  border-top: 2px dashed rgba(59, 47, 74, 0.35);
+  border-top: 1px solid var(--line);
 }
 
 .save-line .error {
@@ -2749,9 +3247,9 @@ a.link-card:hover {
   width: 100%;
   height: 48px;
   padding: 3px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 14px;
-  background: #fff;
+  background: var(--paper);
   cursor: pointer;
 }
 
@@ -2775,9 +3273,9 @@ a.link-card:hover {
   gap: 8px;
   min-height: 44px;
   padding: 6px 14px 6px 10px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
-  background: #fff;
+  background: var(--paper);
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
@@ -2807,13 +3305,12 @@ a.link-card:hover {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 14px;
   font-family: var(--font-head);
   font-weight: 600;
   font-size: 48px;
-  color: #fff;
-  -webkit-text-stroke: 2px var(--ink);
+  color: var(--ink);
 }
 
 .oc-image-preview img {
@@ -2832,10 +3329,10 @@ a.link-card:hover {
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 18px;
-  background: #fff;
-  box-shadow: 0 5px 0 var(--ink);
+  background: var(--paper);
+  box-shadow: 0 5px 15px rgba(30, 42, 107, 0.14);
 }
 
 .admin-bar-status {
@@ -2920,36 +3417,48 @@ a.link-card:hover {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   gap: 10px;
-  align-items: center;
+  align-items: stretch;
 }
 
 .lobby-vs {
+  align-self: center;
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 20px;
-  opacity: 0.55;
+  color: var(--gold);
 }
 
+/* ที่นั่งเป็นซุ้มโค้งบนเวทีกลางคืน คนที่พร้อมแล้วมีแสงทองล้อมรอบ */
 .lobby-seat {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   min-width: 0;
-  padding: 14px 8px;
-  border: 2.5px solid var(--ink);
-  border-radius: 18px;
-  background: #fff;
-  transition: background-color 0.25s ease;
+  padding: 22px 8px 14px;
+  border: 1px solid rgba(255, 236, 180, 0.55);
+  border-radius: 50% 50% 14px 14px / 90px 90px 14px 14px;
+  background: linear-gradient(170deg, var(--night-1) 0%, var(--night-2) 65%, var(--night-3) 100%);
+  color: var(--cream);
+  transition:
+    box-shadow 0.3s ease,
+    opacity 0.3s ease;
+}
+
+.lobby-seat .avatar,
+.lobby-seat img {
+  box-shadow: 0 0 22px rgba(255, 226, 140, 0.55);
 }
 
 .lobby-seat.ready {
-  background: var(--mint);
+  border-color: var(--gold);
+  animation: goldBreath 1.8s ease-in-out infinite alternate;
 }
 
 .lobby-seat.empty {
-  border-style: dashed;
+  border: 1px dashed var(--frame);
   background: transparent;
+  color: var(--muted);
 }
 
 .lobby-seat.away {
@@ -2959,7 +3468,7 @@ a.link-card:hover {
 .lobby-seat-empty {
   width: 56px;
   height: 56px;
-  border: 2.5px dashed var(--ink);
+  border: 1px dashed var(--muted);
   border-radius: 50%;
   opacity: 0.5;
 }
@@ -2971,8 +3480,46 @@ a.link-card:hover {
   white-space: nowrap;
 }
 
+.lobby-seat-status {
+  color: var(--ink);
+}
+
+/* ป้ายเจ้าของห้อง: ตัวเล็กสีทองใต้ชื่อ */
+.lobby-seat-host {
+  margin-top: -6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #ffe9a8;
+}
+
+/* ปุ่มเชิญออก: ตัวหนังสือขีดเส้นใต้ เบากว่าปุ่มหลัก เพราะไม่ใช่สิ่งที่กดบ่อย */
+.lobby-kick {
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 0;
+  background: none;
+  color: var(--cream);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  opacity: 0.8;
+  cursor: pointer;
+}
+
+.lobby-kick:hover,
+.lobby-kick:focus-visible {
+  opacity: 1;
+  color: #ffe9a8;
+}
+
+
+
 .lobby-seat.ready .lobby-seat-status {
-  background: #fff;
+  border-color: var(--gold);
+  background: var(--pill);
+  color: #ffe9a8;
 }
 
 .lobby-hint {
@@ -2994,8 +3541,7 @@ a.link-card:hover {
   min-width: 1ch;
   font-size: 64px;
   line-height: 1;
-  color: var(--pink-strong);
-  -webkit-text-stroke: 2.5px var(--ink);
+  color: var(--gold-ink);
   animation: pop 0.35s var(--bounce) both;
 }
 
@@ -3026,6 +3572,20 @@ a.link-card:hover {
  */
 body:has(.game.stack) .topbar {
   display: none;
+}
+
+/* ระหว่างเล่นไม่มีแถบบน จึงไม่ใช้แถบฉากฟ้าด้านบน แต่ใช้ฉากกลางคืนเต็มหน้าแทน */
+body:has(.game.stack)::before {
+  display: none;
+}
+
+/* ระหว่างเล่น ทั้งหน้าเป็นเวทีกลางคืน กระดานกรอบทองวางอยู่กลางเวที */
+body:has(.game.stack) {
+  background: linear-gradient(170deg, var(--night-1) 0%, var(--night-2) 45%, var(--night-3) 80%, #cfd3ee 100%) fixed;
+}
+
+body:has(.game.stack) .room-bar .game-status {
+  color: var(--cream);
 }
 
 .app:has(.game.stack) {
@@ -3125,9 +3685,9 @@ html:has(.game.stack) {
   gap: 6px;
   min-height: 44px;
   padding: 0 12px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
-  background: #fff;
+  background: var(--paper);
   cursor: pointer;
   list-style: none;
 }
@@ -3148,8 +3708,8 @@ html:has(.game.stack) {
 .room-caret {
   width: 8px;
   height: 8px;
-  border-right: 2.5px solid var(--ink);
-  border-bottom: 2.5px solid var(--ink);
+  border-right: 1px solid var(--frame);
+  border-bottom: 1px solid var(--frame);
   transform: translateY(-2px) rotate(45deg);
   transition: transform 0.2s ease;
 }
@@ -3169,10 +3729,10 @@ html:has(.game.stack) {
   flex-direction: column;
   gap: 10px;
   padding: 14px;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 6px 0 var(--ink);
+  background: var(--paper);
+  box-shadow: 0 6px 18px rgba(30, 42, 107, 0.14);
 }
 
 .room-pop .set-details {
@@ -3197,7 +3757,7 @@ html:has(.game.stack) {
 }
 
 .set-details {
-  border-top: 2px dashed rgba(59, 47, 74, 0.35);
+  border-top: 1px solid var(--line);
   padding-top: 8px;
 }
 
@@ -3271,7 +3831,7 @@ html:has(.game.stack) {
   display: grid;
   place-items: center;
   padding: 0 3px;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
   background: var(--mint);
   color: var(--ink);
@@ -3302,10 +3862,10 @@ html:has(.game.stack) {
   align-items: flex-start;
   gap: 2px;
   padding: 8px 14px;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 6px 18px 18px 18px;
-  background: #fff;
-  box-shadow: 0 4px 0 var(--ink);
+  background: var(--paper);
+  box-shadow: 0 4px 12px rgba(30, 42, 107, 0.14);
   font-family: var(--font-body);
   text-align: left;
   cursor: pointer;
@@ -3319,9 +3879,9 @@ html:has(.game.stack) {
   top: -9px;
   width: 12px;
   height: 12px;
-  border-left: 3px solid var(--ink);
-  border-top: 3px solid var(--ink);
-  background: #fff;
+  border-left: 1px solid var(--frame);
+  border-top: 1px solid var(--frame);
+  background: var(--paper);
   transform: rotate(45deg);
 }
 
@@ -3362,7 +3922,7 @@ html:has(.game.stack) {
 }
 
 .chat-pop .chat {
-  box-shadow: 0 6px 0 var(--ink);
+  box-shadow: 0 6px 18px rgba(30, 42, 107, 0.14);
 }
 
 .chat-pop .chat-list {
@@ -3417,11 +3977,11 @@ html:has(.game.stack) {
   flex: 1;
   min-width: 0;
   padding: 6px 14px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
-  background: var(--sky);
+  background: var(--lavender);
   font-family: var(--font-head);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 15px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3436,12 +3996,9 @@ html:has(.game.stack) {
 .cb-vs {
   flex: none;
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 22px;
-  color: #fff;
-  -webkit-text-stroke: 2px var(--ink);
-  paint-order: stroke;
-  text-shadow: 0 3px 0 var(--ink);
+  color: var(--gold);
 }
 
 /* เวที: เว้นที่ด้านบนให้คนแถวหลังยืน และตัดความสูงส่วนที่กระดานเอนหายไป */
@@ -3449,12 +4006,19 @@ html:has(.game.stack) {
   /* กระดานแคบกว่าพื้นที่เล็กน้อย เพราะขอบด้านใกล้ผู้ดูจะบานออกตามมุมมอง */
   --w: calc(min(100cqw, 940px) * 0.84);
   --cell: calc(var(--w) / var(--cols));
-  perspective: 1800px;
+  /* ระยะมุมมองแปรตามความกว้างกระดาน ภาพจึงเอนเท่ากันทุกขนาดจอ และความสูงด้านล่างคำนวณได้แน่นอน */
+  perspective: calc(var(--w) * 2.28);
   perspective-origin: 50% 20%;
   width: 100%;
   padding-top: 120px;
+  /* เวทีกลางคืน: ทีมงานยืนบนกระดานกลางฉากดาว */
+  border-radius: 18px;
+  background:
+    radial-gradient(closest-side at 50% 100%, rgba(255, 220, 110, 0.55), transparent) 50% 100% / 90% 60% no-repeat,
+    linear-gradient(180deg, var(--night-1) 0%, var(--night-2) 55%, var(--night-3) 100%);
+  overflow: hidden;
   /* ความสูงที่เห็นจริงของกระดานที่เอน = ความสูง × cos(tilt) */
-  height: calc(120px + var(--cell) * var(--rows) * 0.66 + 28px);
+  height: calc(120px + var(--cell) * var(--rows) * 0.66 + 44px);
 }
 
 .cb-plane {
@@ -3468,10 +4032,11 @@ html:has(.game.stack) {
   transform-origin: 50% 0;
   transform: rotateX(var(--tilt));
   transform-style: preserve-3d;
-  border: 4px solid var(--ink);
-  border-radius: 14px;
-  background: conic-gradient(#ffe9f0 90deg, #f7a1bb 0 180deg, #ffe9f0 0 270deg, #f7a1bb 0) 0 0 / calc(200% / var(--cols)) calc(200% / var(--rows));
-  box-shadow: 0 16px 0 var(--ink);
+  border: 6px double var(--gold);
+  border-radius: 8px;
+  background: conic-gradient(#f7f1e3 90deg, #a9b3e6 0 180deg, #f7f1e3 0 270deg, #a9b3e6 0) 0 0 /
+    calc(200% / var(--cols)) calc(200% / var(--rows));
+  box-shadow: 0 20px 50px rgba(10, 14, 50, 0.45);
 }
 
 /* ตำแหน่งบนกระดาน: สองฝั่งอยู่ซ้ายกับขวา (มองจากด้านข้าง) */
@@ -3500,7 +4065,7 @@ html:has(.game.stack) {
   transform: translateX(-50%) rotateX(calc(var(--tilt) * -1));
   color: var(--ink);
   text-decoration: none;
-  animation: cbDrop 0.6s var(--bounce) both;
+  animation: cbDrop 0.7s var(--ease-out) both;
   animation-delay: calc(var(--i) * 70ms);
   transition: translate 0.3s var(--bounce);
 }
@@ -3531,17 +4096,17 @@ a.cb-card:focus-visible {
   align-items: center;
   gap: 2px;
   padding: 4px 8px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 3px 0 var(--ink);
+  background: var(--paper);
+  box-shadow: 0 3px 9px rgba(30, 42, 107, 0.14);
   line-height: 1.25;
 }
 
 .cb-name {
   max-width: 100%;
   font-family: var(--font-head);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 14px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3551,7 +4116,7 @@ a.cb-card:focus-visible {
 .cb-role {
   max-width: 100%;
   padding: 0 8px;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
@@ -3575,12 +4140,15 @@ a.cb-card:focus-visible {
   display: grid;
   place-items: center;
   overflow: hidden;
-  border: 3px solid var(--ink);
-  border-radius: 50%;
+  border: 1px solid var(--gold);
+  border-radius: 50% 50% 8px 8px / 40% 40% 8px 8px; /* ซุ้มโค้งแบบที่นั่งบนเวที */
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 26px;
-  box-shadow: 0 4px 0 var(--ink);
+  box-shadow:
+    0 0 0 2px var(--paper),
+    0 0 0 3px var(--gold),
+    0 0 18px rgba(255, 226, 140, 0.55);
 }
 
 .cb-photo img {
@@ -3633,7 +4201,8 @@ a.cb-card:focus-visible {
   .cb-stage {
     --w: calc(100cqw * 0.8);
     padding-top: 110px;
-    height: calc(110px + var(--cell) * var(--rows) * 0.72 + 28px);
+    height: calc(110px + var(--cell) * var(--rows) * 0.95 + 40px);
+    perspective: calc(var(--w) * 5.8);
     perspective-origin: 50% 0%;
   }
 
@@ -3670,7 +4239,7 @@ a.cb-card:focus-visible {
   align-items: stretch;
   gap: 6px;
   padding: 8px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
   background: var(--cream);
   text-align: center;
@@ -3686,16 +4255,17 @@ a.cb-card:focus-visible {
   display: grid;
   place-items: center;
   overflow: hidden;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 10px;
-  background: #ffe9f0;
+  background: var(--cream);
   font-family: var(--font-head);
   font-size: 26px;
   color: var(--muted);
 }
 
+/* ช่องตัวอย่างของหมากขาวใช้สีช่องเข้มของชุดตั้งต้น (ราตรีดาว) ให้เห็นว่าหมากขาวเด่นบนกระดานจริงไหม */
 .studio-preview.dark {
-  background: #f7a1bb;
+  background: #a9b3e6;
   color: #fff;
 }
 
@@ -3725,7 +4295,7 @@ a.cb-card:focus-visible {
   width: max-content;
   max-width: calc(100% - 24px);
   margin: 0;
-  box-shadow: 0 4px 0 var(--ink);
+  box-shadow: 0 4px 12px rgba(30, 42, 107, 0.14);
   pointer-events: none;
 }
 
@@ -3735,36 +4305,161 @@ a.cb-card:focus-visible {
   position: relative;
 }
 
+/* แผงข้างกระดาน: แสดงเฉพาะจอกว้าง */
+.game-side {
+  display: none;
+}
+
+/*
+ * จอกว้าง: กระดานอยู่ซ้ายและสูงเกือบเต็มจอ ส่วนแถบห้อง แถบผู้เล่น และสถานะ ย้ายไปอยู่ในแผงกระดาษด้านขวา
+ * ลำดับในแผงจากบนลงล่าง: แถบห้อง → คู่แข่ง → ตรากับสถานะ → ตัวเอง
+ * ใช้ grid จัดตำแหน่งของชิ้นเดิมทั้งหมด โครงสร้างหน้าเหมือนจอแคบ
+ */
+@media (min-width: 1100px) and (min-height: 540px) {
+  .board-col {
+    --side: 340px;
+    --board: min(calc(100dvh - 24px), calc(100vw - var(--side) - 72px));
+    width: fit-content;
+    display: grid;
+    grid-template-columns: var(--board) var(--side);
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    column-gap: 24px;
+    row-gap: 12px;
+    justify-content: center;
+    height: var(--board);
+  }
+
+  /* พื้นกระดาษกรอบทองของแผงขวา */
+  .board-col::after {
+    content: '';
+    grid-column: 2;
+    grid-row: 1 / -1;
+    z-index: 0;
+    border: 1px solid var(--gold);
+    border-radius: 18px;
+    background: var(--paper);
+    box-shadow:
+      0 0 0 5px var(--paper),
+      0 0 0 6px var(--gold),
+      0 18px 40px rgba(20, 25, 70, 0.3);
+    margin: 6px;
+  }
+
+  .board-col > .board {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    align-self: center;
+  }
+
+  .board-col > .room-bar,
+  .board-col > .clock-row,
+  .board-col > .game-side,
+  .board-col > .chat-anchor {
+    grid-column: 2;
+    z-index: 1;
+    margin-inline: 22px;
+  }
+
+  .board-col > .room-bar {
+    grid-row: 1;
+    margin-top: 22px;
+    justify-content: space-between;
+  }
+
+  /* สถานะแสดงตัวใหญ่กลางแผงแล้ว แถบสถานะเดิมจึงเหลือไว้ให้โปรแกรมอ่านหน้าจอเท่านั้น */
+  .board-col > .room-bar .game-status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* แถบผู้เล่น: คู่แข่งอยู่บน ตัวเองอยู่ล่าง */
+  .board-col > .clock-row {
+    grid-row: 2;
+  }
+
+  .board-col > .board ~ .clock-row {
+    grid-row: 4;
+    margin-bottom: 22px;
+  }
+
+  .game.stack .board-col > .clock-row {
+    padding: 8px 12px 8px 8px;
+  }
+
+  .board-col > .game-side {
+    grid-row: 3;
+    align-self: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+  }
+
+  .game-side-status {
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 26px;
+    line-height: 1.3;
+  }
+
+  .game-side-tip {
+    margin-top: 8px;
+    color: var(--muted);
+  }
+
+  /* กล่องแชทเปิดในแผงขวา ใต้แถบคู่แข่ง */
+  .board-col > .chat-anchor {
+    grid-row: 3;
+    align-self: start;
+    margin-top: 0;
+  }
+
+  /* ป้ายที่ลอยอยู่บนกระดานยึดกลางกระดาน ไม่ใช่กลางทั้งแถว */
+  .board-col > .turn-toast,
+  .board-col > .count-chip,
+  .board-col > .banner {
+    left: calc(var(--board) / 2);
+  }
+
+  .board-col > .count-chip,
+  .board-col > .banner {
+    top: 22px;
+  }
+}
+
 /* ป้ายลอยกลางกระดานชั่วครู่ ไม่บังการเล่น (กดทะลุได้) */
 .turn-toast {
   position: absolute;
   left: 50%;
-  top: 46%;
+  top: 27%; /* สูงกว่ากลางกระดาน ไม่ทับป้าย Check! ที่ขึ้นกลางกระดานพร้อมกัน */
   z-index: 12;
   padding: 10px 22px;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--gold);
   border-radius: 999px;
-  background: var(--butter);
-  box-shadow: 0 5px 0 var(--ink);
+  background: var(--pill);
+  color: #ffe9a8;
+  box-shadow: 0 10px 30px rgba(20, 25, 70, 0.35);
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: clamp(18px, 4cqw, 28px);
   white-space: nowrap;
   pointer-events: none;
-  animation: turnToast 1.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: turnToast 1.7s var(--ease-out) both;
 }
 
 @keyframes turnToast {
   0% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.4) rotate(-6deg);
+    transform: translate(-50%, -38%) scale(0.94);
   }
-  18% {
+  20% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1.08) rotate(2deg);
-  }
-  30% {
-    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+    transform: translate(-50%, -50%) scale(1);
   }
   78% {
     opacity: 1;
@@ -3776,17 +4471,17 @@ a.cb-card:focus-visible {
   }
 }
 
-/* แถบผู้เล่นของตัวเองกะพริบเป็นวงสีชมพูสามครั้งเมื่อเพิ่งถึงตา */
+/* แถบผู้เล่นของตัวเองกะพริบเป็นวงสีทองสามครั้งเมื่อเพิ่งถึงตา */
 .clock-row.turn-alert {
   animation: turnPulse 0.6s ease-out 3;
 }
 
 @keyframes turnPulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(255, 92, 141, 0.75);
+    box-shadow: 0 0 0 0 rgba(201, 164, 92, 0.85);
   }
   100% {
-    box-shadow: 0 0 0 14px rgba(255, 92, 141, 0);
+    box-shadow: 0 0 0 14px rgba(201, 164, 92, 0);
   }
 }
 
@@ -3811,7 +4506,7 @@ a.cb-card:focus-visible {
   box-sizing: content-box;
   flex: none;
   overflow: hidden;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
   /* ลายตารางให้เห็นส่วนที่โปร่งของรูป */
   background: repeating-conic-gradient(#f3e6d6 0 25%, #fff 0 50%) 0 0 / 20px 20px;
@@ -3864,7 +4559,7 @@ a.cb-card:focus-visible {
   gap: 10px;
   align-items: center;
   padding: 8px 10px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
   background: var(--cream);
 }
@@ -3888,9 +4583,9 @@ a.cb-card:focus-visible {
   gap: 4px;
   min-height: 44px;
   padding: 6px 8px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 14px;
-  background: #fff;
+  background: var(--paper);
   font-family: var(--font-body);
   font-weight: 700;
   cursor: pointer;
@@ -3900,7 +4595,8 @@ a.cb-card:focus-visible {
 }
 
 .style-option:hover {
-  translate: 0 -2px;
+  translate: 0 -1px;
+  border-color: var(--gold);
 }
 
 .style-option[aria-pressed='true'] {
@@ -3912,7 +4608,7 @@ a.cb-card:focus-visible {
 .style-pair {
   display: flex;
   overflow: hidden;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 10px;
 }
 
@@ -3940,5 +4636,411 @@ a.cb-card:focus-visible {
   .fx-impact,
   .fx-rays {
     display: none;
+  }
+}
+
+/* ---------- หน้าดูสมาชิกของผู้ดูแล ---------- */
+
+.screen.wide.members-page {
+  max-width: 1120px;
+}
+
+/* ตัวเลขสรุปด้านบน */
+.member-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.member-tile {
+  padding: 14px 16px;
+  border: 1px solid var(--frame);
+  border-radius: 16px;
+  background: var(--paper);
+}
+
+.member-tile dt {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.member-tile dd {
+  margin: 2px 0 0;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.member-tile.live {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201, 164, 92, 0.18);
+}
+
+/* ค้นหา เรียง และกลุ่ม */
+.member-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 12px 16px;
+  align-items: end;
+}
+
+.member-search,
+.member-sort {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.member-search .tiny,
+.member-sort .tiny {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.member-filters {
+  grid-column: 1 / -1;
+  gap: 8px;
+}
+
+.chip.member-chip {
+  padding: 6px 14px;
+}
+
+.member-count {
+  color: var(--muted);
+}
+
+/* รายการ: หัวคอลัมน์กับแถวใช้ตารางคอลัมน์เดียวกัน */
+.member-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.member-cols,
+.member-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.25fr) 52px minmax(0, 1.2fr) 104px 112px;
+  gap: 14px;
+  align-items: center;
+}
+
+.member-cols {
+  padding: 0 17px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+.member-cols .mnum,
+.member-cell.mnum,
+.member-table .mnum {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.member-row {
+  border: 1px solid var(--frame);
+  border-radius: 16px;
+  background: var(--paper);
+  transition: border-color 0.2s ease;
+}
+
+.member-row.open {
+  border-color: var(--gold);
+  box-shadow: var(--lift);
+}
+
+.member-head {
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 16px;
+  background: none;
+  text-align: left;
+}
+
+.member-head:hover {
+  background: var(--cream);
+}
+
+.member-row.open > .member-head {
+  border-radius: 16px 16px 0 0;
+  background: var(--cream);
+}
+
+.member-who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.member-who .avatar {
+  flex: none;
+}
+
+.member-names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.member-names > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.member-names .tiny,
+.member-now .tiny,
+.member-rate,
+.member-none,
+.member-tc,
+.member-opp-mail {
+  color: var(--muted);
+}
+
+.member-now,
+.member-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.member-cell.mnum {
+  align-items: flex-end;
+}
+
+.member-now .tiny {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ป้ายสถานะตอนนี้ */
+.member-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 3px 10px;
+  border: 1px solid var(--frame);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.member-live.is-off {
+  border-color: transparent;
+  padding-inline: 0;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.member-live.is-playing {
+  border-color: var(--pill);
+  background: var(--pill);
+  color: #ffe9a8;
+}
+
+.member-live.is-waiting {
+  border-color: var(--gold);
+  color: var(--gold-ink);
+}
+
+.member-live.is-away {
+  opacity: 0.7;
+}
+
+.member-live-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.member-live.is-playing:not(.is-away) .member-live-dot {
+  animation: memberPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes memberPulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* ชนะ แพ้ เสมอ: มีคำกำกับเสมอ ไม่ใช้สีอย่างเดียว */
+.member-record {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.member-record i {
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.member-record .win,
+.member-outcome.win {
+  color: #1f6b4a;
+}
+
+.member-record .loss,
+.member-outcome.loss {
+  color: #9a3041;
+}
+
+.member-record .draw,
+.member-outcome.draw {
+  color: var(--ink);
+}
+
+.member-outcome {
+  font-weight: 700;
+}
+
+/* ส่วนที่กางออก */
+.member-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid var(--frame);
+}
+
+.member-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px 20px;
+  margin: 0;
+}
+
+.member-facts dt {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.member-facts dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.member-sub {
+  margin: 6px 0 0;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.member-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--frame);
+  border-radius: 12px;
+}
+
+.member-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.member-table th,
+.member-table td {
+  padding: 8px 12px;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--frame);
+}
+
+.member-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.member-table thead th {
+  background: var(--cream);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.member-table tbody th {
+  font-weight: 600;
+}
+
+.member-opp {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.member-foot {
+  color: var(--muted);
+}
+
+/* จอแคบ: แถวกลายเป็นการ์ด ตัวเลขมีคำกำกับของตัวเอง */
+@media (max-width: 900px) {
+  .member-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .member-tools {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .member-cols {
+    display: none;
+  }
+
+  .member-head {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 14px;
+    align-items: start;
+    padding: 12px 14px;
+  }
+
+  .member-who,
+  .member-now {
+    grid-column: 1 / -1;
+  }
+
+  .member-cell,
+  .member-cell.mnum {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .member-cell::before {
+    content: attr(data-label);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .member-body {
+    padding: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .member-live-dot {
+    animation: none !important;
   }
 }

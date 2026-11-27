@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { gameName, isGameId, PLAYABLE } from '../lib/games'
-import { BADGE, FLIPPED, GLYPH, useSetPrefs, VS } from '../lib/pieceSets'
+import { pieceSvg, useSetPrefs } from '../lib/pieceSets'
 import type { GameId } from '../lib/protocol'
 import { reach, RULES } from '../lib/rules'
 
@@ -8,7 +8,8 @@ interface Props {
   navigate: (to: string) => void
 }
 
-const BASIC_BG = ['#FFE8EF', '#E8FAF2', '#F1EDFF']
+// พื้นการ์ดกติกาพื้นฐานเป็นสีจางโทนนิทาน: ทอง ฟ้าคราม มรกต
+const BASIC_BG = ['#F6EAC8', '#E6E8F7', '#E3EEE6']
 
 export function RulesPage({ navigate }: Props) {
   const { set } = useSetPrefs()
@@ -60,11 +61,7 @@ export function RulesPage({ navigate }: Props) {
                 const mark = reach(p.kind, r - 2, c - 2, game)
                 return (
                   <div key={i} style={{ background: (r + c) % 2 ? set.dark : set.light, color: set.w }}>
-                    {i === 12 && (
-                      <span style={FLIPPED[p.kind] ? { transform: 'rotate(180deg)' } : undefined}>
-                        {GLYPH[p.kind] + VS}
-                      </span>
-                    )}
+                    {i === 12 && pieceSvg(set, 'w', p.kind, { badge: false, className: 'mini-piece' })}
                     {mark === 'dot' && <span className="mini-dot" />}
                     {mark === 'ring' && <span className="mini-ring" />}
                   </div>
@@ -74,7 +71,7 @@ export function RulesPage({ navigate }: Props) {
             <div className="stack" style={{ gap: 6, minWidth: 0 }}>
               <div className="row">
                 <span className="badge-icon" aria-hidden="true">
-                  {BADGE[p.kind] + VS}
+                  {pieceSvg(set, 'b', p.kind, { badge: false, className: 'piece-icon' })}
                 </span>
                 <h3 className="card-title" style={{ fontWeight: 600 }}>
                   {p.name}
@@ -100,7 +97,7 @@ export function RulesPage({ navigate }: Props) {
                       key={`${r}-${c}`}
                       style={{ background: (r + c) % 2 ? set.dark : set.light, color: ch === 'O' ? set.w : set.b }}
                     >
-                      {ch !== '.' && GLYPH.O + VS}
+                      {ch !== '.' && pieceSvg(set, ch === 'O' ? 'w' : 'b', 'O', { badge: false, className: 'mini-piece' })}
                       {ch === 'x' && <span className="mini-ring" />}
                     </div>
                   )),
