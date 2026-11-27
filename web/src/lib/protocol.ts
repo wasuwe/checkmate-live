@@ -103,6 +103,10 @@ export interface StateMsg {
   /** ผู้ชมที่กำลังเปิดห้องอยู่ (เซิร์ฟเวอร์ส่งรายชื่อไม่เกิน 12 คน) และจำนวนผู้ชมทั้งหมด */
   spectators?: SpectatorInfo[]
   watching?: number
+  /** สีของผู้เล่นที่กด "เล่นต่อ" แล้วหลังเกมจบ เกมใหม่เริ่มเมื่อกดครบสองคน */
+  rematch?: Color[]
+  /** ลำดับของเกมในห้องนี้ (0 = เกมแรก) เพิ่มทุกครั้งที่เล่นต่อ */
+  round?: number
   /** ms ที่เหลือก่อนห้องปิดเอง ณ ตอนที่เซิร์ฟเวอร์ส่ง (มีเฉพาะหลังเกมจบ) */
   closeIn?: number
   /** ห้องรอก่อนเกม (มีเฉพาะตอน status เป็น waiting) */
@@ -171,6 +175,7 @@ export type ClientMsg =
   | { type: 'ready'; ready: boolean }
   | { type: 'kick' }
   | { type: 'set'; set: string }
+  | { type: 'rematch' }
 
 const SERVER_TYPES = new Set(['state', 'auth_ok', 'game_over', 'error', 'chat', 'chat_history', 'report_ok'])
 

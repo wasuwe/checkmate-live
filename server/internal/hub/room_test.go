@@ -34,6 +34,8 @@ type serverMsg struct {
 	Forced     bool                       `json:"forced"`
 	Lobby      *lobbyInfo                 `json:"lobby"`
 	CloseIn    int64                      `json:"closeIn"`
+	Rematch    []game.Color               `json:"rematch"`
+	Round      int                        `json:"round"`
 	Spectators []spectatorInfo            `json:"spectators"`
 	Watching   int                        `json:"watching"`
 	Sender     string                     `json:"sender"`

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { lineEnds, reachOf } from './moves'
 import { halfOf, isDarkSquare, setById, sideSets } from './pieceSets'
 import type { StateMsg } from './protocol'
+import { rematchView } from './text'
 
 function state(patch: Partial<StateMsg> = {}): StateMsg {
   return {
@@ -104,5 +105,27 @@ describe('the board is split between the two players\' sets', () => {
     expect(isDarkSquare('a1')).toBe(true)
     expect(isDarkSquare('h1')).toBe(false)
     expect(isDarkSquare('h8')).toBe(true)
+  })
+})
+
+describe('rematch after the game', () => {
+  const done = (patch: Partial<StateMsg> = {}) => state({ status: 'finished', result: '1-0', reason: 'resign', ...patch })
+
+  test('a player can ask, and sees who is waiting for whom', () => {
+    expect(rematchView(done())).toMatchObject({ canAsk: true, asked: false, opponentAsked: false, button: 'เล่นต่อ' })
+    expect(rematchView(done({ rematch: ['w'] }))).toMatchObject({ asked: true, opponentAsked: false, button: 'รอคู่แข่งกดเล่นต่อ…' })
+    const waited = rematchView(done({ rematch: ['b'] }))
+    expect(waited).toMatchObject({ asked: false, opponentAsked: true, button: 'เล่นต่อ' })
+    expect(waited.note).toContain('คู่แข่งอยากเล่นต่อ')
+  })
+
+  test('a spectator cannot ask but is told that a player did', () => {
+    const watch = { role: 'spectator', color: '' } as const
+    expect(rematchView(done({ you: watch }))).toMatchObject({ canAsk: false, note: '' })
+    expect(rematchView(done({ you: watch, rematch: ['b'] })).note).toBe('ฝ่ายดำขอเล่นต่อ รออีกฝ่ายตอบ')
+  })
+
+  test('there is nothing to ask while the game is still on', () => {
+    expect(rematchView(state())).toMatchObject({ canAsk: false, button: '', note: '' })
   })
 })

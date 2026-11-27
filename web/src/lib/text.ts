@@ -122,3 +122,38 @@ export function resultParts(state: StateMsg): {
 export function formatRoomCode(roomId: string): string {
   return roomId.replace(/(.{3})(?=.)/g, '$1 ')
 }
+
+export interface RematchView {
+  /** ผู้ดูเป็นผู้เล่นของเกมที่เพิ่งจบ จึงกดเล่นต่อได้ */
+  canAsk: boolean
+  /** ผู้ดูกดเล่นต่อแล้ว กำลังรออีกฝ่าย */
+  asked: boolean
+  /** อีกฝ่ายกดเล่นต่อแล้ว กำลังรอผู้ดู */
+  opponentAsked: boolean
+  /** ข้อความบนปุ่ม และข้อความบอกสถานะ ('' = ไม่มี) */
+  button: string
+  note: string
+}
+
+/** สถานะการขอเล่นต่อหลังเกมจบ จากมุมของผู้ที่กำลังดูหน้าจอ (เกมใหม่เริ่มเมื่อผู้เล่นทั้งสองกด) */
+export function rematchView(state: StateMsg): RematchView {
+  const you = state.you.color
+  const votes = state.rematch ?? []
+  if (state.status !== 'finished' || you === '') {
+    const note = state.status === 'finished' && votes.length > 0 ? `ฝ่าย${colorName(votes[0])}ขอเล่นต่อ รออีกฝ่ายตอบ` : ''
+    return { canAsk: false, asked: false, opponentAsked: false, button: '', note }
+  }
+  const asked = votes.includes(you)
+  const opponentAsked = votes.some((c) => c !== you)
+  return {
+    canAsk: true,
+    asked,
+    opponentAsked,
+    button: asked ? 'รอคู่แข่งกดเล่นต่อ…' : 'เล่นต่อ',
+    note: asked
+      ? 'เกมใหม่จะเริ่มเมื่อคู่แข่งกดเล่นต่อด้วย แล้วสุ่มฝ่ายใหม่'
+      : opponentAsked
+        ? 'คู่แข่งอยากเล่นต่อ! กด "เล่นต่อ" เพื่อเริ่มเกมใหม่'
+        : 'กด "เล่นต่อ" ทั้งสองคนเพื่อเริ่มเกมใหม่ในห้องนี้ ระบบจะสุ่มฝ่ายใหม่',
+  }
+}

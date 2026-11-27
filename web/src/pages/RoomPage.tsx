@@ -28,6 +28,7 @@ import {
   forcedText,
   formatRoomCode,
   playerName,
+  rematchView,
   resultParts,
   statusText,
 } from '../lib/text'
@@ -50,7 +51,7 @@ export function RoomPage({ roomId, navigate }: Props) {
   // เกมจบมาครบเวลาแล้ว: ม่านปิด (เซิร์ฟเวอร์ปิดห้องในเวลาเดียวกัน หลังจากนั้นการเชื่อมต่อจะได้ "ไม่พบห้อง")
   if (closing.closed || (game.fatal === 'room_not_found' && state?.status === 'finished')) {
     return (
-      <CurtainScreen closing title="ม่านปิดแล้ว" text="ห้องนี้ปิดหลังเกมจบครบ 1 นาที ขอบคุณที่มาเล่นด้วยกัน">
+      <CurtainScreen closing title="ม่านปิดแล้ว" text="เกมจบแล้วและไม่มีการเล่นต่อ ห้องจึงปิดลง ขอบคุณที่มาเล่นด้วยกัน">
         <button type="button" className="btn pink strong" autoFocus onClick={() => navigate('/play')}>
           เล่นเกมใหม่
         </button>
@@ -100,6 +101,7 @@ export function RoomPage({ roomId, navigate }: Props) {
   const online = game.connection === 'open'
   const gameId = gameOf(state)
   const counting = countText(state) || forcedText(state)
+  const rematch = rematchView(state)
   const chat = (
     <ChatPanel
       messages={game.chat}
@@ -171,11 +173,21 @@ export function RoomPage({ roomId, navigate }: Props) {
             {state.status === 'playing' && state.you.role === 'player' && (
               <ResignButton disabled={!online} onResign={game.sendResign} />
             )}
-            {state.status === 'finished' && (
-              <button type="button" className="btn mini pink" onClick={() => navigate('/play')}>
-                เล่นเกมใหม่
-              </button>
-            )}
+            {state.status === 'finished' &&
+              (rematch.canAsk ? (
+                <button
+                  type="button"
+                  className={`btn mini pink${rematch.opponentAsked && !rematch.asked ? ' nudge' : ''}`}
+                  disabled={!online || rematch.asked}
+                  onClick={game.sendRematch}
+                >
+                  {rematch.asked ? 'รอคู่แข่ง…' : 'เล่นต่อ'}
+                </button>
+              ) : (
+                <button type="button" className="btn mini pink" onClick={() => navigate('/play')}>
+                  เล่นเกมใหม่
+                </button>
+              ))}
           </div>
 
           {/* จอกว้าง: กลางแผงข้างกระดานมีตรากับสถานะตัวใหญ่ (จอแคบซ่อนไว้)
@@ -208,7 +220,8 @@ export function RoomPage({ roomId, navigate }: Props) {
                 ถึงตาคุณแล้ว!
               </div>
             )}
-            <GameBoard state={state} online={online} errorSeq={game.errorSeq} session={game.session} sendMove={game.sendMove} />
+            {/* key ตามลำดับเกม: เล่นต่อแล้วกระดานเริ่มใหม่หมด ไม่มีค่าค้างจากเกมก่อน */}
+            <GameBoard key={state.round ?? 0} state={state} online={online} errorSeq={game.errorSeq} session={game.session} sendMove={game.sendMove} />
           </Clocks>
           <Stands spectators={state.spectators} watching={state.watching} />
         </div>
@@ -216,20 +229,24 @@ export function RoomPage({ roomId, navigate }: Props) {
 
       {toss && <CoinToss view={toss} onDone={dismissToss} />}
       <MoveErrorToast code={game.moveError} seq={game.errorSeq} />
-      {state.status === 'finished' && <GameOverDialog state={state} navigate={navigate} />}
+      {state.status === 'finished' && (
+        <GameOverDialog state={state} navigate={navigate} online={online} sendRematch={game.sendRematch} />
+      )}
     </main>
   )
 }
 
 /**
- * ภาพโยนเหรียญตอนเริ่มเกม เล่นครั้งเดียวต่อห้อง เมื่อได้ state แรกของเกมที่นาฬิกายังรอเริ่มอยู่
+ * ภาพโยนเหรียญตอนเริ่มเกม เล่นครั้งเดียวต่อเกม เมื่อได้ state แรกของเกมที่นาฬิกายังรอเริ่มอยู่
  * คืนสิ่งที่ต้องแสดง (หรือ null) และฟังก์ชันปิด
  */
 function useCoinToss(state: StateMsg | null): [TossView | null, () => void] {
   const [toss, setToss] = useState<{ view: TossView; done: boolean } | null>(null)
 
-  // ตั้งค่าระหว่าง render (ไม่ใช้ effect): เกิดครั้งเดียวเพราะหลังจากนี้ toss ไม่เป็น null อีก
+  // ตั้งค่าระหว่าง render (ไม่ใช้ effect): เกิดครั้งเดียวต่อเกม เพราะหลังจากนี้ toss ไม่เป็น null จนกว่าเกมจะจบ
   if (toss === null && state && shouldToss(state)) setToss({ view: tossView(state), done: false })
+  // เกมจบแล้ว: ล้างไว้ ถ้าผู้เล่นทั้งสองกดเล่นต่อ เหรียญจะถูกโยนใหม่สำหรับเกมถัดไป
+  if (toss !== null && state?.status === 'finished') setToss(null)
 
   const dismiss = useCallback(() => setToss((t) => (t ? { ...t, done: true } : t)), [])
   return [toss && !toss.done ? toss.view : null, dismiss]
@@ -397,11 +414,17 @@ function useTurnAlert(state: StateMsg | null): [number, boolean] {
     setSeq(next)
     setToastSeq(next)
     navigator.vibrate?.(80)
-    const timer = setTimeout(() => setToastSeq((t) => (t === next ? 0 : t)), TOAST_MS)
-    return () => clearTimeout(timer)
     // seq อ่านค่าปัจจุบันเพื่อสร้างเลขถัดไปเท่านั้น ไม่ใช่เหตุให้ต้องเตือนใหม่
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state])
+
+  // ป้ายหายเองหลังเล่นจบ ตั้งเวลาแยกจาก effect ข้างบน เพราะ state ใหม่ที่มาถึงก่อนครบเวลา
+  // (เช่น คู่แข่งหลุด หรือเกมจบ) ต้องไม่ยกเลิกการซ่อนป้าย
+  useEffect(() => {
+    if (toastSeq === 0) return
+    const timer = setTimeout(() => setToastSeq((t) => (t === toastSeq ? 0 : t)), TOAST_MS)
+    return () => clearTimeout(timer)
+  }, [toastSeq])
 
   // ชื่อแท็บ: เห็นได้แม้ผู้เล่นสลับไปหน้าต่างอื่น (เช่น ระหว่างคุยใน Discord)
   const myTurn = !!state && state.status === 'playing' && state.you.color !== '' && state.turn === state.you.color
@@ -418,7 +441,7 @@ function useTurnAlert(state: StateMsg | null): [number, boolean] {
     }
   }, [myTurn])
 
-  return [seq, toastSeq !== 0 && toastSeq === seq]
+  return [seq, myTurn && toastSeq !== 0 && toastSeq === seq]
 }
 
 /** ป้าย "ถึงตาคุณแล้ว!" แสดงนานเท่ากับการเคลื่อนไหวของมัน (turnToast ใน index.css) */
@@ -525,7 +548,17 @@ function WaitingCard({ roomId }: { roomId: string }) {
 }
 
 /** ป็อปอัปผลเกม ปิดเพื่อดูกระดานต่อได้ */
-function GameOverDialog({ state, navigate }: { state: StateMsg; navigate: (to: string) => void }) {
+function GameOverDialog({
+  state,
+  navigate,
+  online,
+  sendRematch,
+}: {
+  state: StateMsg
+  navigate: (to: string) => void
+  online: boolean
+  sendRematch: () => boolean
+}) {
   const [open, setOpen] = useState(true)
   // รอให้เอฟเฟกต์จบเกมบนกระดาน (เช่น รุกฆาต) เล่นก่อน แล้วค่อยขึ้นป็อปอัป
   const [ready, setReady] = useState(false)
@@ -536,6 +569,7 @@ function GameOverDialog({ state, navigate }: { state: StateMsg; navigate: (to: s
   if (!open || !ready) return null
   const { headline, reason, outcome } = resultParts(state)
   const medal = MEDALS[outcome]
+  const rematch = rematchView(state)
 
   return (
     <div className="overlay" onClick={() => setOpen(false)}>
@@ -554,10 +588,32 @@ function GameOverDialog({ state, navigate }: { state: StateMsg; navigate: (to: s
           {headline}
         </h2>
         {reason && <p>{reason}</p>}
+        {rematch.note && (
+          <p className={`small pretty rematch-note${rematch.opponentAsked && !rematch.asked ? ' hot' : ''}`} role="status">
+            {rematch.note}
+          </p>
+        )}
         <div className="row wrap" style={{ justifyContent: 'center' }}>
-          <button type="button" className="btn pink strong" autoFocus onClick={() => navigate('/play')}>
-            เล่นอีกครั้ง
-          </button>
+          {rematch.canAsk ? (
+            <button
+              type="button"
+              className="btn pink strong"
+              autoFocus
+              disabled={!online || rematch.asked}
+              onClick={sendRematch}
+            >
+              {rematch.button}
+            </button>
+          ) : (
+            <button type="button" className="btn pink strong" autoFocus onClick={() => navigate('/play')}>
+              เล่นเกมใหม่
+            </button>
+          )}
+          {rematch.canAsk && (
+            <button type="button" className="btn" onClick={() => navigate('/play')}>
+              สร้างห้องใหม่
+            </button>
+          )}
           <button type="button" className="btn" onClick={() => navigate('/')}>
             กลับหน้าแรก
           </button>

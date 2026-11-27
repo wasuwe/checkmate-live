@@ -193,6 +193,7 @@ func (h *Hub) CreateGameRoom(variant game.Variant, tc TimeControl, createdBy str
 
 	room := newRoom(id, h.cfg, variant, tc, createdBy, h.removeRoom)
 	room.onFinish = h.roomFinished
+	room.onRestart = h.roomRestarted
 	h.rooms[id] = room
 	h.trackOpen(id, createdBy)
 	room.persist() // ยังไม่มี goroutine ของห้อง จึงเรียกจากตรงนี้ได้
@@ -234,6 +235,15 @@ func (h *Hub) roomFinished(id string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.untrackOpen(id)
+}
+
+// roomRestarted ถูกเรียกเมื่อห้องเริ่มเกมใหม่หลังเล่นต่อ ห้องนั้นกลับมานับเป็นห้องค้างของผู้สร้าง
+func (h *Hub) roomRestarted(id, createdBy string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if _, tracked := h.open[id]; !tracked {
+		h.trackOpen(id, createdBy)
+	}
 }
 
 // trackOpen และ untrackOpen ต้องเรียกขณะถือ h.mu

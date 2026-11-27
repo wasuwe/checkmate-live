@@ -161,6 +161,13 @@ export class GameSocket {
     return true
   }
 
+  /** ขอเล่นต่อในห้องเดิมหลังเกมจบ เกมใหม่เริ่มเมื่อผู้เล่นทั้งสองขอ (เซิร์ฟเวอร์สุ่มฝ่ายใหม่) */
+  sendRematch(): boolean {
+    if (!this.snapshot.state || !this.ws || this.ws.readyState !== OPEN) return false
+    this.send(this.ws, { type: 'rematch' })
+    return true
+  }
+
   /** บอกชุดหมากรุกที่เลือก (ใช้ในห้องรอ) เซิร์ฟเวอร์รับเฉพาะก่อนเกมเริ่ม */
   sendSet(set: string): boolean {
     if (!this.snapshot.state || !this.ws || this.ws.readyState !== OPEN) return false

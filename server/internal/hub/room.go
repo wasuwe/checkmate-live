@@ -25,6 +25,7 @@ const (
 	evReady
 	evKick
 	evSet
+	evRematch
 )
 
 // event คือสิ่งที่ส่งเข้า goroutine ของห้อง
@@ -47,8 +48,10 @@ type Room struct {
 	inbox     chan event
 	done      chan struct{}
 	onClose   func(id string)
-	// onFinish ถูกเรียกครั้งเดียวเมื่อเกมจบ (อาจเป็น nil)
+	// onFinish ถูกเรียกทุกครั้งที่เกมในห้องจบ (อาจเป็น nil)
 	onFinish func(id string)
+	// onRestart ถูกเรียกเมื่อผู้เล่นทั้งสองกดเล่นต่อและเกมใหม่เริ่มในห้องเดิม (อาจเป็น nil)
+	onRestart func(id, createdBy string)
 	// activity คือภาพล่าสุดของผู้เล่นในห้อง ให้ goroutine อื่นอ่านได้โดยไม่ต้องรอห้อง (ดู publishActivity)
 	activity atomic.Pointer[map[string]Activity]
 
@@ -73,6 +76,9 @@ type Room struct {
 	startedAt  time.Time // เวลาที่เกมเริ่ม
 	// closeAt คือเวลาที่ห้องซึ่งเกมจบแล้วจะปิดเอง (zero = เกมยังไม่จบ)
 	closeAt time.Time
+	// rematch คือผู้เล่นที่กด "เล่นต่อ" หลังเกมจบ (user ID) และ round คือลำดับของเกมในห้องนี้
+	rematch map[string]bool
+	round   int
 	// abandonAt คือเส้นตายของผู้เล่นที่หลุดระหว่างเกม ถ้าไม่กลับมาทันจะแพ้ด้วยเหตุ abandon
 	abandonAt map[game.Color]time.Time
 	clock     *clock
@@ -104,6 +110,7 @@ func newRoom(id string, cfg Config, variant game.Variant, tc TimeControl, create
 		ready:      map[string]bool{},
 		removed:    map[string]bool{},
 		sets:       map[string]string{},
+		rematch:    map[string]bool{},
 		clients:    map[*Client]struct{}{},
 		profiles:   map[string]PlayerProfile{},
 		emptySince: time.Now(),
@@ -289,6 +296,8 @@ func (r *Room) handle(ev event) {
 		r.handleKick(ev.client)
 	case evSet:
 		r.handleSet(ev.client, ev.text)
+	case evRematch:
+		r.handleRematch(ev.client)
 	}
 }
 
@@ -340,6 +349,10 @@ func (r *Room) handleLeave(c *Client) {
 	// ผู้เล่นปิดทุกแท็บระหว่างเกม: เริ่มนับถอยหลัง ถ้ายังมีแท็บอื่นเปิดอยู่ถือว่ายังอยู่
 	if color, ok := r.colorOf(c.UserID); ok && r.status == StatusPlaying && !r.connected(c.UserID) {
 		r.abandonAt[color] = now.Add(r.cfg.AbandonGrace)
+	}
+	// ออกจากห้องหลังเกมจบ: ถือว่าไม่ขอเล่นต่อแล้ว
+	if r.status == StatusFinished && r.rematch[c.UserID] && !r.connected(c.UserID) {
+		delete(r.rematch, c.UserID)
 	}
 	// ออกจากห้องรอ: ถือว่าไม่พร้อม และหยุดนับถอยหลัง (ที่นั่งยังอยู่จนกว่าจะมีคนอื่นมานั่งแทน)
 	if r.status == StatusWaiting && r.ready[c.UserID] && !r.connected(c.UserID) {
@@ -477,6 +490,43 @@ func (r *Room) handleSet(c *Client, set string) {
 	r.persist()
 }
 
+// rematchWait คือเวลาอย่างน้อยที่ห้องยังเปิดรออีกคนหลังมีคนกดเล่นต่อ (กดตอนใกล้ปิดห้อง อีกคนจะได้มีเวลากด)
+const rematchWait = 20 * time.Second
+
+// handleRematch รับคำขอเล่นต่อหลังเกมจบ จากผู้เล่นของเกมที่เพิ่งจบเท่านั้น
+// เมื่อผู้เล่นทั้งสองกดแล้ว (และยังเชื่อมต่ออยู่ทั้งคู่) เกมใหม่เริ่มในห้องเดิม โดยสุ่มฝ่ายใหม่ (เจ้าของโปรเจกต์กำหนด)
+func (r *Room) handleRematch(c *Client) {
+	if _, ok := r.colorOf(c.UserID); !ok || r.status != StatusFinished || r.rematch[c.UserID] {
+		return
+	}
+	r.rematch[c.UserID] = true
+	white, black := r.players[game.White], r.players[game.Black]
+	if r.rematch[white] && r.rematch[black] && r.connected(white) && r.connected(black) {
+		r.restart(white, black)
+		return
+	}
+	if wait := time.Now().Add(rematchWait); r.closeAt.Before(wait) {
+		r.closeAt = wait
+	}
+	r.broadcastState()
+}
+
+// restart เริ่มเกมใหม่ในห้องเดิม: กระดานและนาฬิกาเริ่มใหม่ สุ่มฝ่ายใหม่ ชุดหมากรุกและแชทคงเดิม
+func (r *Room) restart(a, b string) {
+	r.game = game.NewVariant(r.game.Variant())
+	r.clock = newClock(r.clock.tc)
+	clear(r.players)
+	clear(r.rematch)
+	r.closeAt = time.Time{}
+	r.round++
+	r.start(a, b)
+	if r.onRestart != nil {
+		r.onRestart(r.id, r.createdBy)
+	}
+	r.persist()
+	r.broadcastState()
+}
+
 // hostID คือเจ้าของห้องในห้องรอ: ผู้สร้างห้องถ้านั่งอยู่ ไม่งั้นคือคนที่นั่งก่อน ("" ถ้ายังไม่มีใครนั่ง)
 func (r *Room) hostID() string {
 	if r.createdBy != "" && slices.Contains(r.seats, r.createdBy) {
@@ -591,6 +641,12 @@ func (r *Room) broadcastState() {
 		}
 	}
 	base.Spectators, base.Watching = r.spectators()
+	base.Round = r.round
+	for _, color := range []game.Color{game.White, game.Black} {
+		if r.rematch[r.players[color]] {
+			base.Rematch = append(base.Rematch, color)
+		}
+	}
 	if !r.closeAt.IsZero() {
 		// ปัดขึ้นเป็นอย่างน้อย 1 เพื่อให้ฝั่งเว็บรู้ว่ากำลังนับอยู่ แม้เหลือเวลาน้อยมาก
 		base.CloseIn = max(1, r.closeAt.Sub(now).Milliseconds())

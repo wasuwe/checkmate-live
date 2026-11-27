@@ -218,3 +218,71 @@ func TestRoomExistsIsRateLimitedLikeJoining(t *testing.T) {
 		t.Fatalf("over the quota: exists=%v allowed=%v", exists, allowed)
 	}
 }
+
+func (f *fakeClient) rematch(r *Room) {
+	r.post(event{kind: evRematch, client: f.Client})
+}
+
+func TestRematchNeedsBothPlayersAndDrawsSidesAgain(t *testing.T) {
+	st := &fakeStore{}
+	flips := 0
+	// เกมแรก: alice ขาว (ไม่สลับ) เกมที่สอง: สลับ ให้เห็นว่าสุ่มฝ่ายใหม่จริง
+	h := newTestHub(t, Config{Store: st, CoinFlip: func() bool { flips++; return flips > 1 }})
+	r, alice, bob := startGame(t, h)
+	carol := newFakeClient(t, "carol")
+	carol.join(r)
+
+	alice.move(r, 0, "e2e4")
+	bob.untilState("ply 1", atPly(1))
+	r.post(event{kind: evResign, client: bob.Client})
+	alice.untilState("finished", isStatus(StatusFinished))
+
+	// ผู้ชมกดไม่มีผล คนเดียวกดเกมยังไม่เริ่ม แต่อีกฝ่ายเห็นว่ามีคนรอ
+	carol.rematch(r)
+	alice.rematch(r)
+	alice.rematch(r) // กดซ้ำไม่มีผล
+	waiting := bob.untilState("alice wants a rematch", func(m serverMsg) bool { return len(m.Rematch) == 1 })
+	if waiting.Status != StatusFinished || waiting.Rematch[0] != game.White || waiting.CloseIn <= 0 {
+		t.Fatalf("after one player asked: status=%s rematch=%v closeIn=%d", waiting.Status, waiting.Rematch, waiting.CloseIn)
+	}
+
+	bob.rematch(r)
+	again := bob.untilState("second game", func(m serverMsg) bool { return m.Status == StatusPlaying && m.Round == 1 })
+	if again.Ply != 0 || again.LastMove != nil || again.Result != "" || again.CloseIn != 0 || len(again.Rematch) != 0 {
+		t.Fatalf("second game state: %+v", again)
+	}
+	if again.You.Color != game.White {
+		t.Fatalf("sides were not drawn again: bob is %q, want white", again.You.Color)
+	}
+	if again.Clock.White != DefaultTimeControl.Initial.Milliseconds() || again.Clock.Running != game.White {
+		t.Fatalf("clock was not reset: %+v", again.Clock)
+	}
+	if snap := st.lastRoom(t); snap.Status != StatusPlaying || snap.White != "bob" || len(snap.Moves) != 0 {
+		t.Fatalf("snapshot after the rematch: %+v", snap)
+	}
+
+	// เกมที่สองเล่นและจบได้ตามปกติ และถูกบันทึกเป็นอีกเกมหนึ่ง
+	bob.move(r, 0, "d2d4")
+	alice.untilState("ply 1 of the second game", func(m serverMsg) bool { return m.Round == 1 && m.Ply == 1 })
+	r.post(event{kind: evResign, client: alice.Client})
+	bob.untilState("second game finished", func(m serverMsg) bool { return m.Round == 1 && m.Status == StatusFinished })
+	waitFor(t, "two saved games", func() bool { _, _, games := st.counts(); return games == 2 })
+}
+
+func TestRematchVoteIsDroppedWhenThePlayerLeaves(t *testing.T) {
+	h := newTestHub(t, Config{})
+	r, alice, bob := startGame(t, h)
+	r.post(event{kind: evResign, client: bob.Client})
+	alice.untilState("finished", isStatus(StatusFinished))
+
+	alice.rematch(r)
+	bob.untilState("alice asked", func(m serverMsg) bool { return len(m.Rematch) == 1 })
+	alice.leave(r)
+	bob.untilState("alice left", func(m serverMsg) bool { return m.Status == StatusFinished && len(m.Rematch) == 0 })
+	// อีกคนกดทีหลัง: ยังไม่เริ่ม เพราะคนแรกไม่อยู่แล้ว
+	bob.rematch(r)
+	still := bob.untilState("bob asked", func(m serverMsg) bool { return len(m.Rematch) == 1 })
+	if still.Status != StatusFinished || still.Rematch[0] != game.Black {
+		t.Fatalf("state = %s %v", still.Status, still.Rematch)
+	}
+}

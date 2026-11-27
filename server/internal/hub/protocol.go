@@ -14,15 +14,16 @@ import (
 
 // ชนิดข้อความขาเข้า
 const (
-	msgAuth   = "auth"
-	msgJoin   = "join"
-	msgMove   = "move"
-	msgResign = "resign"
-	msgChat   = "chat"
-	msgReport = "report"
-	msgReady  = "ready"
-	msgKick   = "kick"
-	msgSet    = "set"
+	msgAuth    = "auth"
+	msgJoin    = "join"
+	msgMove    = "move"
+	msgResign  = "resign"
+	msgChat    = "chat"
+	msgReport  = "report"
+	msgReady   = "ready"
+	msgKick    = "kick"
+	msgSet     = "set"
+	msgRematch = "rematch"
 )
 
 // inbound คือข้อความขาเข้าทุกชนิดรวมกัน field ที่ไม่รู้จักจะถูกปฏิเสธ
@@ -101,6 +102,8 @@ func decodeInbound(data []byte) (inbound, error) {
 			!squareRe.MatchString(m.From) || !squareRe.MatchString(m.To) || !promoRe.MatchString(m.Promo) {
 			return inbound{}, errBadMessage
 		}
+	case msgRematch:
+		// ไม่มี field เพิ่ม: ผู้ขอเล่นต่อคือเจ้าของ connection
 	case msgKick:
 		// ไม่มี field เพิ่ม: คนที่ถูกให้ออกคือผู้เล่นอีกคนในห้องรอเสมอ เซิร์ฟเวอร์ไม่รับว่าจะให้ใครออกจาก client
 	case msgResign:
@@ -283,6 +286,10 @@ type stateMsg struct {
 	// Spectators คือผู้ชมที่กำลังเปิดห้องอยู่ (สูงสุด maxSpectatorsListed คน) และ Watching คือจำนวนผู้ชมทั้งหมด
 	Spectators []spectatorInfo `json:"spectators,omitempty"`
 	Watching   int             `json:"watching,omitempty"`
+	// Rematch คือสีของผู้เล่นที่กด "เล่นต่อ" แล้วหลังเกมจบ (เกมใหม่เริ่มเมื่อกดครบสองคน)
+	Rematch []game.Color `json:"rematch,omitempty"`
+	// Round คือลำดับของเกมในห้องนี้ เริ่มที่ 0 และเพิ่มทุกครั้งที่เล่นต่อ ให้หน้าเว็บรู้ว่าเป็นเกมใหม่แม้ ply กลับเป็น 0
+	Round int `json:"round,omitempty"`
 	// CloseIn คือมิลลิวินาทีที่เหลือก่อนห้องปิดเอง (มีเฉพาะหลังเกมจบ)
 	CloseIn int64 `json:"closeIn,omitempty"`
 	// Lobby มีเฉพาะตอนรอเริ่มเกม

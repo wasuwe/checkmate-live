@@ -143,6 +143,7 @@ func (h *Hub) RestoreRoom(snap RoomSnapshot) error {
 		return fmt.Errorf("%w: room %s already exists", ErrBadSnapshot, snap.ID)
 	}
 	room.onFinish = h.roomFinished
+	room.onRestart = h.roomRestarted
 	room.publishActivity() // ยังไม่มี goroutine ของห้อง จึงเรียกจากตรงนี้ได้
 	h.rooms[snap.ID] = room
 	h.trackOpen(snap.ID, snap.CreatedBy)
