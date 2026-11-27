@@ -48,19 +48,19 @@ export function HomeFloaters() {
     <>
       <div className="home-floaters wide" aria-hidden="true">
         {WIDE.map((f, i) => (
-          <FloatingPiece key={i} f={f} />
+          <FloatingPiece key={i} f={f} order={i} />
         ))}
       </div>
       <div className="home-floaters narrow" aria-hidden="true">
         {NARROW.map((f, i) => (
-          <FloatingPiece key={i} f={f} />
+          <FloatingPiece key={i} f={f} order={i} />
         ))}
       </div>
     </>
   )
 }
 
-function FloatingPiece({ f }: { f: Floater }) {
+function FloatingPiece({ f, order }: { f: Floater; order: number }) {
   return (
     <span
       className="home-floater"
@@ -71,8 +71,9 @@ function FloatingPiece({ f }: { f: Floater }) {
           width: f.size,
           height: f.size,
           '--tilt': `${f.tilt}deg`,
-          animationDuration: `${f.dur}s`,
-          animationDelay: `${f.delay}s`,
+          // สองการเคลื่อนไหว: ลอยขึ้นลงตลอด และค่อย ๆ ปรากฏทีละตัวตอนเปิดหน้า
+          animationDuration: `${f.dur}s, 0.9s`,
+          animationDelay: `${f.delay}s, ${(0.25 + order * 0.09).toFixed(2)}s`,
         } as CSSProperties
       }
     >
