@@ -2478,8 +2478,8 @@ a.link-card:hover {
   padding: 0;
   overflow: hidden;
   border: 1px solid var(--frame);
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(30, 42, 107, 0.14);
+  border-radius: 50% 50% 12px 12px / 34% 34% 12px 12px; /* ซุ้มโค้ง */
+  box-shadow: var(--lift);
   color: var(--ink);
   font-family: var(--font-body);
   cursor: pointer;
@@ -2494,10 +2494,11 @@ a.link-card:hover {
 
 .oc-card.on {
   transform: translateY(-4px);
+  border-color: var(--gold);
   box-shadow:
-    0 0 0 3px #fff,
-    0 0 0 6px var(--pink-strong),
-    0 9px 0 6px var(--ink);
+    0 0 0 3px var(--paper),
+    0 0 0 4px var(--gold),
+    0 12px 26px rgba(30, 42, 107, 0.25);
 }
 
 .oc-card-slash {
@@ -2531,10 +2532,10 @@ a.link-card:hover {
 
 .oc-card-no {
   position: absolute;
-  top: 5px;
+  top: 26%;
   left: 7px;
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 12px;
 }
 
@@ -2544,8 +2545,8 @@ a.link-card:hover {
   right: 0;
   bottom: 0;
   padding: 5px 4px;
-  background: var(--ink);
-  color: #fff;
+  background: var(--pill);
+  color: var(--cream);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2568,13 +2569,13 @@ a.link-card:hover {
 
 .oc-card-p1 {
   position: absolute;
-  top: 4px;
+  top: 24%;
   right: 4px;
   padding: 1px 7px;
-  border: 1px solid var(--frame);
+  border: 1px solid var(--gold);
   border-radius: 999px;
-  background: var(--pink-strong);
-  color: #fff;
+  background: var(--pill);
+  color: #ffe9a8;
   font-family: var(--font-head);
   font-weight: 600;
   font-size: 12px;
@@ -2588,58 +2589,70 @@ a.link-card:hover {
   gap: 14px;
 }
 
+/* เวทีของตัวละคร: กรอบซุ้มโค้งอยู่ช่วงล่าง ภาพตัวละครสูงกว่ากรอบ จึงล้นออกนอกกรอบด้านบน */
 .oc-stage {
   position: relative;
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  min-height: 300px;
-  overflow: hidden;
-  border: 1px solid var(--frame);
-  border-radius: 26px;
-  box-shadow: 0 7px 21px rgba(30, 42, 107, 0.14);
+  width: min(100%, 620px);
+  margin-inline: auto;
+  aspect-ratio: 4 / 3.4;
+  min-height: 340px;
+  margin-top: 28px; /* เผื่อที่ให้ภาพตัวละครที่ล้นขึ้นไปเหนือเวที */
+  isolation: isolate;
 }
 
-.oc-slash {
+.oc-frame {
   position: absolute;
-  inset: 0;
+  z-index: -1;
+  left: 4%;
+  right: 4%;
+  top: 22%;
+  bottom: 0;
+  border: 1px solid var(--gold);
+  border-radius: 50% 50% 16px 16px / 34% 34% 16px 16px;
+  box-shadow:
+    0 0 0 5px var(--paper),
+    0 0 0 6px var(--gold),
+    0 20px 44px rgba(20, 25, 70, 0.3);
 }
 
-.oc-slash.a {
-  background: var(--oc);
-  clip-path: polygon(56% 0, 90% 0, 44% 100%, 10% 100%);
-}
-
-.oc-slash.b {
-  background: var(--ink);
-  clip-path: polygon(92% 0, 95% 0, 49% 100%, 46% 100%);
-}
-
-.oc-slash.c {
-  background: var(--paper);
-  clip-path: polygon(97% 0, 100% 0, 54% 100%, 51% 100%);
+/* สีประจำตัวละครเป็นแสงเรืองหลังตัวละคร */
+.oc-frame::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  width: 70%;
+  height: 70%;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--oc), transparent);
+  opacity: 0.55;
 }
 
 .oc-stage-no {
   position: absolute;
-  top: 14px;
-  left: 18px;
+  z-index: 1;
+  top: 32%;
+  left: 11%;
   font-family: var(--font-head);
-  font-weight: 600;
-  font-size: clamp(44px, 10vw, 96px);
+  font-weight: 700;
+  font-size: clamp(36px, 8vw, 72px);
   line-height: 1;
   color: transparent;
-  -webkit-text-stroke: 2.5px var(--ink);
-  opacity: 0.35;
+  -webkit-text-stroke: 1.5px #ffe9a8;
+  opacity: 0.7;
   pointer-events: none;
 }
 
-/* ภาพตัวละครสไลด์เข้าจากขวา */
+/* ภาพตัวละครใหญ่เต็มความสูงเวที ยืนบนพื้นของกรอบ ส่วนหัวโผล่พ้นซุ้มขึ้นไป */
 .oc-art {
   position: absolute;
-  top: 0;
-  right: 0;
+  z-index: 1;
+  top: -6%;
   bottom: 0;
-  width: 72%;
+  left: 50%;
+  width: 82%;
+  translate: -50% 0;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -2651,27 +2664,30 @@ a.link-card:hover {
   height: 100%;
   object-fit: contain;
   object-position: bottom center;
+  filter: drop-shadow(0 14px 22px rgba(10, 14, 50, 0.45));
 }
 
 .oc-art-initial {
   align-self: center;
   font-family: var(--font-head);
-  font-weight: 600;
-  font-size: clamp(120px, 28vw, 240px);
+  font-weight: 700;
+  font-size: clamp(140px, 32vw, 300px);
   line-height: 1;
-  color: #fff;
-  -webkit-text-stroke: 4px var(--ink);
-  opacity: 0.9;
+  color: var(--oc-pale, var(--paper));
+  -webkit-text-stroke: 3px var(--ink);
+  filter: drop-shadow(0 14px 22px rgba(10, 14, 50, 0.45));
 }
 
 /* ป้ายชื่อเอียงพุ่งเข้าจากซ้าย */
 .oc-plate {
   position: absolute;
-  left: -10px;
+  z-index: 2;
+  left: -6px;
   bottom: 22px;
   max-width: 78%;
   padding: 10px 24px 10px 30px;
-  background: var(--ink);
+  border: 1px solid var(--gold);
+  background: var(--pill);
   transform: skewX(-14deg);
   box-shadow: 6px 6px 0 var(--oc);
   pointer-events: none;
@@ -2695,10 +2711,10 @@ a.link-card:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: clamp(26px, 5vw, 44px);
-  line-height: 1.1;
-  color: #fff;
+  line-height: 1.25;
+  color: var(--cream);
 }
 
 .oc-links {

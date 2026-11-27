@@ -1,4 +1,5 @@
 import { useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { StageScene } from '../components/StageScene'
 import { LinkCard } from '../components/LinkCard'
 import {
   initialOf,
@@ -125,10 +126,9 @@ function Characters({ data }: { data: CreditsData }) {
 
         {/* เวทีตัวละคร: key ทำให้การเคลื่อนไหวเล่นใหม่ทุกครั้งที่เปลี่ยนตัว */}
         <div className="oc-detail" aria-live="polite">
-          <div className="oc-stage" key={oc.id} style={{ '--oc': color, background: safeColor(oc.pale) } as CSSProperties}>
-            <div className="oc-slash a" />
-            <div className="oc-slash b" />
-            <div className="oc-slash c" />
+          {/* ตัวละครยืนบนเวทีในซุ้มโค้ง ภาพใหญ่กว่ากรอบและล้นออกนอกกรอบด้านบน */}
+          <div className="oc-stage" key={oc.id} style={{ '--oc': color, '--oc-pale': safeColor(oc.pale) } as CSSProperties}>
+            <StageScene className="oc-frame" />
             <div className="oc-stage-no" aria-hidden="true">
               {ocNumber(data, oc)}
             </div>
