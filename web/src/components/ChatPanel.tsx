@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type Dispatch, type FormEvent, type SetStateAction } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { ChatItem, Color, PlayerInfo } from '../lib/protocol'
 import { colorName } from '../lib/text'
 
@@ -10,15 +10,10 @@ interface Props {
   names?: Record<string, string>
   /** ให้รายการข้อความสูงเต็มพื้นที่ที่มี (ใช้ในห้องรอและข้างกระดาน) */
   tall?: boolean
-  /** รายชื่อผู้ส่งที่ซ่อนไว้ ถ้าหน้าที่ใช้ต้องรู้ด้วย (ไม่ระบุ = เก็บเองในแผงนี้) */
-  mutedState?: [string[], Dispatch<SetStateAction<string[]>>]
   online: boolean
   /** เพิ่มขึ้นทุกครั้งที่เซิร์ฟเวอร์ปฏิเสธข้อความเพราะส่งถี่เกินไป */
   rateLimitedSeq: number
   sendChat: (text: string) => boolean
-  /** id ของข้อความที่เซิร์ฟเวอร์รับการรายงานแล้ว */
-  reported: number[]
-  sendReport: (id: number) => boolean
 }
 
 export const CHAT_MAX_LENGTH = 200
@@ -33,24 +28,12 @@ function sender(item: ChatItem, players: Props['players'], names: Props['names']
   return name ? `${name} (${colorName(item.from)})` : colorName(item.from)
 }
 
-/** แชทในห้อง ข้อความแสดงเป็น text ล้วนเสมอ ไม่ตีความเป็น HTML */
-export function ChatPanel({
-  messages,
-  players,
-  names,
-  tall = false,
-  mutedState,
-  online,
-  rateLimitedSeq,
-  sendChat,
-  reported,
-  sendReport,
-}: Props) {
+/**
+ * แชทในห้อง ข้อความแสดงเป็น text ล้วนเสมอ ไม่ตีความเป็น HTML
+ * ไม่มีปุ่มซ่อนหรือรายงานข้อความ (เจ้าของโปรเจกต์ให้เอาออก 2026-11-27)
+ */
+export function ChatPanel({ messages, players, names, tall = false, online, rateLimitedSeq, sendChat }: Props) {
   const [text, setText] = useState('')
-  // ผู้ส่งที่ผู้ใช้เลือกซ่อน มีผลเฉพาะหน้าจอนี้และหายเมื่อออกจากห้อง
-  const ownMuted = useState<string[]>([])
-  const [muted, setMuted] = mutedState ?? ownMuted
-  const visible = messages.filter((m) => m.mine || !muted.includes(m.sender))
   const [dismissedSeq, setDismissedSeq] = useState(0)
   const listRef = useRef<HTMLOListElement>(null)
   const lastId = messages.at(-1)?.id ?? 0
@@ -74,47 +57,14 @@ export function ChatPanel({
   return (
     <section className={`card side chat${tall ? ' tall' : ''}`} aria-label="แชทในห้อง" style={{ gap: 10 }}>
       <h2 className="card-title">แชท</h2>
-      {muted.length > 0 && (
-        <p className="chat-muted" role="status">
-          ซ่อนข้อความจาก {muted.length} คน{' '}
-          <button type="button" className="link" onClick={() => setMuted([])}>
-            แสดงทั้งหมด
-          </button>
-        </p>
-      )}
-      {visible.length === 0 ? (
+      {messages.length === 0 ? (
         <p className="chat-empty">ยังไม่มีข้อความ</p>
       ) : (
         <ol className="chat-list" ref={listRef} aria-live="polite">
-          {visible.map((m) => (
+          {messages.map((m) => (
             <li key={m.id} className={m.mine ? 'mine' : undefined}>
               <span className="chat-from">{sender(m, players, names)}</span>
               <span className="chat-text">{m.text}</span>
-              {!m.mine && (
-                <span className="chat-actions">
-                  <button
-                    type="button"
-                    className="link"
-                    aria-label={`ซ่อนข้อความทั้งหมดจาก${sender(m, players, names)}`}
-                    onClick={() => setMuted((list) => [...list, m.sender])}
-                  >
-                    ซ่อน
-                  </button>
-                  {reported.includes(m.id) ? (
-                    <span className="chat-reported">รายงานแล้ว</span>
-                  ) : (
-                    <button
-                      type="button"
-                      className="link"
-                      disabled={!online}
-                      aria-label={`รายงานข้อความนี้จาก${sender(m, players, names)}`}
-                      onClick={() => sendReport(m.id)}
-                    >
-                      รายงาน
-                    </button>
-                  )}
-                </span>
-              )}
             </li>
           ))}
         </ol>

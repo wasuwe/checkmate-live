@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { lineEnds, reachOf } from './moves'
+import { reachOf } from './moves'
 import { halfOf, isDarkSquare, setById, sideSets } from './pieceSets'
 import { someoneArrived } from './presence'
 import type { StateMsg } from './protocol'
@@ -22,7 +22,7 @@ function state(patch: Partial<StateMsg> = {}): StateMsg {
 
 const sorted = (list: string[]) => [...list].sort()
 
-describe('reach of a piece (highlights and hover lines)', () => {
+describe('reach of a piece (square highlights when picked or hovered)', () => {
   test('chess: the side to move gets its legal moves', () => {
     expect(sorted(reachOf(state(), 'g1').targets)).toEqual(['f3', 'h3'])
     expect(reachOf(state(), 'e4').targets).toEqual([]) // ช่องว่าง
@@ -79,12 +79,6 @@ describe('reach of a piece (highlights and hover lines)', () => {
     expect(reachOf(s, 'a1')).toEqual({ targets: ['a2'], captures: ['a2'], victims: ['b2', 'c2'] })
   })
 
-  test('one line per direction, ending on the farthest square', () => {
-    expect(sorted(lineEnds('a1', ['a2', 'a3', 'a4', 'b1', 'c1']))).toEqual(['a4', 'c1'])
-    // ม้า: ทุกช่องอยู่คนละทิศ จึงได้เส้นละช่อง
-    expect(sorted(lineEnds('g1', ['f3', 'h3', 'e2']))).toEqual(['e2', 'f3', 'h3'])
-    expect(lineEnds('d4', [])).toEqual([])
-  })
 })
 
 describe('the board is split between the two players\' sets', () => {

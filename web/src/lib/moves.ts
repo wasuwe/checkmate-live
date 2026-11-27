@@ -126,7 +126,7 @@ export function chainSquare(state: StateMsg): string | null {
   return movable.length === 1 && movable[0] === state.lastMove.to ? movable[0] : null
 }
 
-// ---------- เส้นทางเดินของหมากตัวหนึ่ง (ใช้ไฮไลต์ตอนเลือกหมาก และตอนชี้ที่หมาก) ----------
+// ---------- ช่องที่หมากตัวหนึ่งเดินไปได้ (ใช้ไฮไลต์ตอนเลือกหมาก และตอนชี้ที่หมาก) ----------
 
 export interface PieceReach {
   /** ช่องที่หมากตัวนี้เดินไปได้ */
@@ -183,26 +183,4 @@ export function reachOf(state: StateMsg, square: string): PieceReach {
     for (const sq of taken) victims.add(sq)
   }
   return { targets, captures, victims: [...victims] }
-}
-
-function gcd(a: number, b: number): number {
-  return b === 0 ? a : gcd(b, a % b)
-}
-
-/**
- * ปลายของเส้นทางเดินจาก `from`: ช่องที่ไกลที่สุดในแต่ละทิศ เส้นเดียวจึงแทนทุกช่องที่ผ่าน
- * (เรือได้สูงสุด 4 เส้น ม้าได้เส้นละช่องเพราะทุกช่องอยู่คนละทิศ)
- */
-export function lineEnds(from: string, targets: string[]): string[] {
-  const far = new Map<string, { to: string; dist: number }>()
-  for (const to of targets) {
-    const df = to.charCodeAt(0) - from.charCodeAt(0)
-    const dr = Number(to[1]) - Number(from[1])
-    const g = gcd(Math.abs(df), Math.abs(dr))
-    if (g === 0) continue
-    const key = (df / g) + ',' + (dr / g)
-    const seen = far.get(key)
-    if (!seen || g > seen.dist) far.set(key, { to, dist: g })
-  }
-  return [...far.values()].map((v) => v.to)
 }

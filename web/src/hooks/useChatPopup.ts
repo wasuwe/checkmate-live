@@ -1,4 +1,4 @@
-import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
+import { useEffect, useState } from 'react'
 import type { ChatItem } from '../lib/protocol'
 
 /** เวลาที่ข้อความใหม่เด้งค้างไว้ข้างรูปผู้เล่น */
@@ -7,9 +7,6 @@ export const BUBBLE_MS = 6000
 export interface ChatPopup {
   open: boolean
   setOpen: (open: boolean) => void
-  /** ผู้ส่งที่ผู้ใช้ซ่อนไว้ เก็บที่นี่เพื่อให้ข้อความเด้งเคารพการซ่อนด้วย */
-  muted: string[]
-  setMuted: Dispatch<SetStateAction<string[]>>
   /** ข้อความที่กำลังเด้งอยู่ หรือ null */
   bubble: ChatItem | null
   /** จำนวนข้อความจากคนอื่นที่ยังไม่ได้เปิดอ่าน */
@@ -23,7 +20,6 @@ export interface ChatPopup {
  */
 export function useChatPopup(messages: ChatItem[], active: boolean): ChatPopup {
   const [open, setOpen] = useState(false)
-  const [muted, setMuted] = useState<string[]>([])
   const [bubble, setBubble] = useState<ChatItem | null>(null)
   const last = messages.at(-1)
   const lastId = last?.id ?? 0
@@ -36,7 +32,7 @@ export function useChatPopup(messages: ChatItem[], active: boolean): ChatPopup {
     // ข้อความที่มาทีละข้อความคือข้อความสด ส่วนประวัติแชทตอนเข้าห้องมาเป็นชุด จึงไม่เด้ง
     const live = messages.length === tracked.len + 1
     setTracked({ id: lastId, len: messages.length })
-    if (live && last && !last.mine && !reading && !muted.includes(last.sender)) setBubble(last)
+    if (live && last && !last.mine && !reading) setBubble(last)
   }
   if (reading && seen !== lastId) setSeen(lastId)
   if (reading && bubble) setBubble(null)
@@ -48,6 +44,6 @@ export function useChatPopup(messages: ChatItem[], active: boolean): ChatPopup {
     return () => clearTimeout(timer)
   }, [bubbleId])
 
-  const unread = reading ? 0 : messages.filter((m) => m.id > seen && !m.mine && !muted.includes(m.sender)).length
-  return { open, setOpen, muted, setMuted, bubble, unread }
+  const unread = reading ? 0 : messages.filter((m) => m.id > seen && !m.mine).length
+  return { open, setOpen, bubble, unread }
 }
