@@ -1,25 +1,35 @@
-/* ระบบดีไซน์ "สติกเกอร์": เส้นขอบ Ink หนา มุมโค้ง เงาแข็ง สีพาสเทล
-   ค่าสีและขนาดมาจากเอกสาร Design Improve ของโปรเจกต์ */
+/* ระบบดีไซน์ "ละครเวทีนิทาน": กระดาษสีงาช้าง เส้นบาง เงานุ่ม ขอบทอง ฉากฟ้ากลางคืนมีดาว
+   ปุ่มหลักเป็นแคปซูลสีเข้ม หัวข้อใช้ฟอนต์มีเชิง (ตัวอย่างดีไซน์ทุกหน้าอยู่ในหน้าตัวอย่างสไตล์ แบบ K)
+   ชื่อตัวแปรสีเดิม (pink, mint, butter ...) ยังใช้อยู่ทั้งไฟล์ จึงคงชื่อไว้แต่เปลี่ยนค่าให้เข้าโทนใหม่ */
 
 :root {
-  --ink: #3b2f4a;
-  --cream: #fff7ec;
-  --pink: #ff8fb1;
-  --pink-strong: #ff5c8d;
-  --mint: #9fe3c9;
-  --lavender: #c9bdff;
-  --butter: #ffdc85;
-  --sky: #a9d6f7;
-  --error: #c2185b;
-  --line: #ebdccb;
-  --muted: #9c8fa8;
-  --link: #d9467a;
-  --picked: #fff1c9;
+  --ink: #2b2a33;
+  --cream: #f7f3ea; /* กระดาษงาช้าง พื้นหลักของหน้า */
+  --paper: #fbf8f1; /* กระดาษการ์ด สว่างกว่าพื้นนิดหนึ่ง */
+  --frame: #cfc6b2; /* เส้นขอบบาง */
+  --gold: #c9a45c;
+  --gold-ink: #8a5a1e; /* ตัวหนังสือสีทอง อ่านได้บนพื้นงาช้าง */
+  --pill: #2f2d36; /* ปุ่มหลัก */
+  --night-1: #1e2a6b;
+  --night-2: #3a4ba8;
+  --night-3: #8c9be0;
+  --pink: #ead7ab; /* ทองอ่อน ใช้แทนสีเน้นเดิม */
+  --pink-strong: #b07a2a;
+  --mint: #d6e8dd;
+  --lavender: #dcdcf3;
+  --butter: #f3e3b6;
+  --sky: #d6def6;
+  --error: #b3261e;
+  --line: #e3dbc9;
+  --muted: #77717f;
+  --link: #8a5a1e;
+  --picked: #f6eac8;
 
   --bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ring: 0 0 0 3px #fff, 0 0 0 6px var(--pink-strong);
-  --font-head: 'Mitr', 'Mali', system-ui, sans-serif;
-  --font-body: 'Mali', system-ui, 'Segoe UI', 'Noto Sans Thai', sans-serif;
+  --ring: 0 0 0 2px var(--paper), 0 0 0 4px var(--gold);
+  --lift: 0 10px 28px rgba(30, 42, 107, 0.12);
+  --font-head: 'Noto Serif Thai', Georgia, serif;
+  --font-body: 'IBM Plex Sans Thai', system-ui, 'Segoe UI', 'Noto Sans Thai', sans-serif;
   --font-glyph: 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Apple Symbols', 'DejaVu Sans', sans-serif;
 
   font: 16px/1.5 var(--font-body);
@@ -38,10 +48,32 @@ body {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
+  position: relative;
   background: var(--cream);
-  background-image: radial-gradient(#f3dfc6 1.5px, transparent 1.5px);
-  background-size: 22px 22px;
   color: var(--ink);
+}
+
+/* ฉากฟ้ากลางคืนมีดาวที่หัวหน้า ขอบล่างเป็นคลื่นเหมือนผ้าม่าน แถบบนวางอยู่บนฉากนี้ */
+body::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 auto;
+  height: 112px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12C16 13 13 16 12 24C11 16 8 13 0 12C8 11 11 8 12 0Z' fill='%23ffe9a8'/%3E%3C/svg%3E")
+      8% 22px / 20px no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12C16 13 13 16 12 24C11 16 8 13 0 12C8 11 11 8 12 0Z' fill='%23ffffff'/%3E%3C/svg%3E")
+      31% 70px / 11px no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12C16 13 13 16 12 24C11 16 8 13 0 12C8 11 11 8 12 0Z' fill='%23ffd86b'/%3E%3C/svg%3E")
+      57% 22px / 16px no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12C16 13 13 16 12 24C11 16 8 13 0 12C8 11 11 8 12 0Z' fill='%23ffffff'/%3E%3C/svg%3E")
+      78% 64px / 10px no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12C16 13 13 16 12 24C11 16 8 13 0 12C8 11 11 8 12 0Z' fill='%23ffe9a8'/%3E%3C/svg%3E")
+      94% 18px / 22px no-repeat,
+    linear-gradient(180deg, var(--night-1) 0%, var(--night-2) 60%, var(--night-3) 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 74%, 88% 84%, 75% 76%, 62% 86%, 50% 78%, 38% 88%, 25% 78%, 12% 88%, 0 80%);
+  pointer-events: none;
 }
 
 input,
@@ -345,14 +377,29 @@ input::placeholder {
 
 .title {
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: clamp(24px, 6.5vw, 30px);
+}
+
+/* หัวข้อหลักของหน้ามีดาวสี่แฉกสีทองขนาบสองข้าง (✦ หัวข้อ ✦) */
+h1.title::before,
+h1.title::after {
+  content: '✦';
+  display: inline-block;
+  margin: 0 0.45em;
+  color: var(--gold);
+  font-size: 0.5em;
+  vertical-align: 0.35em;
+}
+
+h1.title::before {
+  margin-left: 0;
 }
 
 .subtitle {
   font-family: var(--font-head);
-  font-weight: 500;
-  font-size: 21px;
+  font-weight: 700;
+  font-size: 20px;
 }
 
 .small {
@@ -406,20 +453,19 @@ input::placeholder {
 /* ---------- ปุ่ม ---------- */
 
 .btn {
-  --depth: 5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   min-height: 44px;
-  padding: 12px 18px;
-  border: 3px solid var(--ink);
-  border-radius: 18px;
-  background: #fff;
-  box-shadow: 0 var(--depth) 0 var(--ink);
-  font-family: var(--font-head);
-  font-weight: 500;
-  font-size: 18px;
+  padding: 11px 22px;
+  border: 1px solid var(--pill);
+  border-radius: 999px;
+  background: var(--paper);
+  box-shadow: 0 2px 8px rgba(30, 42, 107, 0.08);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 17px;
   color: var(--ink);
   text-align: center;
   white-space: nowrap;
@@ -436,9 +482,9 @@ input::placeholder {
 }
 
 .btn:active:not(:disabled) {
-  translate: 0 calc(var(--depth) - 2px);
+  translate: 0 1px;
   scale: 0.97;
-  box-shadow: 0 2px 0 var(--ink);
+  box-shadow: none;
 }
 
 .btn.block {
@@ -446,27 +492,19 @@ input::placeholder {
 }
 
 .btn.big {
-  --depth: 6px;
-  padding: clamp(14px, 4vw, 18px);
-  border-radius: 22px;
-  font-weight: 600;
-  font-size: clamp(20px, 6vw, 24px);
+  padding: clamp(13px, 3.6vw, 16px) 28px;
+  font-size: clamp(18px, 5vw, 20px);
 }
 
 .btn.strong {
   font-weight: 600;
 }
 
-/* ปุ่มเล็กในการ์ด: เส้นบางลงและไม่มีเงา */
+/* ปุ่มเล็กในการ์ด: เตี้ยลงและไม่มีเงา */
 .btn.mini {
-  --depth: 0px;
   min-height: 40px;
-  padding: 8px 14px;
-  border-width: 2.5px;
-  border-radius: 14px;
+  padding: 7px 16px;
   box-shadow: none;
-  font-family: var(--font-body);
-  font-weight: 700;
   font-size: 14px;
 }
 
@@ -478,14 +516,14 @@ input::placeholder {
 .btn.icon {
   width: 44px;
   padding: 0;
-  border-radius: 14px;
-  --depth: 3px;
   font-size: 20px;
 }
 
-/* ปุ่มย้อนกลับ: พื้นสีเนยและลูกศรเส้นหนา ให้เป็นสติกเกอร์แบบเดียวกับปุ่มอื่น */
+/* ปุ่มย้อนกลับ: วงกลมสีงาช้างบนฉากฟ้ากลางคืน ลูกศรสีเข้ม */
 .btn.icon.back {
-  background: var(--butter);
+  border-color: var(--paper);
+  background: var(--paper);
+  color: var(--ink);
 }
 
 .btn.icon.back:hover:not(:disabled) .arrow-icon {
@@ -498,24 +536,26 @@ input::placeholder {
   transition: translate 0.25s var(--bounce);
 }
 
+/* ปุ่มหลักของหน้า: แคปซูลสีเข้ม ตัวหนังสือสีงาช้าง มีเส้นในบาง ๆ เหมือนกรอบป้าย */
 .btn.pink {
-  background: var(--pink);
+  border-color: var(--pill);
+  background: var(--pill);
+  color: var(--cream);
+  box-shadow:
+    inset 0 0 0 2px var(--pill),
+    inset 0 0 0 3px #8a8494,
+    0 6px 16px rgba(30, 42, 107, 0.18);
 }
 
 .btn.pink:hover:not(:disabled) {
-  background: #ff9fbc;
+  background: #3a3842;
 }
 
-.btn.mint {
-  background: var(--mint);
-}
-
-.btn.lavender {
-  background: var(--lavender);
-}
-
+/* ปุ่มรองทุกสีเป็นแคปซูลเส้นขอบบนกระดาษ ให้ปุ่มหลักสีเข้มเด่นอยู่ปุ่มเดียว */
+.btn.mint,
+.btn.lavender,
 .btn.butter {
-  background: var(--butter);
+  background: var(--paper);
 }
 
 .btn.danger {
@@ -525,10 +565,10 @@ input::placeholder {
 /* ---------- การ์ดและช่องกรอก ---------- */
 
 .card {
-  background: #fff;
-  border: 3px solid var(--ink);
-  border-radius: 24px;
-  box-shadow: 0 6px 0 var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--frame);
+  border-radius: 18px;
+  box-shadow: var(--lift);
   padding: clamp(16px, 4.5vw, 22px);
   display: flex;
   flex-direction: column;
@@ -536,8 +576,8 @@ input::placeholder {
 }
 
 .card.side {
-  border-radius: 22px;
-  box-shadow: 0 5px 0 var(--ink);
+  border-radius: 16px;
+  box-shadow: var(--lift);
   padding: 16px;
   gap: 12px;
 }
@@ -554,7 +594,7 @@ input::placeholder {
 
 .card-title {
   font-family: var(--font-head);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 18px;
 }
 
@@ -570,10 +610,10 @@ input::placeholder {
 .input {
   width: 100%;
   min-width: 0;
-  padding: 13px 14px;
-  border: 2.5px solid var(--ink);
-  border-radius: 14px;
-  background: var(--cream);
+  padding: 12px 16px;
+  border: 1px solid var(--frame);
+  border-radius: 12px;
+  background: var(--paper);
   font-family: var(--font-body);
   font-size: 16px;
   color: var(--ink);
@@ -584,8 +624,9 @@ input::placeholder {
 }
 
 .input:focus {
-  background: #fff;
-  border-color: var(--pink-strong);
+  background: #fffdf8;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201, 164, 92, 0.25);
 }
 
 .input[aria-invalid='true'] {
@@ -608,9 +649,9 @@ input::placeholder {
   translate: 0 -50%;
   min-height: 36px;
   padding: 4px 10px;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 10px;
-  background: #fff;
+  background: var(--paper);
   font-size: 12px;
   font-weight: 700;
 }
@@ -626,9 +667,9 @@ input::placeholder {
   width: 30px;
   height: 30px;
   flex: none;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 9px;
-  background: #fff;
+  background: var(--paper);
   font-size: 16px;
   font-weight: 700;
   display: flex;
@@ -654,9 +695,9 @@ input::placeholder {
   gap: 8px;
   min-height: 44px; /* ปุ่มสูงไม่ต่ำกว่า 44px บนมือถือ */
   padding: 6px 12px 6px 6px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
-  background: #fff;
+  background: var(--paper);
   font-family: var(--font-body);
   font-weight: 600;
   font-size: 14px;
@@ -671,34 +712,36 @@ input::placeholder {
 }
 
 .chip[aria-pressed='true'] {
-  background: var(--butter);
+  border-color: var(--pill);
+  background: var(--pill);
+  color: var(--cream);
 }
 
 .chip.dark[aria-pressed='true'] {
-  background: var(--ink);
-  color: #fff;
+  background: var(--pill);
+  color: var(--cream);
 }
 
 .swatch {
   width: 26px;
   height: 26px;
   flex: none;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 50%;
 }
 
 .pill {
   padding: 4px 10px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
-  background: #fff;
+  background: var(--paper);
   font-size: 12px;
   font-weight: 700;
 }
 
 .banner {
   padding: 10px 14px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
   background: var(--butter);
   font-weight: 600;
@@ -718,6 +761,7 @@ input::placeholder {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-bottom: 18px; /* ให้เนื้อหาเริ่มใต้ขอบคลื่นของฉากฟ้า */
 }
 
 .brand {
@@ -730,14 +774,15 @@ input::placeholder {
   border: none;
   background: none;
   font-family: var(--font-head);
-  font-weight: 600;
+  font-weight: 700;
   font-size: clamp(16px, 4.5vw, 20px);
   white-space: nowrap;
+  color: var(--cream); /* แถบบนวางบนฉากฟ้ากลางคืน */
 }
 
 .brand .glyph {
-  color: var(--pink);
-  -webkit-text-stroke: 1.5px var(--ink);
+  color: #ffe9a8;
+  text-shadow: 0 0 12px rgba(255, 216, 107, 0.6);
   font-size: 26px;
 }
 
@@ -758,9 +803,9 @@ input::placeholder {
   min-width: 0;
   min-height: 44px;
   padding: 4px 14px 4px 4px;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
-  background: #fff;
+  background: var(--paper);
   font-weight: 600;
   font-size: 14px;
   white-space: nowrap;
@@ -776,7 +821,7 @@ input::placeholder {
 
 .avatar {
   flex: none;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 50%;
   object-fit: cover;
   background: var(--lavender);
@@ -869,10 +914,10 @@ input::placeholder {
 .join-panel {
   width: 100%;
   padding: 16px;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 20px;
   background: var(--mint);
-  box-shadow: 0 5px 0 var(--ink);
+  box-shadow: 0 5px 15px rgba(30, 42, 107, 0.14);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -887,9 +932,9 @@ input::placeholder {
 
 .code-box {
   aspect-ratio: 0.85;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 14px;
-  background: #fff;
+  background: var(--paper);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -942,9 +987,9 @@ input::placeholder {
 .footer-links button.link {
   min-height: 44px;
   padding: 6px 14px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
-  background: #fff;
+  background: var(--paper);
   color: var(--ink);
   font-weight: 700;
   white-space: nowrap;
@@ -984,9 +1029,9 @@ input::placeholder {
 .medal {
   width: 84px;
   height: 84px;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 50%;
-  box-shadow: 0 5px 0 var(--ink);
+  box-shadow: 0 5px 15px rgba(30, 42, 107, 0.14);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1022,7 +1067,7 @@ input::placeholder {
   width: 34px;
   height: 34px;
   flex: none;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1038,9 +1083,9 @@ input::placeholder {
 }
 
 .rule-card {
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 22px;
-  box-shadow: 0 5px 0 var(--ink);
+  box-shadow: 0 5px 15px rgba(30, 42, 107, 0.14);
   padding: 18px;
   display: flex;
   flex-direction: column;
@@ -1062,7 +1107,7 @@ input::placeholder {
 .mini-board {
   container-type: inline-size;
   aspect-ratio: 1;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 12px;
   overflow: hidden;
   display: grid;
@@ -1119,9 +1164,9 @@ input::placeholder {
   width: 28px;
   height: 28px;
   flex: none;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 50%;
-  background: #fff;
+  background: var(--paper);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1174,10 +1219,10 @@ input::placeholder {
   min-width: 0;
   text-align: left;
   padding: clamp(10px, 3vw, 18px);
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: clamp(18px, 4vw, 24px);
-  background: #fff;
-  box-shadow: 0 4px 0 var(--ink);
+  background: var(--paper);
+  box-shadow: 0 4px 12px rgba(30, 42, 107, 0.14);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1194,13 +1239,13 @@ input::placeholder {
 
 .game-card.picked {
   background: var(--picked);
-  box-shadow: 0 7px 0 var(--ink);
+  box-shadow: 0 7px 21px rgba(30, 42, 107, 0.14);
   translate: 0 -3px;
 }
 
 .game-art {
   height: clamp(76px, 22vw, 110px);
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
   display: flex;
   align-items: center;
@@ -1238,9 +1283,9 @@ input::placeholder {
 .tc {
   min-height: 44px;
   padding: 10px 4px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 14px;
-  background: #fff;
+  background: var(--paper);
   font-family: var(--font-body);
   display: flex;
   flex-direction: column;
@@ -1278,10 +1323,10 @@ input::placeholder {
 .dialog {
   width: 100%;
   max-width: 460px;
-  background: #fff;
-  border: 3px solid var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--frame);
   border-radius: 24px;
-  box-shadow: 0 8px 0 var(--ink);
+  box-shadow: 0 8px 24px rgba(30, 42, 107, 0.14);
   padding: clamp(16px, 4.5vw, 22px);
   display: flex;
   flex-direction: column;
@@ -1305,9 +1350,9 @@ input::placeholder {
   width: 44px;
   height: 44px;
   flex: none;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 12px;
-  background: #fff;
+  background: var(--paper);
   font-size: 15px;
   padding: 0;
 }
@@ -1322,9 +1367,9 @@ input::placeholder {
 .promo {
   min-height: 44px;
   padding: 8px 4px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
-  background: #fff;
+  background: var(--paper);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1384,7 +1429,7 @@ input::placeholder {
 .count-chip {
   align-self: flex-start;
   padding: 4px 12px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
   background: var(--butter);
   font-family: var(--font-head);
@@ -1397,9 +1442,9 @@ input::placeholder {
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 18px;
-  background: #fff;
+  background: var(--paper);
   transition: background-color 0.25s ease;
 }
 
@@ -1440,9 +1485,9 @@ input::placeholder {
   font-size: clamp(19px, 5.5vw, 24px);
   font-variant-numeric: tabular-nums;
   padding: 2px 10px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 12px;
-  background: #fff;
+  background: var(--paper);
 }
 
 .clock-time.low {
@@ -1453,10 +1498,10 @@ input::placeholder {
   position: relative;
   width: 100%;
   aspect-ratio: 1;
-  border: 4px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 20px;
-  box-shadow: 0 7px 0 var(--ink);
-  background: #fff;
+  box-shadow: 0 7px 21px rgba(30, 42, 107, 0.14);
+  background: var(--paper);
   container-type: inline-size;
 }
 
@@ -1700,7 +1745,7 @@ input::placeholder {
 
 .chat-text {
   padding: 8px 12px;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
   background: #e8faf2;
   font-size: 15px;
@@ -1746,10 +1791,10 @@ input::placeholder {
   translate: -50% 0;
   z-index: 30;
   padding: 10px 16px;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 4px 0 var(--ink);
+  background: var(--paper);
+  box-shadow: 0 4px 12px rgba(30, 42, 107, 0.14);
   font-weight: 600;
   animation: pop 0.3s var(--bounce) both;
 }
@@ -1767,7 +1812,7 @@ input::placeholder {
   width: clamp(92px, 26vw, 120px);
   height: clamp(92px, 26vw, 120px);
   border-width: 3.5px;
-  box-shadow: 0 5px 0 var(--ink);
+  box-shadow: 0 5px 15px rgba(30, 42, 107, 0.14);
 }
 
 .profile-fields {
@@ -1781,7 +1826,7 @@ input::placeholder {
 .avatar-choice {
   width: 48px;
   height: 48px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 50%;
   font-family: var(--font-glyph);
   font-size: 28px;
@@ -1808,10 +1853,10 @@ input::placeholder {
 .slot {
   position: relative;
   padding: 10px;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 4px 0 var(--ink);
+  background: var(--paper);
+  box-shadow: 0 4px 12px rgba(30, 42, 107, 0.14);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1835,7 +1880,7 @@ input::placeholder {
 
 .slot-add {
   min-height: 180px;
-  border: 3px dashed var(--ink);
+  border: 1px dashed var(--frame);
   border-radius: 20px;
   background: transparent;
   font-family: var(--font-head);
@@ -1848,7 +1893,7 @@ input::placeholder {
 }
 
 .slot-add:hover {
-  background: #fff;
+  background: var(--paper);
 }
 
 .catalog {
@@ -1859,9 +1904,9 @@ input::placeholder {
 
 .catalog-item {
   padding: 8px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 18px;
-  background: #fff;
+  background: var(--paper);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1876,7 +1921,7 @@ input::placeholder {
 
 .catalog-item[aria-pressed='true'] {
   background: var(--picked);
-  box-shadow: 0 4px 0 var(--ink);
+  box-shadow: 0 4px 12px rgba(30, 42, 107, 0.14);
 }
 
 .fx-row {
@@ -1898,10 +1943,10 @@ input::placeholder {
   overflow: hidden;
   min-height: 78px;
   padding: 10px 6px 8px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 3px 0 var(--ink);
+  background: var(--paper);
+  box-shadow: 0 3px 9px rgba(30, 42, 107, 0.14);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1939,10 +1984,10 @@ input::placeholder {
   align-items: center;
   gap: 10px;
   padding: 20px 28px 16px;
-  background: #fff;
-  border: 3px solid var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--frame);
   border-radius: 24px;
-  box-shadow: 0 8px 0 var(--ink);
+  box-shadow: 0 8px 24px rgba(30, 42, 107, 0.14);
   text-align: center;
   animation: pop 0.4s var(--bounce) both;
 }
@@ -1992,7 +2037,7 @@ input::placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 50%;
   box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.55), inset 0 0 0 8.5px var(--ink);
   font-family: var(--font-head);
@@ -2152,7 +2197,7 @@ input::placeholder {
 .role-pill {
   display: inline-block;
   padding: 4px 12px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
   font-family: var(--font-head);
   font-weight: 600;
@@ -2165,7 +2210,7 @@ input::placeholder {
   gap: 12px;
   min-height: 44px;
   padding: 8px 12px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
   background: var(--cream);
   color: var(--ink);
@@ -2183,7 +2228,7 @@ a.link-card:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 50%;
   font-family: var(--font-head);
   font-weight: 600;
@@ -2224,9 +2269,9 @@ a.link-card:hover {
   aspect-ratio: 3 / 4;
   padding: 0;
   overflow: hidden;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
-  box-shadow: 0 4px 0 var(--ink);
+  box-shadow: 0 4px 12px rgba(30, 42, 107, 0.14);
   color: var(--ink);
   font-family: var(--font-body);
   cursor: pointer;
@@ -2318,7 +2363,7 @@ a.link-card:hover {
   top: 4px;
   right: 4px;
   padding: 1px 7px;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
   background: var(--pink-strong);
   color: #fff;
@@ -2341,9 +2386,9 @@ a.link-card:hover {
   aspect-ratio: 4 / 3;
   min-height: 300px;
   overflow: hidden;
-  border: 3.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 26px;
-  box-shadow: 0 7px 0 var(--ink);
+  box-shadow: 0 7px 21px rgba(30, 42, 107, 0.14);
 }
 
 .oc-slash {
@@ -2362,7 +2407,7 @@ a.link-card:hover {
 }
 
 .oc-slash.c {
-  background: #fff;
+  background: var(--paper);
   clip-path: polygon(97% 0, 100% 0, 54% 100%, 51% 100%);
 }
 
@@ -2501,10 +2546,10 @@ a.link-card:hover {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   padding: 6px;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 5px 0 var(--ink);
+  background: var(--paper);
+  box-shadow: 0 5px 15px rgba(30, 42, 107, 0.14);
 }
 
 .admin-tab {
@@ -2537,9 +2582,9 @@ a.link-card:hover {
 .admin-tab-count {
   min-width: 26px;
   padding: 1px 7px;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
-  background: #fff;
+  background: var(--paper);
   font-family: var(--font-body);
   font-weight: 700;
   font-size: 13px;
@@ -2552,7 +2597,7 @@ a.link-card:hover {
   right: 7px;
   width: 12px;
   height: 12px;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 50%;
   background: var(--pink-strong);
 }
@@ -2573,15 +2618,15 @@ a.link-card:hover {
 
 /* การ์ดของหนึ่งรายการ */
 .admin-row {
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 18px;
-  background: #fff;
-  box-shadow: 0 3px 0 var(--ink);
+  background: var(--paper);
+  box-shadow: 0 3px 9px rgba(30, 42, 107, 0.14);
   overflow: hidden;
 }
 
 .admin-row.open {
-  box-shadow: 0 5px 0 var(--ink);
+  box-shadow: 0 5px 15px rgba(30, 42, 107, 0.14);
 }
 
 /* รายการที่พิมพ์ไว้แต่ยังไม่ได้บันทึก */
@@ -2598,7 +2643,7 @@ a.link-card:hover {
 }
 
 .admin-row.open > .admin-row-head {
-  border-bottom: 2.5px dashed var(--ink);
+  border-bottom: 1px dashed var(--frame);
   background: var(--cream);
 }
 
@@ -2655,7 +2700,7 @@ a.link-card:hover {
   flex: none;
   width: 40px;
   height: 40px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 12px;
 }
 
@@ -2667,7 +2712,7 @@ a.link-card:hover {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 10px;
   font-family: var(--font-head);
   font-weight: 600;
@@ -2749,9 +2794,9 @@ a.link-card:hover {
   width: 100%;
   height: 48px;
   padding: 3px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 14px;
-  background: #fff;
+  background: var(--paper);
   cursor: pointer;
 }
 
@@ -2775,9 +2820,9 @@ a.link-card:hover {
   gap: 8px;
   min-height: 44px;
   padding: 6px 14px 6px 10px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
-  background: #fff;
+  background: var(--paper);
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
@@ -2807,7 +2852,7 @@ a.link-card:hover {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 14px;
   font-family: var(--font-head);
   font-weight: 600;
@@ -2832,10 +2877,10 @@ a.link-card:hover {
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 18px;
-  background: #fff;
-  box-shadow: 0 5px 0 var(--ink);
+  background: var(--paper);
+  box-shadow: 0 5px 15px rgba(30, 42, 107, 0.14);
 }
 
 .admin-bar-status {
@@ -2937,9 +2982,9 @@ a.link-card:hover {
   gap: 8px;
   min-width: 0;
   padding: 14px 8px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 18px;
-  background: #fff;
+  background: var(--paper);
   transition: background-color 0.25s ease;
 }
 
@@ -2959,7 +3004,7 @@ a.link-card:hover {
 .lobby-seat-empty {
   width: 56px;
   height: 56px;
-  border: 2.5px dashed var(--ink);
+  border: 1px dashed var(--frame);
   border-radius: 50%;
   opacity: 0.5;
 }
@@ -2972,7 +3017,7 @@ a.link-card:hover {
 }
 
 .lobby-seat.ready .lobby-seat-status {
-  background: #fff;
+  background: var(--paper);
 }
 
 .lobby-hint {
@@ -3025,6 +3070,11 @@ a.link-card:hover {
  * --game-chrome คือความสูงรวมของทุกอย่างที่ไม่ใช่กระดาน
  */
 body:has(.game.stack) .topbar {
+  display: none;
+}
+
+/* ระหว่างเล่นไม่มีแถบบน จึงซ่อนฉากฟ้าด้วย ให้ป้ายสถานะบนพื้นงาช้างอ่านง่าย (หน้าเล่นเกมจะออกแบบใหม่ในขั้นถัดไป) */
+body:has(.game.stack)::before {
   display: none;
 }
 
@@ -3125,9 +3175,9 @@ html:has(.game.stack) {
   gap: 6px;
   min-height: 44px;
   padding: 0 12px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
-  background: #fff;
+  background: var(--paper);
   cursor: pointer;
   list-style: none;
 }
@@ -3148,8 +3198,8 @@ html:has(.game.stack) {
 .room-caret {
   width: 8px;
   height: 8px;
-  border-right: 2.5px solid var(--ink);
-  border-bottom: 2.5px solid var(--ink);
+  border-right: 1px solid var(--frame);
+  border-bottom: 1px solid var(--frame);
   transform: translateY(-2px) rotate(45deg);
   transition: transform 0.2s ease;
 }
@@ -3169,10 +3219,10 @@ html:has(.game.stack) {
   flex-direction: column;
   gap: 10px;
   padding: 14px;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 6px 0 var(--ink);
+  background: var(--paper);
+  box-shadow: 0 6px 18px rgba(30, 42, 107, 0.14);
 }
 
 .room-pop .set-details {
@@ -3271,7 +3321,7 @@ html:has(.game.stack) {
   display: grid;
   place-items: center;
   padding: 0 3px;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
   background: var(--mint);
   color: var(--ink);
@@ -3302,10 +3352,10 @@ html:has(.game.stack) {
   align-items: flex-start;
   gap: 2px;
   padding: 8px 14px;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 6px 18px 18px 18px;
-  background: #fff;
-  box-shadow: 0 4px 0 var(--ink);
+  background: var(--paper);
+  box-shadow: 0 4px 12px rgba(30, 42, 107, 0.14);
   font-family: var(--font-body);
   text-align: left;
   cursor: pointer;
@@ -3319,9 +3369,9 @@ html:has(.game.stack) {
   top: -9px;
   width: 12px;
   height: 12px;
-  border-left: 3px solid var(--ink);
-  border-top: 3px solid var(--ink);
-  background: #fff;
+  border-left: 1px solid var(--frame);
+  border-top: 1px solid var(--frame);
+  background: var(--paper);
   transform: rotate(45deg);
 }
 
@@ -3362,7 +3412,7 @@ html:has(.game.stack) {
 }
 
 .chat-pop .chat {
-  box-shadow: 0 6px 0 var(--ink);
+  box-shadow: 0 6px 18px rgba(30, 42, 107, 0.14);
 }
 
 .chat-pop .chat-list {
@@ -3417,7 +3467,7 @@ html:has(.game.stack) {
   flex: 1;
   min-width: 0;
   padding: 6px 14px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
   background: var(--sky);
   font-family: var(--font-head);
@@ -3468,10 +3518,11 @@ html:has(.game.stack) {
   transform-origin: 50% 0;
   transform: rotateX(var(--tilt));
   transform-style: preserve-3d;
-  border: 4px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 14px;
-  background: conic-gradient(#ffe9f0 90deg, #f7a1bb 0 180deg, #ffe9f0 0 270deg, #f7a1bb 0) 0 0 / calc(200% / var(--cols)) calc(200% / var(--rows));
-  box-shadow: 0 16px 0 var(--ink);
+  background: conic-gradient(#ffe9f0 90deg, #f7a1bb 0 180deg, #ffe9f0 0 270deg, #f7a1bb 0) 0 0 /
+    calc(200% / var(--cols)) calc(200% / var(--rows));
+  box-shadow: 0 16px 48px rgba(30, 42, 107, 0.14);
 }
 
 /* ตำแหน่งบนกระดาน: สองฝั่งอยู่ซ้ายกับขวา (มองจากด้านข้าง) */
@@ -3531,10 +3582,10 @@ a.cb-card:focus-visible {
   align-items: center;
   gap: 2px;
   padding: 4px 8px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 3px 0 var(--ink);
+  background: var(--paper);
+  box-shadow: 0 3px 9px rgba(30, 42, 107, 0.14);
   line-height: 1.25;
 }
 
@@ -3551,7 +3602,7 @@ a.cb-card:focus-visible {
 .cb-role {
   max-width: 100%;
   padding: 0 8px;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
@@ -3575,12 +3626,12 @@ a.cb-card:focus-visible {
   display: grid;
   place-items: center;
   overflow: hidden;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 50%;
   font-family: var(--font-head);
   font-weight: 600;
   font-size: 26px;
-  box-shadow: 0 4px 0 var(--ink);
+  box-shadow: 0 4px 12px rgba(30, 42, 107, 0.14);
 }
 
 .cb-photo img {
@@ -3670,7 +3721,7 @@ a.cb-card:focus-visible {
   align-items: stretch;
   gap: 6px;
   padding: 8px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
   background: var(--cream);
   text-align: center;
@@ -3686,7 +3737,7 @@ a.cb-card:focus-visible {
   display: grid;
   place-items: center;
   overflow: hidden;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 10px;
   background: #ffe9f0;
   font-family: var(--font-head);
@@ -3725,7 +3776,7 @@ a.cb-card:focus-visible {
   width: max-content;
   max-width: calc(100% - 24px);
   margin: 0;
-  box-shadow: 0 4px 0 var(--ink);
+  box-shadow: 0 4px 12px rgba(30, 42, 107, 0.14);
   pointer-events: none;
 }
 
@@ -3742,10 +3793,10 @@ a.cb-card:focus-visible {
   top: 46%;
   z-index: 12;
   padding: 10px 22px;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 999px;
   background: var(--butter);
-  box-shadow: 0 5px 0 var(--ink);
+  box-shadow: 0 5px 15px rgba(30, 42, 107, 0.14);
   font-family: var(--font-head);
   font-weight: 600;
   font-size: clamp(18px, 4cqw, 28px);
@@ -3811,7 +3862,7 @@ a.cb-card:focus-visible {
   box-sizing: content-box;
   flex: none;
   overflow: hidden;
-  border: 3px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
   /* ลายตารางให้เห็นส่วนที่โปร่งของรูป */
   background: repeating-conic-gradient(#f3e6d6 0 25%, #fff 0 50%) 0 0 / 20px 20px;
@@ -3864,7 +3915,7 @@ a.cb-card:focus-visible {
   gap: 10px;
   align-items: center;
   padding: 8px 10px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 16px;
   background: var(--cream);
 }
@@ -3888,9 +3939,9 @@ a.cb-card:focus-visible {
   gap: 4px;
   min-height: 44px;
   padding: 6px 8px;
-  border: 2.5px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 14px;
-  background: #fff;
+  background: var(--paper);
   font-family: var(--font-body);
   font-weight: 700;
   cursor: pointer;
@@ -3912,7 +3963,7 @@ a.cb-card:focus-visible {
 .style-pair {
   display: flex;
   overflow: hidden;
-  border: 2px solid var(--ink);
+  border: 1px solid var(--frame);
   border-radius: 10px;
 }
 
