@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { setMyProfile, useMe } from '../lib/me'
-import { GLYPH_FONT, VS } from '../lib/pieceSets'
+import { PieceIcon } from './PieceIcon'
 import {
   AVATAR_PRESETS,
   deleteAvatar,
@@ -104,17 +104,18 @@ export function ProfileEditor() {
         <div className="row wrap" role="group" aria-labelledby="avatar-label" style={{ gap: 10 }}>
           {AVATAR_PRESETS.map((a) => (
             <button
-              key={a.glyph}
+              key={a.kind}
               type="button"
               className="avatar-choice"
               style={{ background: a.bg }}
               aria-label={`ใช้รูป${a.name}`}
               disabled={busy}
-              onClick={() =>
-                void run(async () => uploadAvatar(await presetAvatarBlob(a.glyph, a.bg, GLYPH_FONT)), 'เปลี่ยนรูปแล้ว')
-              }
+              onClick={(e) => {
+                const svg = e.currentTarget.querySelector('svg')
+                if (svg) void run(async () => uploadAvatar(await presetAvatarBlob(svg, a.bg)), 'เปลี่ยนรูปแล้ว')
+              }}
             >
-              {a.glyph + VS}
+              <PieceIcon kind={a.kind} />
             </button>
           ))}
         </div>

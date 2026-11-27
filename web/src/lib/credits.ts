@@ -52,22 +52,22 @@ export interface CreditsData {
 
 export const SAMPLE_CREDITS: CreditsData = {
   people: [
-    { id: 'nok', rev: 1, name: 'Nok', handle: '@nok.dev', link: '', bg: '#FFB8CC', image: '' },
-    { id: 'mew', rev: 1, name: 'Mew', handle: '@mewdraws', link: '', bg: '#9FE3C9', image: '' },
-    { id: 'pim', rev: 1, name: 'Pim', handle: '@pim.art', link: '', bg: '#C9BDFF', image: '' },
-    { id: 'tae', rev: 1, name: 'Tae', handle: '@taecodes', link: '', bg: '#FFDC85', image: '' },
+    { id: 'nok', rev: 1, name: 'Nok', handle: '@nok.dev', link: '', bg: '#E3B2BC', image: '' },
+    { id: 'mew', rev: 1, name: 'Mew', handle: '@mewdraws', link: '', bg: '#B8D6C4', image: '' },
+    { id: 'pim', rev: 1, name: 'Pim', handle: '@pim.art', link: '', bg: '#C5BDE8', image: '' },
+    { id: 'tae', rev: 1, name: 'Tae', handle: '@taecodes', link: '', bg: '#E9D2A0', image: '' },
   ],
   team: [
-    { id: 'dev', rev: 1, role: 'Developer', bg: '#A9D6F7', ids: ['nok', 'tae'] },
-    { id: 'art', rev: 1, role: 'Artist', bg: '#FFB8CC', ids: ['mew', 'pim'] },
+    { id: 'dev', rev: 1, role: 'Developer', bg: '#C3CBEF', ids: ['nok', 'tae'] },
+    { id: 'art', rev: 1, role: 'Artist', bg: '#E9D2A0', ids: ['mew', 'pim'] },
   ],
   ocs: [
-    { id: 'kaimuk', rev: 1, name: 'ไข่มุก', title: 'ราชินีขนมหวาน', owner: 'mew', artist: 'mew', color: '#FF8FB1', pale: '#FFE8EF', bio: 'ราชินีผู้ชอบกินขนมระหว่างเดินหมาก ถ้าแพ้จะงอนไปสามวัน', image: '' },
-    { id: 'phueng', rev: 1, name: 'ผึ้ง', title: 'อัศวินน้ำผึ้ง', owner: 'mew', artist: 'pim', color: '#FFD36E', pale: '#FFF7DA', bio: 'อัศวินขี่ม้าตัวจิ๋ว เดินเป็นรูปตัว L ไปทุกที่ แม้แต่ในชีวิตจริง', image: '' },
-    { id: 'mintra', rev: 1, name: 'มินตรา', title: 'บิชอปมิ้นต์', owner: 'nok', artist: 'pim', color: '#86D9B9', pale: '#E8FAF2', bio: 'เดินทแยงอย่างเดียวและภูมิใจกับมันมาก ชอบดื่มชามิ้นต์', image: '' },
-    { id: 'kong', rev: 1, name: 'ก้อง', title: 'ป้อมปราการ', owner: 'nok', artist: 'mew', color: '#B9AAF5', pale: '#F1EDFF', bio: 'ตัวใหญ่ใจดี ยืนเฝ้ามุมกระดานจนกว่าจะถึงตาเข้าป้อม', image: '' },
-    { id: 'fah', rev: 1, name: 'ฟ้า', title: 'เบี้ยผู้ฝันไกล', owner: 'tae', artist: 'pim', color: '#8CC7F2', pale: '#E6F4FF', bio: 'เบี้ยธรรมดาที่ฝันจะเดินถึงแถวสุดท้ายแล้วกลายเป็นควีน', image: '' },
-    { id: 'koko', rev: 1, name: 'โกโก้', title: 'ขุนผู้ง่วงนอน', owner: 'pim', artist: 'pim', color: '#C69B72', pale: '#F7E9D7', bio: 'ขุนที่ขยับทีละช่องเพราะยังไม่ตื่นดี แต่ไม่เคยโดนรุกจนสักครั้ง', image: '' },
+    { id: 'kaimuk', rev: 1, name: 'ไข่มุก', title: 'ราชินีขนมหวาน', owner: 'mew', artist: 'mew', color: '#C77B86', pale: '#F3E3E2', bio: 'ราชินีผู้ชอบกินขนมระหว่างเดินหมาก ถ้าแพ้จะงอนไปสามวัน', image: '' },
+    { id: 'phueng', rev: 1, name: 'ผึ้ง', title: 'อัศวินน้ำผึ้ง', owner: 'mew', artist: 'pim', color: '#D8B56C', pale: '#F6EDD3', bio: 'อัศวินขี่ม้าตัวจิ๋ว เดินเป็นรูปตัว L ไปทุกที่ แม้แต่ในชีวิตจริง', image: '' },
+    { id: 'mintra', rev: 1, name: 'มินตรา', title: 'บิชอปมิ้นต์', owner: 'nok', artist: 'pim', color: '#7FB39A', pale: '#E3EEE6', bio: 'เดินทแยงอย่างเดียวและภูมิใจกับมันมาก ชอบดื่มชามิ้นต์', image: '' },
+    { id: 'kong', rev: 1, name: 'ก้อง', title: 'ป้อมปราการ', owner: 'nok', artist: 'mew', color: '#A99BD2', pale: '#ECE8F5', bio: 'ตัวใหญ่ใจดี ยืนเฝ้ามุมกระดานจนกว่าจะถึงตาเข้าป้อม', image: '' },
+    { id: 'fah', rev: 1, name: 'ฟ้า', title: 'เบี้ยผู้ฝันไกล', owner: 'tae', artist: 'pim', color: '#86A9C4', pale: '#E4ECF2', bio: 'เบี้ยธรรมดาที่ฝันจะเดินถึงแถวสุดท้ายแล้วกลายเป็นควีน', image: '' },
+    { id: 'koko', rev: 1, name: 'โกโก้', title: 'ขุนผู้ง่วงนอน', owner: 'pim', artist: 'pim', color: '#B98A5E', pale: '#F1E4D2', bio: 'ขุนที่ขยับทีละช่องเพราะยังไม่ตื่นดี แต่ไม่เคยโดนรุกจนสักครั้ง', image: '' },
   ],
 }
 

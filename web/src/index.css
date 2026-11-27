@@ -2234,18 +2234,15 @@ body:has(.home)::before {
 .avatar-choice {
   width: 48px;
   height: 48px;
-  border: 1px solid var(--frame);
+  border: 1px solid var(--gold);
   border-radius: 50%;
-  font-family: var(--font-glyph);
-  font-size: 28px;
+  font-size: 34px;
   line-height: 1;
-  color: #fff;
-  -webkit-text-stroke: 1.5px var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  transition: translate 0.35s var(--bounce);
+  transition: translate 0.25s var(--ease-out);
 }
 
 .avatar-choice:hover:not(:disabled) {
