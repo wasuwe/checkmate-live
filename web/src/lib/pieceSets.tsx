@@ -9,7 +9,7 @@
 
 import { cloneElement, useSyncExternalStore, type CSSProperties, type JSX } from 'react'
 import { FABLE_PATTERNS, fablePiece } from './fables'
-import { DEFAULT_STYLE, drawPiece, styleKind, type StylePrefs } from './pieceStyles'
+import { DEFAULT_STYLES, drawPiece, FABLE_STYLE, styleKind, type StylePrefs } from './pieceStyles'
 import type { Color } from './protocol'
 
 export const INK = '#2B2A33'
@@ -124,14 +124,17 @@ export function pieceSvg(
   // รูปทรงมาจากรูปแบบที่ผู้เล่นเลือกของตัวหมากรุกสากลที่ตรงกัน (เม็ด=ควีน โคน=บิชอป เบี้ยหงาย=เบี้ย)
   const base = styleKind(kind) ?? 'P'
   const paint = { fill: color === 'w' ? set.w : set.b, ink: INK, color }
-  // รูปแบบตั้งต้นของทุกตัวเป็นตัวละครในนิทานของชุด แต่งชุดตามตำแหน่ง
-  // ถ้าผู้เล่นเลือกรูปแบบอื่นให้ตัวไหนไว้ในหน้าโปรไฟล์ ตัวนั้นใช้แบบที่เลือกแทน
-  const fable = (opts.styles?.[base] ?? DEFAULT_STYLE) === DEFAULT_STYLE ? fablePiece(set.id, base, paint) : undefined
-  const body = fable ?? drawPiece(opts.styles?.[base], base, paint)
+  // ค่าเริ่มต้น: ตัวหมากคลาสสิก ส่วนเบี้ยเป็นตัวละครในนิทานของชุด (DEFAULT_STYLES)
+  // รูปแบบ "ตัวละครนิทาน" วาดที่นี่เพราะต้องรู้ว่าใช้ชุดไหน ชุดที่ไม่มีตัวละครใช้แบบคลาสสิกแทน
+  const styleId = opts.styles?.[base] ?? DEFAULT_STYLES[base]
+  const fable = styleId === FABLE_STYLE ? fablePiece(set.id, base, paint) : undefined
+  const body = fable ?? drawPiece(styleId, base, paint)
+  // ป้ายบอกชนิดหมากที่มุม: ใช้เฉพาะเมื่อรูปทรงไม่ได้บอกชนิดเอง คือตัวละครนิทานที่ไม่ใช่เบี้ย และรูปที่ทีมงานอัปโหลด
+  const needsBadge = fable ? base !== 'P' : styleId.startsWith('u-')
   return (
     <svg key={opts.key} viewBox="0 0 45 45" className={opts.className ?? 'piece'} style={opts.style}>
       {FLIPPED[kind] ? cloneElement(body, { transform: 'rotate(180 22.5 22.5)' }) : body}
-      {opts.badge !== false && (
+      {opts.badge !== false && needsBadge && (
         <>
           {/* ป้ายชนิดหมาก: วงกลมสีกระดาษงาช้าง ขอบทอง */}
           <circle cx="7.2" cy="7.2" r="5.6" fill="#FBF8F1" stroke="#B08A45" strokeWidth="0.9" />

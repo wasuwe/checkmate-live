@@ -15,7 +15,7 @@ export interface FablePaint {
 
 type Draw = (p: FablePaint) => JSX.Element
 
-const line = (ink: string, width = 1.6) => ({
+const line = (ink: string, width = 1.3) => ({
   stroke: ink,
   strokeWidth: width,
   strokeLinejoin: 'round' as const,
@@ -23,7 +23,13 @@ const line = (ink: string, width = 1.6) => ({
 })
 
 /** ฐานของตัวเบี้ย ทุกตัวละครยืนบนฐานนี้ จึงยังดูออกว่าเป็นเบี้ย */
-const base = ({ fill, ink }: FablePaint) => <rect x="12.5" y="35" width="20" height="5" rx="2.5" fill={fill} {...line(ink)} />
+const base = ({ fill, ink }: FablePaint) => (
+  <path d="M11.5 39.5 Q11.5 36.2 14.5 35.6 H30.5 Q33.5 36.2 33.5 39.5 Z" fill={fill} {...line(ink)} />
+)
+
+/** สีรองของตัวละคร: อ่อนกว่าหรือเข้มกว่าสีตัวหมากเล็กน้อย ใช้แทนสีสดหลายสี ให้ทั้งชุดดูเป็นชุดเดียวกัน */
+const tone = (p: FablePaint) => (p.color === 'w' ? '#DCCFB6' : 'rgba(255, 255, 255, 0.3)')
+const GOLD_DEEP = '#C9A45C'
 
 const eyes = (y: number, gap: number, color: string, r = 1.3) => (
   <>
@@ -75,10 +81,10 @@ const pitcher: Draw = (p) => (
   <g>
     <path d="M28.5 19 Q35 20 31 28" fill="none" {...line(p.ink, 2)} />
     <path d="M16 34 Q13.5 24.5 18 18.5 L17 12 H28 L27 18.5 Q31.5 24.5 29 34 Z" fill={p.fill} {...line(p.ink)} />
-    <path d="M15.6 25 H29.4" {...line('#5E86A6', 2)} />
-    <circle cx="20" cy="30" r="1.6" fill="#9AA4AE" />
-    <circle cx="24.5" cy="31" r="1.4" fill="#9AA4AE" />
-    <circle cx="22" cy="27.6" r="1.2" fill="#9AA4AE" />
+    <path d="M15.6 25 H29.4" {...line(tone(p), 2)} />
+    <circle cx="20" cy="30" r="1.6" fill={tone(p)} />
+    <circle cx="24.5" cy="31" r="1.4" fill={tone(p)} />
+    <circle cx="22" cy="27.6" r="1.2" fill={tone(p)} />
   </g>
 )
 
@@ -96,11 +102,11 @@ const crow: Draw = (p) => (
 
 const tortoise: Draw = (p) => (
   <g>
-    <circle cx="35.5" cy="27.5" r="3.6" fill="#B8D3A8" {...line(p.ink, 1.3)} />
-    <rect x="14" y="30" width="4" height="5" rx="1.5" fill="#B8D3A8" {...line(p.ink, 1.2)} />
-    <rect x="27" y="30" width="4" height="5" rx="1.5" fill="#B8D3A8" {...line(p.ink, 1.2)} />
+    <circle cx="35.5" cy="27.5" r="3.6" fill={tone(p)} {...line(p.ink, 1.3)} />
+    <rect x="14" y="30" width="4" height="5" rx="1.5" fill={tone(p)} {...line(p.ink, 1.2)} />
+    <rect x="27" y="30" width="4" height="5" rx="1.5" fill={tone(p)} {...line(p.ink, 1.2)} />
     <path d="M10.5 32 Q11.5 16.5 22.5 15.5 Q33.5 16.5 34.5 32 Z" fill={p.fill} {...line(p.ink)} />
-    <path d="M16.5 32 L18.8 24 H26.2 L28.5 32 M18.8 24 L22.5 17.5 L26.2 24" fill="none" {...line('#5E8A6A', 1.2)} />
+    <path d="M16.5 32 L18.8 24 H26.2 L28.5 32 M18.8 24 L22.5 17.5 L26.2 24" fill="none" {...line(tone(p), 1.2)} />
   </g>
 )
 
@@ -108,11 +114,10 @@ const hare: Draw = (p) => (
   <g>
     <ellipse cx="18.2" cy="11" rx="3.2" ry="8.5" transform="rotate(-12 18.2 11)" fill={p.fill} {...line(p.ink)} />
     <ellipse cx="26.8" cy="11" rx="3.2" ry="8.5" transform="rotate(12 26.8 11)" fill={p.fill} {...line(p.ink)} />
-    <path d="M18.2 6 V15 M26.8 6 V15" {...line('#E3B2BC', 1.5)} />
+    <path d="M18.2 6 V15 M26.8 6 V15" {...line(tone(p), 1.5)} />
     <circle cx="22.5" cy="25" r="8.5" fill={p.fill} {...line(p.ink)} />
     {eyes(23.5, 3.4, eyeOn(p))}
-    <circle cx="22.5" cy="27" r="1.3" fill="#E3B2BC" />
-    <path d="M13 27 H17.5 M27.5 27 H32" {...line(eyeOn(p), 0.8)} />
+    <circle cx="22.5" cy="27" r="1.3" fill={tone(p)} />
   </g>
 )
 
@@ -140,8 +145,8 @@ const fleece = (fill: string, ink: string) => {
 const sheep: Draw = (p) => (
   <g>
     {fleece(p.fill, p.ink)}
-    <ellipse cx="22.5" cy="20.5" rx="4.8" ry="6" fill="#4A4238" {...line(p.ink, 1.2)} />
-    <path d="M17.5 17 L14.5 19 M27.5 17 L30.5 19" {...line('#4A4238', 2.4)} />
+    <ellipse cx="22.5" cy="20.5" rx="4.8" ry="6" fill={p.ink} {...line(p.ink, 1.2)} />
+    <path d="M17.5 17 L14.5 19 M27.5 17 L30.5 19" {...line(p.ink, 2.4)} />
     {eyes(19.5, 2, '#FFF6DC', 1)}
   </g>
 )
@@ -151,7 +156,7 @@ const wolfHead = (p: FablePaint, y = 0) => (
     <path d="M13 8 L17.5 18 L11 18.5 Z" fill={p.fill} {...line(p.ink)} />
     <path d="M32 8 L34 18.5 L27.5 18 Z" fill={p.fill} {...line(p.ink)} />
     <circle cx="22.5" cy="22" r="9" fill={p.fill} {...line(p.ink)} />
-    <ellipse cx="22.5" cy="27" rx="5" ry="3.8" fill="#9C9A92" {...line(p.ink, 1.2)} />
+    <ellipse cx="22.5" cy="27" rx="5" ry="3.8" fill={tone(p)} {...line(p.ink, 1.2)} />
     <circle cx="22.5" cy="25.2" r="1.5" fill={p.ink} />
     <path d="M17 20 L20.5 21 M28 20 L24.5 21" {...line('#F2CF6E', 1.8)} />
   </g>
@@ -176,11 +181,11 @@ const wolfInFleece: Draw = (p) => (
 )
 
 const grapes: Draw = (p) => {
-  const berry = p.color === 'w' ? '#D9E8B0' : p.fill
+  const berry = p.fill
   return (
     <g>
       <path d="M22.5 13 Q23.5 9 27 7.5" fill="none" {...line(p.ink, 1.4)} />
-      <path d="M25 9.5 Q31 6 33 11 Q28 13.5 25 9.5 Z" fill="#93B8A2" {...line(p.ink, 1.1)} />
+      <path d="M25 9.5 Q31 6 33 11 Q28 13.5 25 9.5 Z" fill={tone(p)} {...line(p.ink, 1.1)} />
       {[
         [17, 17],
         [22.5, 17],
@@ -199,7 +204,7 @@ const fox: Draw = (p) => (
   <g>
     <path d="M11 14 L13 5.5 L19 14.5 Z" fill={p.fill} {...line(p.ink)} />
     <path d="M34 14 L32 5.5 L26 14.5 Z" fill={p.fill} {...line(p.ink)} />
-    <path d="M13.5 12.5 L14.3 8.5 L16.8 12.8 M31.5 12.5 L30.7 8.5 L28.2 12.8" fill="none" {...line('#D9823B', 1.4)} />
+    <path d="M13.5 12.5 L14.3 8.5 L16.8 12.8 M31.5 12.5 L30.7 8.5 L28.2 12.8" fill="none" {...line(tone(p), 1.4)} />
     <path d="M10.5 14 Q22.5 9.5 34.5 14 Q33 25 22.5 33.5 Q12 25 10.5 14 Z" fill={p.fill} {...line(p.ink)} />
     <path d="M16 22 Q22.5 25.5 29 22 Q26 29 22.5 33 Q19 29 16 22 Z" fill="#FFF6DC" {...line(p.ink, 1)} />
     <circle cx="22.5" cy="31.5" r="1.5" fill={p.ink} />
@@ -211,12 +216,11 @@ const mouseHead = (p: FablePaint) => (
   <g>
     <circle cx="14.5" cy="16" r="5.5" fill={p.fill} {...line(p.ink)} />
     <circle cx="30.5" cy="16" r="5.5" fill={p.fill} {...line(p.ink)} />
-    <circle cx="14.5" cy="16" r="3" fill="#E3B2BC" />
-    <circle cx="30.5" cy="16" r="3" fill="#E3B2BC" />
+    <circle cx="14.5" cy="16" r="3" fill={tone(p)} />
+    <circle cx="30.5" cy="16" r="3" fill={tone(p)} />
     <circle cx="22.5" cy="25" r="8.5" fill={p.fill} {...line(p.ink)} />
     {eyes(24, 3.2, eyeOn(p))}
-    <circle cx="22.5" cy="28" r="1.4" fill="#E3B2BC" />
-    <path d="M13.5 27.5 H18 M27 27.5 H31.5" {...line(eyeOn(p), 0.8)} />
+    <circle cx="22.5" cy="28" r="1.4" fill={tone(p)} />
   </g>
 )
 
@@ -232,7 +236,7 @@ const townMouse: Draw = (p) => (
     {mouseHead(p)}
     <rect x="16" y="15" width="13" height="2.2" rx="1" fill="#2B2A33" />
     <rect x="18.2" y="6.5" width="8.6" height="9" rx="1" fill="#2B2A33" />
-    <rect x="18.2" y="12.5" width="8.6" height="1.6" fill="#C77B86" />
+    <rect x="18.2" y="12.5" width="8.6" height="1.6" fill={GOLD_DEEP} />
   </g>
 )
 
@@ -242,7 +246,7 @@ const countryMouse: Draw = (p) => (
     {mouseHead(p)}
     <ellipse cx="22.5" cy="16" rx="10" ry="2.6" fill="#E2C98C" {...line(p.ink, 1.1)} />
     <path d="M17 16 Q17.5 9.5 22.5 9.5 Q27.5 9.5 28 16" fill="#E2C98C" {...line(p.ink, 1.1)} />
-    <path d="M17.2 14 H27.8" {...line('#93B8A2', 1.4)} />
+    <path d="M17.2 14 H27.8" {...line(tone(p), 1.4)} />
   </g>
 )
 
@@ -252,8 +256,8 @@ const catWithBell: Draw = (p) => (
     <path d="M31.5 19 L30.5 7.5 L24 15 Z" fill={p.fill} {...line(p.ink)} />
     <circle cx="22.5" cy="23" r="9" fill={p.fill} {...line(p.ink)} />
     <path d="M18 21.5 Q19.2 20.5 20.4 21.5 M24.6 21.5 Q25.8 20.5 27 21.5" fill="none" {...line('#F2CF6E', 1.6)} />
-    <path d="M21.3 25.5 L22.5 26.7 L23.7 25.5" fill="none" {...line('#E3B2BC', 1.2)} />
-    <path d="M15.5 31 Q22.5 34 29.5 31" fill="none" {...line('#C77B86', 2)} />
+    <path d="M21.3 25.5 L22.5 26.7 L23.7 25.5" fill="none" {...line(tone(p), 1.2)} />
+    <path d="M15.5 31 Q22.5 34 29.5 31" fill="none" {...line(GOLD_DEEP, 2)} />
     <circle cx="22.5" cy="33.2" r="2.6" fill="#F2CF6E" {...line(p.ink, 1)} />
   </g>
 )
@@ -272,7 +276,7 @@ const goose: Draw = (p) => (
     <path d="M19.5 28 Q14 21 17.5 12.5" fill="none" {...line(p.ink, 6.4)} />
     <path d="M19.5 28 Q14 21 17.5 12.5" fill="none" stroke={p.fill} strokeWidth="3.6" strokeLinecap="round" />
     <circle cx="18" cy="11.5" r="4.3" fill={p.fill} {...line(p.ink)} />
-    <path d="M14 10.5 L8.5 12.2 L14 14 Z" fill="#E09A3E" {...line(p.ink, 1)} />
+    <path d="M14 10.5 L8.5 12.2 L14 14 Z" fill={GOLD_DEEP} {...line(p.ink, 1)} />
     <circle cx="18.6" cy="10.6" r="1" fill="#FFF6DC" />
     <path d="M24 27 Q28.5 25 32 28" fill="none" {...line('#F2CF6E', 1.3)} />
   </g>
@@ -286,7 +290,7 @@ const ant: Draw = (p) => (
     <ellipse cx="22" cy="24" rx="3.3" ry="2.8" fill={p.fill} {...line(p.ink)} />
     <ellipse cx="30" cy="26" rx="5.5" ry="4.5" fill={p.fill} {...line(p.ink)} />
     <circle cx="14" cy="19.5" r="0.9" fill={eyeOn(p)} />
-    <path d="M10 25 L13.5 29 Q15 30.5 17 29" fill="none" {...line('#C77B86', 1)} />
+    <path d="M10 25 L13.5 29 Q15 30.5 17 29" fill="none" {...line(GOLD_DEEP, 1)} />
   </g>
 )
 
@@ -294,7 +298,7 @@ const grasshopper: Draw = (p) => (
   <g>
     <path d="M32 17 Q36 10 39 9.5 M30 16 Q32 9 34.5 7" fill="none" {...line(p.ink, 1.1)} />
     <path d="M16 27 L23 14 L28 26" fill="none" {...line(p.ink, 3.8)} />
-    <path d="M16 27 L23 14 L28 26" fill="none" stroke={p.fill === '#FFFFFF' ? '#D9E8B0' : '#7E8F4A'} strokeWidth="2" strokeLinejoin="round" />
+    <path d="M16 27 L23 14 L28 26" fill="none" stroke={tone(p)} strokeWidth="2" strokeLinejoin="round" />
     <ellipse cx="21" cy="27" rx="11" ry="4.3" transform="rotate(-12 21 27)" fill={p.fill} {...line(p.ink)} />
     <circle cx="31.5" cy="21" r="4.2" fill={p.fill} {...line(p.ink)} />
     <circle cx="33" cy="20.3" r="1.1" fill={eyeOn(p)} />
@@ -382,7 +386,7 @@ const queenRole: Role = (figure, p) => (
     <path d="M13.5 33 Q22.5 30 31.5 33" fill="none" {...line(GOLD, 1.4)} />
     {figureAt(figure, p, 22.5, 17, 0.6)}
     <path d="M15.5 8.5 Q22.5 2 29.5 8.5 L28 10 Q22.5 5.5 17 10 Z" fill={GOLD} {...line(p.ink, 1.2)} />
-    <circle cx="22.5" cy="4.6" r="1.9" fill="#C77B86" {...line(p.ink, 1)} />
+    <circle cx="22.5" cy="4.6" r="1.9" fill={GOLD_DEEP} {...line(p.ink, 1)} />
     {wideBase(p)}
   </g>
 )
@@ -466,15 +470,17 @@ function tile(inner: string): string {
   return `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>${inner}</svg>`)}")`
 }
 
+// ลายต้องจางมาก: เป็นแค่พื้นผิวของช่อง ไม่แย่งสายตาจากตัวหมาก
+const FAINT = 0.5
 const S = (color: string, opacity: number, width = 3) =>
-  `fill='none' stroke='${color}' stroke-opacity='${opacity}' stroke-width='${width}' stroke-linecap='round' stroke-linejoin='round'`
-const F = (color: string, opacity: number) => `fill='${color}' fill-opacity='${opacity}'`
+  `fill='none' stroke='${color}' stroke-opacity='${(opacity * FAINT).toFixed(2)}' stroke-width='${width * 0.8}' stroke-linecap='round' stroke-linejoin='round'`
+const F = (color: string, opacity: number) => `fill='${color}' fill-opacity='${(opacity * FAINT).toFixed(2)}'`
 
 const sunRays = `<circle cx='80' cy='20' r='8' ${F('#C9973A', 0.28)}/><path d='M80 4v6M80 30v6M64 20h6M90 20h6M69 9l4 4M87 27l4 4M91 9l-4 4M73 27l-4 4' ${S('#C9973A', 0.3)}/>`
 const windSwirl = `<path d='M8 58 Q28 38 48 54 T88 50' ${S('#FFFFFF', 0.45)}/><path d='M22 76 Q40 62 58 72 Q70 78 76 68' ${S('#FFFFFF', 0.35)}/>`
 const pebbles = `<ellipse cx='26' cy='72' rx='9' ry='6' ${F('#7E8994', 0.22)}/><ellipse cx='62' cy='82' rx='6' ry='4' ${F('#7E8994', 0.22)}/><ellipse cx='76' cy='30' rx='5' ry='3.5' ${F('#7E8994', 0.22)}/>`
 const ripples = `<path d='M14 40 Q50 24 86 40' ${S('#FFFFFF', 0.38)}/><path d='M26 60 Q50 48 74 60' ${S('#FFFFFF', 0.3)}/><path d='M38 78 Q50 72 62 78' ${S('#FFFFFF', 0.25)}/>`
-const grass = `<path d='M18 88 L22 72 L25 88 M27 88 L32 70 L35 88 M66 42 L69 28 L72 42 M73 42 L77 31 L79 42' ${S('#4F7A5C', 0.32)}/>`
+const grass = `<path d='M22 88 Q20 76 14 70 M24 88 Q24 74 26 66 M27 88 Q30 78 36 74 M70 44 Q69 36 65 32 M72 44 Q73 35 77 31' ${S('#4F7A5C', 0.32, 2.4)}/>`
 const clover = `<g ${F('#FFFFFF', 0.38)}><circle cx='30' cy='30' r='5'/><circle cx='38' cy='30' r='5'/><circle cx='34' cy='23' r='5'/><circle cx='72' cy='72' r='4'/><circle cx='78' cy='72' r='4'/><circle cx='75' cy='66' r='4'/></g>`
 const meadowFlowers = `<g ${F('#C9A23F', 0.35)}><circle cx='24' cy='26' r='4'/><circle cx='74' cy='70' r='4'/></g><g ${F('#FFFFFF', 0.6)}><circle cx='24' cy='26' r='1.6'/><circle cx='74' cy='70' r='1.6'/></g>`
 const fence = `<path d='M0 70 H100 M0 82 H100 M22 60 V94 M78 60 V94' ${S('#FFFFFF', 0.32, 3.5)}/>`

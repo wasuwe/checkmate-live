@@ -51,7 +51,7 @@ describe('board sets', () => {
   test('pieces are drawn as the fable characters unless another style is chosen', () => {
     const set = setById('mint')
     const pawn = pieceSvg(set, 'w', 'P', { badge: false })
-    const glyph = pieceSvg(set, 'w', 'P', { badge: false, styles: { K: 'glyph', Q: 'glyph', R: 'glyph', B: 'glyph', N: 'glyph', P: 'shape' } })
+    const glyph = pieceSvg(set, 'w', 'P', { badge: false, styles: { K: 'classic', Q: 'classic', R: 'classic', B: 'classic', N: 'classic', P: 'shape' } })
     expect(JSON.stringify(pawn.props.children)).not.toBe(JSON.stringify(glyph.props.children))
   })
 
@@ -87,8 +87,12 @@ describe('board sets', () => {
   })
 
   test('the badge can be left out', () => {
-    expect(piecesFor(SETS[0]).wK().props.children[1]).toBeTruthy()
-    expect(piecesFor(SETS[0], { badge: false }).wK().props.children[1]).toBe(false)
+    // ตัวหมากคลาสสิกบอกชนิดด้วยรูปทรงเอง จึงไม่มีป้าย ส่วนตัวละครนิทานที่ไม่ใช่เบี้ยมีป้าย
+    const fable = { K: 'fable', Q: 'fable', R: 'fable', B: 'fable', N: 'fable', P: 'fable' }
+    expect(piecesFor(SETS[0]).wK().props.children[1]).toBe(false)
+    expect(piecesFor(SETS[0], { styles: fable }).wK().props.children[1]).toBeTruthy()
+    expect(piecesFor(SETS[0], { styles: fable }).wP().props.children[1]).toBe(false)
+    expect(piecesFor(SETS[0], { styles: fable, badge: false }).wK().props.children[1]).toBe(false)
   })
 
   test('preview shows four pieces on a 4x4 board', () => {
