@@ -96,6 +96,9 @@ func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 		}
 
 		switch msg.Type {
+		case msgPing:
+			client.Send(pongMsg)
+
 		case msgJoin:
 			if room != nil {
 				client.Send(encodeError(errCodeAlreadyJoined))

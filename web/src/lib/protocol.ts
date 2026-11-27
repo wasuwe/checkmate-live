@@ -156,7 +156,13 @@ export interface ReportOkMsg {
   id: number
 }
 
+/** คำตอบของ ping: การเชื่อมต่อยังส่งข้อมูลถึงกันได้ */
+export interface PongMsg {
+  type: 'pong'
+}
+
 export type ServerMsg =
+  | PongMsg
   | StateMsg
   | AuthOkMsg
   | GameOverMsg
@@ -176,8 +182,9 @@ export type ClientMsg =
   | { type: 'kick' }
   | { type: 'set'; set: string }
   | { type: 'rematch' }
+  | { type: 'ping' }
 
-const SERVER_TYPES = new Set(['state', 'auth_ok', 'game_over', 'error', 'chat', 'chat_history', 'report_ok'])
+const SERVER_TYPES = new Set(['pong', 'state', 'auth_ok', 'game_over', 'error', 'chat', 'chat_history', 'report_ok'])
 
 /** แปลงข้อความจากเซิร์ฟเวอร์ คืน null ถ้าไม่ใช่รูปแบบที่รู้จัก */
 export function parseServerMsg(data: string): ServerMsg | null {

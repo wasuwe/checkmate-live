@@ -24,6 +24,7 @@ const (
 	msgKick    = "kick"
 	msgSet     = "set"
 	msgRematch = "rematch"
+	msgPing    = "ping"
 )
 
 // inbound คือข้อความขาเข้าทุกชนิดรวมกัน field ที่ไม่รู้จักจะถูกปฏิเสธ
@@ -102,6 +103,8 @@ func decodeInbound(data []byte) (inbound, error) {
 			!squareRe.MatchString(m.From) || !squareRe.MatchString(m.To) || !promoRe.MatchString(m.Promo) {
 			return inbound{}, errBadMessage
 		}
+	case msgPing:
+		// ไม่มี field เพิ่ม: หน้าเว็บถามว่าการเชื่อมต่อยังใช้ได้อยู่ไหม เซิร์ฟเวอร์ตอบ pong
 	case msgRematch:
 		// ไม่มี field เพิ่ม: ผู้ขอเล่นต่อคือเจ้าของ connection
 	case msgKick:
@@ -303,6 +306,12 @@ func mustJSON(v any) []byte {
 	}
 	return b
 }
+
+// pongMsg คือคำตอบของ ping หน้าเว็บใช้ตรวจว่าการเชื่อมต่อยังส่งข้อมูลถึงกันได้จริง
+// (ping ของ WebSocket เองหน้าเว็บมองไม่เห็น จึงรู้ไม่ได้ว่าเส้นทางขาด เช่น มือถือสลับเครือข่ายหรือถูกพักหน้าไว้)
+var pongMsg = mustJSON(struct {
+	Type string `json:"type"`
+}{Type: "pong"})
 
 func encodeError(code string) []byte {
 	return mustJSON(errorMsg{Type: "error", Code: code})
