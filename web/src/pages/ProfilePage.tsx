@@ -112,6 +112,7 @@ function SetSlots() {
                       ชุดที่ {slot + 1}
                     </span>
                     <b style={{ fontSize: 15 }}>{set.name}</b>
+                    <span className="set-tale">“{set.tale}”</span>
                   </span>
                 </button>
                 <div className="row">
@@ -187,12 +188,13 @@ function SetSlots() {
                 onClick={() => updateSetPrefs((p) => withSlot(p, editSlot, set.id))}
               >
                 <SetPreview set={set} />
-                <span className="row" style={{ gap: 4 }}>
+                <span className="row" style={{ gap: 4, alignItems: 'flex-start' }}>
                   <b className="grow small">{set.name}</b>
                   <span className="tiny" aria-hidden="true">
                     {on ? '✓' : ''}
                   </span>
                 </span>
+                <span className="set-tale">“{set.tale}”</span>
               </button>
             )
           })}

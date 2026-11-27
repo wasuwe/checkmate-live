@@ -2071,6 +2071,16 @@ body:has(.home)::before {
   gap: 8px;
 }
 
+/* ข้อคิดของนิทานที่เป็นชื่อชุดหมากรุก */
+.set-tale {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-head);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--gold-ink);
+}
+
 .slot.editing {
   background: linear-gradient(180deg, rgba(201, 164, 92, 0.22), rgba(201, 164, 92, 0.05)), var(--paper);
   box-shadow: var(--ring);

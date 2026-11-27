@@ -28,6 +28,14 @@ describe('board sets', () => {
     }
   })
 
+  test('every set is named after a fable and carries its moral', () => {
+    for (const set of SETS) {
+      expect(set.name.trim(), set.id).not.toBe('')
+      expect(set.tale.trim(), set.id).not.toBe('')
+    }
+    expect(new Set(SETS.map((s) => s.name)).size).toBe(SETS.length)
+  })
+
   test('unknown id falls back to the first set', () => {
     expect(setById('mint').id).toBe('mint')
     expect(setById('nope')).toBe(SETS[0])
@@ -82,9 +90,9 @@ describe('saved set slots', () => {
   })
 
   test('changing a slot keeps the others', () => {
-    const next = withSlot(DEFAULT_PREFS, 1, 'cocoa')
-    expect(next.slots).toEqual(['sky', 'cocoa', 'honey'])
-    expect(DEFAULT_PREFS.slots[1]).toBe('sakura') // ไม่แก้ของเดิม
+    const next = withSlot(DEFAULT_PREFS, 1, 'honey')
+    expect(next.slots).toEqual(['sky', 'honey', 'cocoa'])
+    expect(DEFAULT_PREFS.slots[1]).toBe('mint') // ไม่แก้ของเดิม
     expect(withSlot(DEFAULT_PREFS, 9, 'cocoa')).toBe(DEFAULT_PREFS)
   })
 

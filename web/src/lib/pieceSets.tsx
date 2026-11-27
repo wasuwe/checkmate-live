@@ -44,6 +44,8 @@ export type SetColor = 'pink' | 'green' | 'purple' | 'yellow' | 'blue' | 'brown'
 export interface BoardSet {
   id: string
   name: string
+  /** ข้อคิดสั้น ๆ ของนิทานที่เป็นชื่อชุด */
+  tale: string
   color: SetColor
   /** สีช่องอ่อนและช่องเข้ม */
   light: string
@@ -53,31 +55,32 @@ export interface BoardSet {
   b: string
 }
 
+// ชุดหมากรุกตั้งต้นตั้งชื่อตามนิทานอีสปที่คนรู้จักดี สีของแต่ละชุดมาจากฉากในนิทานเรื่องนั้น
 // ทุกชุดเป็นโทนสไตล์นิทาน: ช่องอ่อนสีกระดาษงาช้าง ช่องเข้มเป็นสีหม่น ตัวหมากฝั่งดำสีเข้มลึก
 // id เดิมของแต่ละชุดคงไว้ ชุดที่ผู้เล่นเก็บไว้ในเบราว์เซอร์จึงยังใช้ได้ (เปลี่ยนแค่สีกับชื่อ)
 export const SETS: BoardSet[] = [
-  { id: 'sky', name: 'ราตรีดาว', color: 'blue', light: '#F7F1E3', dark: '#A9B3E6', w: '#FFFDF8', b: '#1E2A6B' },
-  { id: 'soda', name: 'ทะเลจันทร์', color: 'blue', light: '#EEF2F4', dark: '#86A9C4', w: '#FFFFFF', b: '#183A57' },
-  { id: 'sakura', name: 'กุหลาบราตรี', color: 'pink', light: '#F7EEE8', dark: '#D6A2AD', w: '#FFFDF8', b: '#6E1E3A' },
-  { id: 'strawberry', name: 'ทับทิม', color: 'pink', light: '#F6ECE3', dark: '#C77B86', w: '#FFFBF5', b: '#5A1730' },
-  { id: 'mint', name: 'สวนมรกต', color: 'green', light: '#F2F2E6', dark: '#93B8A2', w: '#FFFDF6', b: '#1F4A3A' },
-  { id: 'matcha', name: 'ป่าหิ่งห้อย', color: 'green', light: '#F0F0DE', dark: '#A3AE74', w: '#FFFBEA', b: '#2F3A1A' },
-  { id: 'lavender', name: 'ม่านม่วง', color: 'purple', light: '#F4F0F8', dark: '#A99BD2', w: '#FFFFFF', b: '#3A2C66' },
-  { id: 'grape', name: 'พลบค่ำ', color: 'purple', light: '#F2EBF2', dark: '#A086AC', w: '#FFF9FF', b: '#3D2347' },
-  { id: 'honey', name: 'ทองคำ', color: 'yellow', light: '#FAF3E0', dark: '#D8B56C', w: '#FFFDF6', b: '#5C3D0E' },
-  { id: 'lemon', name: 'แสงเทียน', color: 'yellow', light: '#FBF6E6', dark: '#E2C98C', w: '#FFFFFF', b: '#6A4A12' },
-  { id: 'cocoa', name: 'ไม้โอ๊ก', color: 'brown', light: '#F4E6CF', dark: '#B98A5E', w: '#FFF8EE', b: '#3A2414' },
-  { id: 'classic', name: 'หมึกงาช้าง', color: 'brown', light: '#F5EFE1', dark: '#B9AF9B', w: '#FFFFFF', b: '#2B2A33' },
+  { id: 'sky', name: 'ลมเหนือกับดวงอาทิตย์', tale: 'ความอ่อนโยนชนะความรุนแรง', color: 'blue', light: '#F7F1E3', dark: '#A9B3E6', w: '#FFFDF8', b: '#1E2A6B' },
+  { id: 'soda', name: 'กากับเหยือกน้ำ', tale: 'ความเพียรกับไหวพริบพาไปถึงเป้าหมาย', color: 'blue', light: '#EEF2F4', dark: '#86A9C4', w: '#FFFFFF', b: '#1D2433' },
+  { id: 'mint', name: 'กระต่ายกับเต่า', tale: 'ช้าแต่มั่นคง ย่อมถึงเส้นชัย', color: 'green', light: '#F2F2E6', dark: '#93B8A2', w: '#FFFDF6', b: '#1F4A3A' },
+  { id: 'matcha', name: 'เด็กเลี้ยงแกะ', tale: 'โกหกบ่อย ๆ วันที่พูดจริงจะไม่มีใครเชื่อ', color: 'green', light: '#F0F0DE', dark: '#A3AE74', w: '#FFFBEA', b: '#3A3A38' },
+  { id: 'grape', name: 'สุนัขจิ้งจอกกับองุ่นเปรี้ยว', tale: 'เอื้อมไม่ถึง อย่าแกล้งว่าไม่อยากได้', color: 'purple', light: '#F2EBF2', dark: '#A086AC', w: '#FFF9FF', b: '#3D2347' },
+  { id: 'lavender', name: 'ผูกกระดิ่งแมว', tale: 'พูดนั้นง่าย ลงมือทำนั้นยาก', color: 'purple', light: '#F4F0F8', dark: '#A99BD2', w: '#FFFFFF', b: '#3A2C66' },
+  { id: 'honey', name: 'ห่านทองคำ', tale: 'โลภมาก ลาภหาย', color: 'yellow', light: '#FAF3E0', dark: '#D8B56C', w: '#FFFDF6', b: '#5C3D0E' },
+  { id: 'lemon', name: 'มดกับตั๊กแตน', tale: 'เตรียมพร้อมไว้ก่อนฤดูหนาวมาถึง', color: 'yellow', light: '#FBF6E6', dark: '#D9C27A', w: '#FFFFFF', b: '#4A3212' },
+  { id: 'cocoa', name: 'ราชสีห์กับหนู', tale: 'ผู้ตัวเล็กก็ช่วยผู้ยิ่งใหญ่ได้', color: 'brown', light: '#F4E6CF', dark: '#C49A62', w: '#FFF8EE', b: '#5A3414' },
+  { id: 'classic', name: 'หนูเมืองกับหนูบ้านนอก', tale: 'ความสงบเรียบง่ายมีค่ากว่าความหรูหรา', color: 'brown', light: '#F5EFE1', dark: '#B9AF9B', w: '#FFFFFF', b: '#2B2A33' },
+  { id: 'sakura', name: 'สุนัขจิ้งจอกกับอีกา', tale: 'ระวังคำเยินยอของคนที่หวังผล', color: 'pink', light: '#F7EEE8', dark: '#D9A08E', w: '#FFFDF8', b: '#6E2A1E' },
+  { id: 'strawberry', name: 'หมาป่าในคราบแกะ', tale: 'อย่าตัดสินจากเปลือกนอก', color: 'pink', light: '#F6ECE3', dark: '#C77B86', w: '#FFFBF5', b: '#5A1730' },
 ]
 
 export const SET_FILTERS: { id: SetColor | 'all'; label: string; swatch: string }[] = [
-  { id: 'all', label: 'ทั้งหมด', swatch: 'conic-gradient(#A9B3E6 0 17%,#D6A2AD 0 33%,#93B8A2 0 50%,#A99BD2 0 67%,#D8B56C 0 83%,#B98A5E 0)' },
+  { id: 'all', label: 'ทั้งหมด', swatch: 'conic-gradient(#A9B3E6 0 17%,#D9A08E 0 33%,#93B8A2 0 50%,#A99BD2 0 67%,#D8B56C 0 83%,#C49A62 0)' },
   { id: 'blue', label: 'ฟ้าคราม', swatch: '#A9B3E6' },
-  { id: 'pink', label: 'กุหลาบ', swatch: '#D6A2AD' },
+  { id: 'pink', label: 'แดงอิฐ', swatch: '#D9A08E' },
   { id: 'green', label: 'มรกต', swatch: '#93B8A2' },
   { id: 'purple', label: 'ม่วง', swatch: '#A99BD2' },
   { id: 'yellow', label: 'ทอง', swatch: '#D8B56C' },
-  { id: 'brown', label: 'ไม้', swatch: '#B98A5E' },
+  { id: 'brown', label: 'น้ำตาล', swatch: '#C49A62' },
 ]
 
 export function setById(id: string | null | undefined): BoardSet {
@@ -227,7 +230,7 @@ export interface SetPrefs {
   active: number
 }
 
-export const DEFAULT_PREFS: SetPrefs = { slots: ['sky', 'sakura', 'honey'], active: 0 }
+export const DEFAULT_PREFS: SetPrefs = { slots: ['sky', 'mint', 'cocoa'], active: 0 }
 
 /** ทำให้ค่าที่อ่านมาใช้ได้เสมอ ไม่ว่าในที่เก็บจะเป็นอะไร */
 export function cleanPrefs(value: unknown): SetPrefs {
