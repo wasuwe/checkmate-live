@@ -22,6 +22,7 @@ const (
 	evChat
 	evReport
 	evReady
+	evKick
 )
 
 // event คือสิ่งที่ส่งเข้า goroutine ของห้อง
@@ -55,6 +56,9 @@ type Room struct {
 	// ready คือผู้เล่นที่กดพร้อมแล้ว และ startAt คือเวลาที่เกมจะเริ่มเมื่อทุกคนพร้อม (zero = ยังไม่นับถอยหลัง)
 	ready   map[string]bool
 	startAt time.Time
+	// removed คือผู้ใช้ที่เจ้าของห้องให้ออกจากที่นั่ง กลับมานั่งในห้องนี้ไม่ได้ (เป็นผู้ชมได้)
+	// เก็บในหน่วยความจำเท่านั้น ถ้าเซิร์ฟเวอร์เริ่มใหม่ระหว่างรอ รายชื่อนี้หายไป
+	removed map[string]bool
 	players map[game.Color]string // สี → user ID (หลังเริ่มเกม)
 	clients map[*Client]struct{}
 	// profiles คือชื่อและรูปล่าสุดของผู้ใช้ที่เคยเข้าห้อง (user ID → โปรไฟล์)
@@ -90,6 +94,7 @@ func newRoom(id string, cfg Config, variant game.Variant, tc TimeControl, create
 		status:     StatusWaiting,
 		players:    map[game.Color]string{},
 		ready:      map[string]bool{},
+		removed:    map[string]bool{},
 		clients:    map[*Client]struct{}{},
 		profiles:   map[string]PlayerProfile{},
 		emptySince: time.Now(),
@@ -259,6 +264,8 @@ func (r *Room) handle(ev event) {
 		r.handleReport(ev.client, ev.id)
 	case evReady:
 		r.handleReady(ev.client, ev.ready)
+	case evKick:
+		r.handleKick(ev.client)
 	}
 }
 
@@ -267,7 +274,7 @@ func (r *Room) handleJoin(c *Client) {
 	r.emptySince = time.Time{}
 	r.profiles[c.UserID] = c.Profile // connection ล่าสุดมีข้อมูลใหม่สุด
 
-	if r.status == StatusWaiting && !r.isSeated(c.UserID) && r.takeSeat(c.UserID) {
+	if r.status == StatusWaiting && !r.isSeated(c.UserID) && !r.removed[c.UserID] && r.takeSeat(c.UserID) {
 		// ไม่ใช้ห้องรอ: เกมเริ่มทันทีที่มีครบสองคน
 		if !r.cfg.Lobby && len(r.seats) == 2 {
 			r.start(r.seats[0], r.seats[1])
@@ -436,6 +443,36 @@ func (r *Room) handleReady(c *Client, ready bool) {
 	}
 }
 
+// hostID คือเจ้าของห้องในห้องรอ: ผู้สร้างห้องถ้านั่งอยู่ ไม่งั้นคือคนที่นั่งก่อน ("" ถ้ายังไม่มีใครนั่ง)
+func (r *Room) hostID() string {
+	if r.createdBy != "" && slices.Contains(r.seats, r.createdBy) {
+		return r.createdBy
+	}
+	if len(r.seats) > 0 {
+		return r.seats[0]
+	}
+	return ""
+}
+
+// handleKick ให้ผู้เล่นอีกคนออกจากที่นั่งในห้องรอ ทำได้เฉพาะเจ้าของห้อง และเฉพาะก่อนเกมเริ่ม
+// คนที่ถูกให้ออกยังอยู่ในห้องเป็นผู้ชมได้ แต่กลับมานั่งในห้องนี้ไม่ได้ ที่นั่งจึงว่างให้คนที่เจ้าของห้องเชิญจริง
+func (r *Room) handleKick(c *Client) {
+	if r.status != StatusWaiting || !r.cfg.Lobby || len(r.seats) < 2 || c.UserID != r.hostID() {
+		return
+	}
+	for i, id := range r.seats {
+		if id != c.UserID {
+			r.seats = slices.Delete(r.seats, i, i+1)
+			delete(r.ready, id)
+			r.removed[id] = true
+			break
+		}
+	}
+	r.updateCountdown(time.Now())
+	r.persist()
+	r.broadcastState()
+}
+
 // updateCountdown เริ่มหรือหยุดการนับถอยหลังตามว่าทุกคนพร้อมหรือไม่ ถ้าไม่ต้องนับ เกมเริ่มทันที
 func (r *Room) updateCountdown(now time.Time) {
 	all := len(r.seats) == 2
@@ -544,7 +581,12 @@ func (r *Room) lobbyFor(userID string, now time.Time) *lobbyInfo {
 	if r.status != StatusWaiting || !r.cfg.Lobby {
 		return nil
 	}
-	info := &lobbyInfo{Seats: make([]lobbySeat, len(r.seats))}
+	host := r.hostID()
+	info := &lobbyInfo{
+		Seats:   make([]lobbySeat, len(r.seats)),
+		CanKick: userID == host && len(r.seats) == 2,
+		Removed: r.removed[userID],
+	}
 	for i, id := range r.seats {
 		profile := r.profiles[id]
 		info.Seats[i] = lobbySeat{
@@ -555,6 +597,7 @@ func (r *Room) lobbyFor(userID string, now time.Time) *lobbyInfo {
 			Ready:     r.ready[id],
 			You:       id == userID,
 			Sender:    r.chatSender(id),
+			Host:      id == host,
 		}
 	}
 	if !r.startAt.IsZero() {

@@ -40,6 +40,8 @@ export interface LobbySeat {
   /** ที่นั่งของผู้ที่ดูหน้าจอนี้ */
   you?: boolean
   sender?: string
+  /** ที่นั่งของเจ้าของห้อง */
+  host?: boolean
 }
 
 /** สถานะของห้องรอ มีเฉพาะตอนรอเริ่มเกม */
@@ -47,6 +49,10 @@ export interface LobbyInfo {
   seats: LobbySeat[]
   /** ms ที่เหลือก่อนเกมเริ่ม ณ ตอนที่เซิร์ฟเวอร์ส่ง (มีเฉพาะตอนทุกคนพร้อมแล้ว) */
   countdown?: number
+  /** ผู้ที่ดูหน้าจอนี้เป็นเจ้าของห้อง และมีผู้เล่นอีกคนที่เชิญออกจากที่นั่งได้ */
+  canKick?: boolean
+  /** ผู้ที่ดูหน้าจอนี้ถูกเจ้าของห้องเชิญออกจากที่นั่งแล้ว (ยังดูเกมได้) */
+  removed?: boolean
 }
 
 export interface StateMsg {
@@ -147,6 +153,7 @@ export type ClientMsg =
   | { type: 'chat'; text: string }
   | { type: 'report'; id: number }
   | { type: 'ready'; ready: boolean }
+  | { type: 'kick' }
 
 const SERVER_TYPES = new Set(['state', 'auth_ok', 'game_over', 'error', 'chat', 'chat_history', 'report_ok'])
 

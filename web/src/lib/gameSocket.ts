@@ -161,6 +161,13 @@ export class GameSocket {
     return true
   }
 
+  /** เชิญผู้เล่นอีกคนออกจากที่นั่งในห้องรอ เซิร์ฟเวอร์ตรวจเองว่าผู้ส่งเป็นเจ้าของห้อง และเป็นผู้ระบุว่าใครออก */
+  sendKick(): boolean {
+    if (!this.snapshot.state || !this.ws || this.ws.readyState !== OPEN) return false
+    this.send(this.ws, { type: 'kick' })
+    return true
+  }
+
   /** รายงานข้อความแชท เซิร์ฟเวอร์เป็นผู้ระบุผู้ส่งและเนื้อความเองจาก id */
   sendReport(id: number): boolean {
     if (!this.snapshot.state || !this.ws || this.ws.readyState !== OPEN) return false

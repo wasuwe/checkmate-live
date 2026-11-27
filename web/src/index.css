@@ -3417,10 +3417,11 @@ a.link-card:hover {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   gap: 10px;
-  align-items: center;
+  align-items: stretch;
 }
 
 .lobby-vs {
+  align-self: center;
   font-family: var(--font-head);
   font-weight: 700;
   font-size: 20px;
@@ -3482,6 +3483,38 @@ a.link-card:hover {
 .lobby-seat-status {
   color: var(--ink);
 }
+
+/* ป้ายเจ้าของห้อง: ตัวเล็กสีทองใต้ชื่อ */
+.lobby-seat-host {
+  margin-top: -6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #ffe9a8;
+}
+
+/* ปุ่มเชิญออก: ตัวหนังสือขีดเส้นใต้ เบากว่าปุ่มหลัก เพราะไม่ใช่สิ่งที่กดบ่อย */
+.lobby-kick {
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 0;
+  background: none;
+  color: var(--cream);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  opacity: 0.8;
+  cursor: pointer;
+}
+
+.lobby-kick:hover,
+.lobby-kick:focus-visible {
+  opacity: 1;
+  color: #ffe9a8;
+}
+
+
 
 .lobby-seat.ready .lobby-seat-status {
   border-color: var(--gold);

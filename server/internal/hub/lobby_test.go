@@ -228,6 +228,93 @@ func TestWithoutLobbyTheGameStartsWhenTheSecondPlayerJoins(t *testing.T) {
 	alice.untilState("playing", isStatus(StatusPlaying))
 }
 
+func (f *fakeClient) kick(r *Room) {
+	r.post(event{kind: evKick, client: f.Client})
+}
+
+func TestLobbyHostCanRemoveTheOtherPlayer(t *testing.T) {
+	_, r := newLobbyRoom(t, time.Hour)
+	alice, bob, carol := newFakeClient(t, "alice"), newFakeClient(t, "bob"), newFakeClient(t, "carol")
+	alice.join(r)
+	alone := alice.lobbyState("host alone", seats(1))
+	if !alone.Lobby.Seats[0].Host || alone.Lobby.CanKick {
+		t.Fatalf("host alone: %+v", alone.Lobby)
+	}
+	bob.join(r)
+	two := alice.lobbyState("two seats", seats(2))
+	if !two.Lobby.CanKick || !two.Lobby.Seats[0].Host || two.Lobby.Seats[1].Host {
+		t.Fatalf("host with a second player: %+v", two.Lobby)
+	}
+	if guest := bob.lobbyState("bob seated", seats(2)); guest.Lobby.CanKick || guest.Lobby.Removed {
+		t.Fatalf("the second player must not be able to remove anyone: %+v", guest.Lobby)
+	}
+
+	// คนที่ไม่ใช่เจ้าของห้องสั่งไม่ได้ และผู้ชมก็สั่งไม่ได้
+	carol.join(r)
+	carol.lobbyState("carol watching", seats(2))
+	bob.kick(r)
+	carol.kick(r)
+	bob.ready(r, true)
+	alice.ready(r, true)
+	alice.lobbyState("countdown", func(l *lobbyInfo) bool { return len(l.Seats) == 2 && l.Countdown > 0 })
+
+	// เจ้าของห้องให้ออก: ที่นั่งว่าง หยุดนับถอยหลัง และคนที่ถูกให้ออกเป็นผู้ชม
+	alice.kick(r)
+	after := alice.lobbyState("bob removed", seats(1))
+	if after.Lobby.Countdown != 0 || after.Lobby.CanKick || !after.Lobby.Seats[0].You {
+		t.Fatalf("after removing: %+v", after.Lobby)
+	}
+	out := bob.lobbyState("bob told", func(l *lobbyInfo) bool { return l.Removed })
+	if out.You.Role != roleSpectator || len(out.Lobby.Seats) != 1 {
+		t.Fatalf("the removed player: you=%+v lobby=%+v", out.You, out.Lobby)
+	}
+
+	// กลับเข้ามาใหม่ก็นั่งไม่ได้
+	again := newFakeClient(t, "bob")
+	again.join(r)
+	if st := again.lobbyState("bob back", func(l *lobbyInfo) bool { return l.Removed }); st.You.Role != roleSpectator {
+		t.Fatalf("the removed player came back as %+v", st.You)
+	}
+	if !slices.Equal(r.seats, []string{"alice"}) {
+		t.Fatalf("seats = %v", r.seats)
+	}
+
+	// คนอื่นเข้ามานั่งแทนได้ แล้วเล่นได้ตามปกติ
+	dave := newFakeClient(t, "dave")
+	dave.join(r)
+	if st := dave.lobbyState("dave seated", seats(2)); st.You.Role != rolePlayer || st.Lobby.Removed {
+		t.Fatalf("the next player: you=%+v lobby=%+v", st.You, st.Lobby)
+	}
+}
+
+func TestLobbyKickDoesNothingOnceTheGameStarted(t *testing.T) {
+	_, r := newLobbyRoom(t, -1)
+	alice, bob := newFakeClient(t, "alice"), newFakeClient(t, "bob")
+	alice.join(r)
+	bob.join(r)
+	alice.ready(r, true)
+	bob.ready(r, true)
+	alice.untilState("playing", isStatus(StatusPlaying))
+	alice.kick(r)
+	// ยอมแพ้ตามหลัง: พอเห็นเกมจบ แปลว่าห้องประมวลผล kick ไปแล้ว และผลต้องเป็นของเกมที่มีผู้เล่นครบสองคน
+	r.post(event{kind: evResign, client: bob.Client})
+	end := alice.untilState("finished", isStatus(StatusFinished))
+	if end.Players[game.White] == nil || end.Players[game.Black] == nil || len(r.removed) != 0 {
+		t.Fatalf("kick after the start changed the room: players=%v removed=%v", end.Players, r.removed)
+	}
+}
+
+func TestDecodeKick(t *testing.T) {
+	if m, err := decodeInbound([]byte(`{"type":"kick"}`)); err != nil || m.Type != msgKick {
+		t.Errorf("kick: %+v %v", m, err)
+	}
+	for _, bad := range []string{`{"type":"kick","room":"482915"}`, `{"type":"kick","id":2}`, `{"type":"kick","text":"bob"}`} {
+		if _, err := decodeInbound([]byte(bad)); err == nil {
+			t.Errorf("accepted %s", bad)
+		}
+	}
+}
+
 func TestDecodeReady(t *testing.T) {
 	for _, ok := range []string{`{"type":"ready","ready":true}`, `{"type":"ready","ready":false}`} {
 		if m, err := decodeInbound([]byte(ok)); err != nil || m.Type != msgReady || m.Ready == nil {

@@ -41,6 +41,9 @@ describe('lobby hint', () => {
     // ผู้ชม
     expect(lobbyHint(lobby([seat()]))).toBe('รอผู้เล่นเข้าห้อง')
     expect(lobbyHint(lobby([seat(), seat()]))).toContain('คุณเป็นผู้ชม')
+    // คนที่ถูกเชิญออกจากที่นั่ง: บอกตรง ๆ ไม่ใช่ข้อความของผู้ชมทั่วไป
+    expect(lobbyHint({ seats: [seat()], removed: true })).toContain('เชิญคุณออกจากที่นั่ง')
+    expect(lobbyHint({ seats: [seat(), seat()], removed: true })).toContain('เชิญคุณออกจากที่นั่ง')
   })
 })
 

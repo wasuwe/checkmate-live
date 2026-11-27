@@ -48,6 +48,7 @@ export function lobbyHint(lobby: LobbyInfo): string {
   const me = mySeat(lobby)
   const others = lobby.seats.filter((s) => !s.you)
   if (lobby.countdown) return 'ทุกคนพร้อมแล้ว เกมกำลังจะเริ่ม'
+  if (lobby.removed) return 'เจ้าของห้องเชิญคุณออกจากที่นั่ง คุณยังดูเกมนี้ได้'
   if (lobby.seats.length < 2) return me ? 'ส่งรหัสหรือลิงก์ให้เพื่อน แล้วรอเพื่อนเข้าห้อง' : 'รอผู้เล่นเข้าห้อง'
   if (!me) return 'คุณเป็นผู้ชม เกมจะเริ่มเมื่อผู้เล่นทั้งสองกดพร้อม'
   if (others.some((s) => !s.connected)) return 'คู่แข่งหลุดการเชื่อมต่อ รอสักครู่'

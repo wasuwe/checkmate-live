@@ -87,7 +87,7 @@ export function RoomPage({ roomId, navigate }: Props) {
 
   // ก่อนเกมเริ่ม: ห้องรอ (รอคน แชท กดพร้อม)
   if (state.status === 'waiting' && state.lobby) {
-    return <Lobby state={state} lobby={state.lobby} stateAt={game.stateAt} online={online} sendReady={game.sendReady} chat={chat} />
+    return <Lobby state={state} lobby={state.lobby} stateAt={game.stateAt} online={online} sendReady={game.sendReady} sendKick={game.sendKick} chat={chat} />
   }
 
   // ตราในแผงข้างกระดานเป็นสีทองเมื่อถึงตาของผู้ดู
