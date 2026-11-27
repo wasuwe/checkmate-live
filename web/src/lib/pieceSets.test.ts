@@ -3,15 +3,18 @@ import {
   cleanPrefs,
   DEFAULT_PREFS,
   MAX_SLOTS,
+  pieceSvg,
   piecesFor,
   previewCells,
   setById,
   SETS,
+  squareStyle,
   withActive,
   withAddedSlot,
   withoutSlot,
   withSlot,
 } from './pieceSets'
+import { FABLE_CAST, FABLE_PAWNS } from './fables'
 
 // หมากรุกสากล 6 ชนิด, เม็ด โคน เบี้ยหงาย ของหมากรุกไทย, เบี้ยและฮอสของหมากฮอส, หมากของหมากหนีบ
 const ALL = ['w', 'b'].flatMap((c) => ['K', 'Q', 'R', 'B', 'N', 'P', 'M', 'S', 'F', 'C', 'H', 'O'].map((k) => c + k))
@@ -34,6 +37,22 @@ describe('board sets', () => {
       expect(set.tale.trim(), set.id).not.toBe('')
     }
     expect(new Set(SETS.map((s) => s.name)).size).toBe(SETS.length)
+  })
+
+  test('every set has its fable board pattern and pawn characters', () => {
+    for (const set of SETS) {
+      expect(FABLE_PAWNS[set.id], set.id).toHaveLength(2)
+      expect(FABLE_CAST[set.id], set.id).toHaveLength(2)
+      expect(squareStyle(set, true).backgroundImage, set.id).toMatch(/^url\("data:image\/svg\+xml,/)
+      expect(squareStyle(set, false).backgroundColor, set.id).toBe(set.light)
+    }
+  })
+
+  test('pawns are drawn as the fable characters unless another pawn style is chosen', () => {
+    const set = setById('mint')
+    const pawn = pieceSvg(set, 'w', 'P', { badge: false })
+    const glyph = pieceSvg(set, 'w', 'P', { badge: false, styles: { K: 'glyph', Q: 'glyph', R: 'glyph', B: 'glyph', N: 'glyph', P: 'shape' } })
+    expect(JSON.stringify(pawn.props.children)).not.toBe(JSON.stringify(glyph.props.children))
   })
 
   test('unknown id falls back to the first set', () => {

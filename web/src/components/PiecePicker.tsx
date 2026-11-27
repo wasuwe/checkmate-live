@@ -1,4 +1,4 @@
-import { previewCells, setById, updateSetPrefs, useSetPrefs, withActive, type BoardSet } from '../lib/pieceSets'
+import { pieceSvg, previewCells, setById, updateSetPrefs, useSetPrefs, withActive, type BoardSet } from '../lib/pieceSets'
 
 /** ปุ่มสลับชุดหมากรุกจากชุดที่เก็บไว้ มีผลกับหน้าจอของผู้เลือกเท่านั้น คู่แข่งเห็นชุดของตัวเอง */
 export function PiecePicker() {
@@ -32,8 +32,8 @@ export function SetPreview({ set }: { set: BoardSet }) {
   return (
     <div className="mini-board four" aria-hidden="true">
       {previewCells(set).map((c, i) => (
-        <div key={i} style={{ background: c.bg, color: c.color }}>
-          {c.glyph}
+        <div key={i} style={c.style}>
+          {c.piece && pieceSvg(set, c.piece[1], c.piece[0], { badge: false, className: 'mini-piece' })}
         </div>
       ))}
     </div>

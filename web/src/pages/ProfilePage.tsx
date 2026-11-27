@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { FxBurst } from '../components/Fx'
 import { SetPreview } from '../components/PiecePicker'
 import { ProfileEditor } from '../components/ProfileEditor'
+import { FABLE_CAST } from '../lib/fables'
 import { FX_EVENTS, FX_LEVEL, FX_TYPES, setFx, useFxPrefs, type FxEventKind, type FxType } from '../lib/fx'
 import { useMe } from '../lib/me'
 import {
@@ -113,6 +114,11 @@ function SetSlots() {
                     </span>
                     <b style={{ fontSize: 15 }}>{set.name}</b>
                     <span className="set-tale">“{set.tale}”</span>
+                    {FABLE_CAST[set.id] && (
+                      <span className="tiny" style={{ display: 'block' }}>
+                        เบี้ย: {FABLE_CAST[set.id][0]} ปะทะ {FABLE_CAST[set.id][1]}
+                      </span>
+                    )}
                   </span>
                 </button>
                 <div className="row">

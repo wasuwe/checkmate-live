@@ -8,7 +8,8 @@
 /* oxlint-disable react/only-export-components */
 
 import { cloneElement, useSyncExternalStore, type CSSProperties, type JSX } from 'react'
-import { drawPiece, styleKind, type StylePrefs } from './pieceStyles'
+import { FABLE_PATTERNS, FABLE_PAWNS } from './fables'
+import { DEFAULT_STYLE, drawPiece, styleKind, type StylePrefs } from './pieceStyles'
 import type { Color } from './protocol'
 
 export const INK = '#2B2A33'
@@ -87,6 +88,15 @@ export function setById(id: string | null | undefined): BoardSet {
   return SETS.find((s) => s.id === id) ?? SETS[0]
 }
 
+/** สีและลายของช่องกระดาน: ลายตามนิทานของชุดวางทับสีช่อง */
+export function squareStyle(set: BoardSet, dark: boolean): CSSProperties {
+  const pattern = FABLE_PATTERNS[set.id]?.[dark ? 'dark' : 'light']
+  return {
+    backgroundColor: dark ? set.dark : set.light,
+    ...(pattern ? { backgroundImage: pattern, backgroundSize: '100% 100%' } : {}),
+  }
+}
+
 // ---------- การวาดตัวหมาก ----------
 
 type PieceRenderer = (props?: { fill?: string; square?: string; svgStyle?: CSSProperties }) => JSX.Element
@@ -113,7 +123,10 @@ export function pieceSvg(
   if (kind === 'C' || kind === 'H' || kind === 'O') return discSvg(set, color, kind === 'H', opts)
   // รูปทรงมาจากรูปแบบที่ผู้เล่นเลือกของตัวหมากรุกสากลที่ตรงกัน (เม็ด=ควีน โคน=บิชอป เบี้ยหงาย=เบี้ย)
   const base = styleKind(kind) ?? 'P'
-  const body = drawPiece(opts.styles?.[base], base, { fill: color === 'w' ? set.w : set.b, ink: INK, color })
+  const paint = { fill: color === 'w' ? set.w : set.b, ink: INK, color }
+  // เบี้ยแบบตั้งต้นเป็นตัวละครในนิทานของชุด ถ้าผู้เล่นเลือกรูปแบบอื่นให้เบี้ยไว้ก็ใช้แบบนั้นแทน
+  const fablePawn = base === 'P' && (opts.styles?.P ?? DEFAULT_STYLE) === DEFAULT_STYLE ? FABLE_PAWNS[set.id] : undefined
+  const body = fablePawn ? fablePawn[color === 'w' ? 0 : 1](paint) : drawPiece(opts.styles?.[base], base, paint)
   return (
     <svg key={opts.key} viewBox="0 0 45 45" className={opts.className ?? 'piece'} style={opts.style}>
       {FLIPPED[kind] ? cloneElement(body, { transform: 'rotate(180 22.5 22.5)' }) : body}
@@ -204,17 +217,21 @@ export function piecesFor(set: BoardSet, opts: PieceOptions = {}): PieceRenderer
   return out
 }
 
-/** กระดานตัวอย่าง 4×4 ของชุด: ม้ากับควีนของทั้งสองฝั่ง */
-const PREVIEW: Record<number, [Kind, Color]> = { 1: ['N', 'b'], 2: ['Q', 'b'], 13: ['Q', 'w'], 14: ['N', 'w'] }
+/** กระดานตัวอย่าง 4×4 ของชุด: เบี้ย (ตัวละครในนิทาน) กับควีนของทั้งสองฝั่ง */
+const PREVIEW: Record<number, [Kind, Color]> = { 1: ['P', 'b'], 2: ['Q', 'b'], 13: ['Q', 'w'], 14: ['P', 'w'] }
 
-export function previewCells(set: BoardSet): { bg: string; glyph: string; color: string }[] {
+export function previewCells(
+  set: BoardSet,
+): { bg: string; style: CSSProperties; glyph: string; color: string; piece: [Kind, Color] | null }[] {
   return Array.from({ length: 16 }, (_, i) => {
     const dark = ((i >> 2) + (i & 3)) % 2 === 1
-    const piece = PREVIEW[i]
+    const piece = PREVIEW[i] ?? null
     return {
       bg: dark ? set.dark : set.light,
+      style: squareStyle(set, dark),
       glyph: piece ? GLYPH[piece[0]] + VS : '',
       color: piece ? (piece[1] === 'w' ? set.w : set.b) : 'transparent',
+      piece,
     }
   })
 }

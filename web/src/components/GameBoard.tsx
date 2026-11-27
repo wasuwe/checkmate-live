@@ -11,7 +11,7 @@ import {
   previewFor,
   targetsFor,
 } from '../lib/moves'
-import { piecesFor, useSetPrefs } from '../lib/pieceSets'
+import { piecesFor, squareStyle, useSetPrefs } from '../lib/pieceSets'
 import { useStylePrefs } from '../lib/pieceStyles'
 import type { GameId, Promo, StateMsg } from '../lib/protocol'
 import { FxBurst } from './Fx'
@@ -147,8 +147,8 @@ export function GameBoard({ state, online, errorSeq, session, sendMove }: Props)
             allowDrawingArrows: false,
             animationDurationInMs: 150,
             squareStyles,
-            darkSquareStyle: { backgroundColor: set.dark },
-            lightSquareStyle: { backgroundColor: set.light },
+            darkSquareStyle: squareStyle(set, true),
+            lightSquareStyle: squareStyle(set, false),
             darkSquareNotationStyle: { color: set.light, fontWeight: 700 },
             lightSquareNotationStyle: { color: set.dark, fontWeight: 700 },
             canDragPiece: ({ piece }) => canMove && pieceColor(piece.pieceType) === myColor,

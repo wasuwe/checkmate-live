@@ -1331,6 +1331,12 @@ body:has(.home)::before {
   -webkit-text-stroke: 0.7cqw var(--ink);
 }
 
+.mini-board .mini-piece {
+  width: 92%;
+  height: 92%;
+  overflow: visible;
+}
+
 .mini-board.four > div {
   font-size: 19cqw;
   -webkit-text-stroke: 0.8cqw var(--ink);
