@@ -7021,13 +7021,15 @@ a.cb-card:focus-visible {
   font-size: 4.6cqw;
 }
 
-/* เสียงร้องตัวโต: ตัวหนาเอียง สีครีม ขอบเข้มหนา มีเงาซ้อนเป็นชั้นให้ดูนูน ขนาดมาจาก CutIn (พอดีกับครึ่งแถบ) */
+/* คำพูดตัวโต: ตัวหนาเอียง สีครีม ขอบเข้มหนา มีเงาซ้อนเป็นชั้นให้ดูนูน ขนาดมาจาก CutIn (พอดีกับครึ่งแถบ ไม่เกินสองบรรทัด) */
 .cutin-word {
+  max-width: 47cqw;
   font-family: var(--font-head);
   font-weight: 900;
   font-style: italic;
-  line-height: 1.05;
-  white-space: nowrap;
+  line-height: 1.12;
+  text-align: center;
+  text-wrap: balance;
   color: #fff6da;
   -webkit-text-stroke: 0.9cqw #2b2a33;
   paint-order: stroke fill;
