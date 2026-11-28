@@ -9,7 +9,7 @@ from PIL import Image, ImageFilter
 work, out_dir, prefix = sys.argv[1], sys.argv[2], sys.argv[3]
 write = sys.argv[4] if len(sys.argv) > 4 else 'KQRBNP'
 SIZE = 512
-RIM_IN, RIM_OUT = 2, 5      # หดขอบเดิมเข้า / ขยายแผ่นรองออก (พิกเซลที่ขนาดแผ่นต้นฉบับ)
+RIM_IN, RIM_OUT = 3, 6      # หดขอบเดิมเข้า / ขยายแผ่นรองออก (พิกเซลที่ขนาดแผ่นต้นฉบับ)
 
 def load(k):
     return Image.open(os.path.join(work, f'{prefix}-{k}.png')).convert('RGBA')

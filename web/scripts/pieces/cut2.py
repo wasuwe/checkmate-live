@@ -11,7 +11,7 @@ from PIL import Image, ImageFilter
 sheet_path, work, prefix, order = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4].split(',')
 CLOSE = int(sys.argv[5]) if len(sys.argv) > 5 else 9
 HOLES = int(sys.argv[6]) if len(sys.argv) > 6 else 1
-TOL, TOL_EDGE, TOL_HOLE = 52, (int(sys.argv[7]) if len(sys.argv) > 7 else 34), 16
+TOL, TOL_EDGE, TOL_HOLE = 52, (int(sys.argv[7]) if len(sys.argv) > 7 else 28), 16
 MARGIN = 16
 
 im = Image.open(sheet_path).convert('RGB')
@@ -122,8 +122,42 @@ for kind, (count, n, x0, y0, x1, y1) in zip(order, pieces):
             if 10 <= c <= 6000:
                 A &= ~dilate(lab4 == m4, 5) | (d >= TOL_EDGE)
                 holes += 1
-    out = np.dstack([rgb[Y0:Y1, X0:X1], (A * 255).astype(np.uint8)])
+    # 5) เศษขีดในขอบสติกเกอร์ (ขีดความเร็ว เศษดาว จุดลอย ที่ผู้ตรวจรอบสองพบ): "หมึก" คือทุกอย่างที่ไม่ใช่สีครีมของขอบ
+    #    ก้อนหมึกเล็กที่อยู่ในแถบขอบและไม่ติดกับตัวหมากคือเศษ ทาทับด้วยสีขอบ แล้วหดขอบเดิมให้เหลือ 5 พิกเซลรอบหมึก
+    #    ติ่งขอบที่เคยห่อเศษไว้จึงหายไปด้วย (finish.py ทำขอบใหม่ให้หนาเท่ากันอีกที)
+    prgb = rgb[Y0:Y1, X0:X1].copy()
+    pf = prgb.astype(np.float32)
+    band = A & ~erode(A, 13)
+    light = band & (pf[..., 0] > 225) & (pf[..., 1] > 200) & (pf[..., 2] > 140)
+    cream = np.median(pf[light], axis=0) if light.sum() > 200 else np.array([250.0, 232.0, 200.0])
+    dc = np.sqrt(((pf - cream) ** 2).sum(axis=2))
+    ink = erode(A, 5) & (dc > 42)
+    deep = erode(A, 21)
+    lab5, comps5 = components(ink)
+    biggest_ink = max((c for c, *_ in comps5), default=0)
+    debris = np.zeros((hh, ww), bool)
+    bits = 0
+    for c, m5, *_ in comps5:
+        if c < 350 and c != biggest_ink:
+            sel = lab5 == m5
+            if (sel & deep).sum() < 0.5 * c:
+                debris |= sel; bits += 1
+    kept_ink = ink & ~debris
+    paint = dilate(debris, 7) & A & ~dilate(kept_ink, 3)
+    prgb[paint] = cream.astype(np.uint8)
+    # แกนของตัวหมาก = หมึกที่เก็บไว้ + เนื้อใน แต่ไม่นับก้อนเนื้อในที่ไม่มีหมึกเลย (ติ่งขอบสีครีมล้วนที่เคยห่อฟองหรือดาว)
+    figure = kept_ink | deep
+    lab6, comps6 = components(figure)
+    for c, m6, *_ in comps6:
+        sel = lab6 == m6
+        if (sel & kept_ink).sum() < 0.05 * c:
+            figure &= ~sel
+    A = A & dilate(figure, 11)
+    # ริมนอก 4 พิกเซลที่ไม่ใช่หมึก ทาเป็นสีขอบล้วน (ริมเดิมเปื้อนสีพื้นของแผ่น ทำให้เห็นเป็นเส้นเข้มจาง ๆ รอบขอบ)
+    edge = A & ~erode(A, 9) & ~dilate(kept_ink, 3)
+    prgb[edge] = cream.astype(np.uint8)
+    out = np.dstack([prgb, (A * 255).astype(np.uint8)])
     Image.fromarray(out, 'RGBA').save(os.path.join(work, f'{prefix}-{kind}.png'))
-    meta[kind] = {'box': [int(X0), int(Y0), int(X1), int(Y1)], 'px': int(A.sum()), 'dropped': dropped, 'holes': holes}
-    print(kind, 'box', (X0, Y0, X1, Y1), 'px', int(A.sum()), 'dropped bits', dropped, 'holes', holes)
+    meta[kind] = {'box': [int(X0), int(Y0), int(X1), int(Y1)], 'px': int(A.sum()), 'dropped': dropped, 'holes': holes, 'debris': bits}
+    print(kind, 'box', (X0, Y0, X1, Y1), 'px', int(A.sum()), 'dropped bits', dropped, 'holes', holes, 'debris', bits)
 json.dump({'bg': [int(v) for v in bg], 'pieces': meta}, open(os.path.join(work, f'{prefix}.json'), 'w'))
