@@ -31,7 +31,7 @@ describe('reading what the server answers', () => {
     expect(readResult(400, { error: 'bad_credits', field: 'ocs[2].owner' })).toEqual({ status: 'error', message: 'ข้อมูลไม่ถูกต้องที่ ตัวละครลำดับที่ 3: เจ้าของ' })
     expect(readResult(403, { error: 'forbidden' })).toEqual({ status: 'error', message: 'บัญชีนี้ไม่มีสิทธิ์จัดการข้อมูล' })
     expect(readResult(400, { error: 'bad_image' })).toMatchObject({ message: expect.stringContaining('PNG หรือ JPEG') })
-    expect(readResult(500, null)).toEqual({ status: 'error', message: 'ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง' })
+    expect(readResult(500, null)).toEqual({ status: 'error', message: 'ไม่สำเร็จ ลองใหม่อีกครั้ง' })
   })
 
   test('server field names are turned into readable Thai', () => {

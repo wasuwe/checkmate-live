@@ -54,9 +54,9 @@ export function ProfilePage({ navigate }: Props) {
         <section className="card">
           <h2 className="card-title">ชื่อและรูปโปรไฟล์</h2>
           <p className="pretty">
-            ตอนนี้คุณเล่นแบบผู้เล่นรับเชิญ
+            ตอนนี้คุณยังไม่ได้เข้าสู่ระบบ
             {loginAvailable
-              ? ' เข้าสู่ระบบเพื่อตั้งชื่อและรูปที่คู่แข่งเห็น ส่วนชุดหมากรุกและเอฟเฟกต์ด้านล่างใช้ได้เลยโดยไม่ต้องมีบัญชี'
+              ? ' ถ้าเข้าสู่ระบบจะตั้งชื่อและรูปให้คู่แข่งเห็นได้ ส่วนชุดหมากรุกและเอฟเฟกต์ด้านล่างใช้ได้เลย ไม่ต้องมีบัญชี'
               : ' ชุดหมากรุกและเอฟเฟกต์ด้านล่างใช้ได้เลย'}
           </p>
           {loginAvailable && (
@@ -91,7 +91,7 @@ function SetSlots() {
         <div className="row wrap" style={{ alignItems: 'baseline' }}>
           <h2 className="subtitle grow">ชุดหมากรุกของฉัน</h2>
           <p className="small">
-            กดเลือกช่อง แล้วเลือกชุดจากคลังด้านล่าง · {slots.length}/{MAX_SLOTS}
+            กดเลือกช่อง แล้วเลือกชุดจากคลังด้านล่าง ใช้ไปแล้ว {slots.length} จาก {MAX_SLOTS} ช่อง
           </p>
         </div>
         <div className="slot-grid">
@@ -116,7 +116,7 @@ function SetSlots() {
                     <span className="set-tale">“{set.tale}”</span>
                     {FABLE_CAST[set.id] && (
                       <span className="tiny" style={{ display: 'block' }}>
-                        เบี้ย: {FABLE_CAST[set.id][0]} ปะทะ {FABLE_CAST[set.id][1]}
+                        เบี้ยเป็น{FABLE_CAST[set.id][0]}กับ{FABLE_CAST[set.id][1]}
                       </span>
                     )}
                   </span>
@@ -128,7 +128,7 @@ function SetSlots() {
                     aria-pressed={isActive}
                     onClick={() => updateSetPrefs((p) => withActive(p, slot))}
                   >
-                    {isActive ? '✓ ใช้งานอยู่' : 'ใช้ชุดนี้'}
+                    {isActive ? 'ใช้อยู่' : 'ใช้ชุดนี้'}
                   </button>
                   {slots.length > 1 && (
                     <button
@@ -273,12 +273,12 @@ function PieceStyleSection({ set }: { set: BoardSet }) {
         <h2 className="subtitle grow" id="piece-style-title">
           รูปแบบตัวหมากรุก
         </h2>
-        <p className="small">เลือกได้เป็นรายตัว · ใช้กับหมากรุกสากลและหมากรุกไทย</p>
+        <p className="small">เลือกได้ทีละตัว ใช้กับหมากรุกสากลและหมากรุกไทย</p>
       </div>
 
       <div className="row wrap" role="group" aria-label="ใช้รูปแบบเดียวกันทุกตัว">
         <span className="small" style={{ fontWeight: 700 }}>
-          ใช้ทั้งชุด:
+          ใช้แบบเดียวกันทุกตัว
         </span>
         {allStyles().map((style) => (
           <button

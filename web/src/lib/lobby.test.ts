@@ -33,10 +33,10 @@ describe('lobby hint', () => {
   test('tells each person what the room is waiting for', () => {
     const me = (patch = {}) => seat({ you: true, ...patch })
     expect(lobbyHint(lobby([me()]))).toContain('ส่งรหัสหรือลิงก์ให้เพื่อน')
-    expect(lobbyHint(lobby([me(), seat()]))).toBe('กดพร้อมเมื่อคุณพร้อมเริ่มเกม')
+    expect(lobbyHint(lobby([me(), seat()]))).toBe('พร้อมแล้วกดปุ่มพร้อมได้เลย')
     expect(lobbyHint(lobby([me(), seat({ ready: true })]))).toBe('คู่แข่งพร้อมแล้ว กดพร้อมเพื่อเริ่มเกม')
     expect(lobbyHint(lobby([me({ ready: true }), seat()]))).toBe('รอคู่แข่งกดพร้อม')
-    expect(lobbyHint(lobby([me({ ready: true }), seat({ connected: false })]))).toContain('คู่แข่งหลุดการเชื่อมต่อ')
+    expect(lobbyHint(lobby([me({ ready: true }), seat({ connected: false })]))).toContain('คู่แข่งหลุดไป')
     expect(lobbyHint(lobby([me({ ready: true }), seat({ ready: true })], 3000))).toContain('เกมกำลังจะเริ่ม')
     // ผู้ชม
     expect(lobbyHint(lobby([seat()]))).toBe('รอผู้เล่นเข้าห้อง')

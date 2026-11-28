@@ -39,7 +39,7 @@ export type Result =
 const ERRORS: Record<string, string> = {
   unauthorized: 'ต้องเข้าสู่ระบบก่อน',
   forbidden: 'บัญชีนี้ไม่มีสิทธิ์จัดการข้อมูล',
-  rate_limited: 'ทำรายการถี่เกินไป รอสักครู่แล้วลองใหม่',
+  rate_limited: 'กดเร็วเกินไป รอสักครู่แล้วลองใหม่',
   bad_image: 'ไฟล์นี้ใช้ไม่ได้ ใช้ได้เฉพาะรูป PNG หรือ JPEG',
   image_too_large: 'รูปใหญ่เกินไป',
   unavailable: 'เซิร์ฟเวอร์บันทึกไม่ได้ในตอนนี้ ลองใหม่อีกครั้ง',
@@ -94,7 +94,7 @@ export function readResult(status: number, body: unknown): Result {
   if (code === 'bad_credits' && typeof raw.field === 'string') {
     return { status: 'error', message: `ข้อมูลไม่ถูกต้องที่ ${fieldLabel(raw.field)}` }
   }
-  return { status: 'error', message: ERRORS[code] ?? 'ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง' }
+  return { status: 'error', message: ERRORS[code] ?? 'ไม่สำเร็จ ลองใหม่อีกครั้ง' }
 }
 
 async function send(path: string, init: RequestInit): Promise<Result> {
@@ -102,7 +102,7 @@ async function send(path: string, init: RequestInit): Promise<Result> {
   try {
     res = await authedFetch(path, init)
   } catch {
-    return { status: 'error', message: 'เชื่อมต่อไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่' }
+    return { status: 'error', message: 'เชื่อมต่อไม่ได้ เช็กเน็ตแล้วลองใหม่' }
   }
   return readResult(res.status, await res.json().catch(() => ({})))
 }

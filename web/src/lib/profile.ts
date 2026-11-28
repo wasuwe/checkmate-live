@@ -18,11 +18,11 @@ export function avatarUrl(id: string): string {
 }
 
 const ERRORS: Record<string, string> = {
-  bad_name: `ชื่อต้องยาว ${NAME_MIN}–${NAME_MAX} ตัวอักษร ใช้ได้เฉพาะตัวอักษร ตัวเลข ช่องว่าง และ _ - .`,
+  bad_name: `ชื่อต้องยาว ${NAME_MIN} ถึง ${NAME_MAX} ตัวอักษร ใช้ได้เฉพาะตัวอักษร ตัวเลข ช่องว่าง และ _ - .`,
   bad_image: 'ไฟล์นี้ใช้ไม่ได้ เลือกรูป JPEG หรือ PNG',
   image_too_large: 'รูปใหญ่เกินไป ลองรูปอื่น',
   account_required: 'ต้องเข้าสู่ระบบก่อน',
-  unauthorized: 'เซสชันหมดอายุ ออกจากระบบแล้วเข้าใหม่',
+  unauthorized: 'เข้าสู่ระบบไว้นานเกินไป ลองออกจากระบบแล้วเข้าใหม่',
 }
 
 export class ProfileError extends Error {}
@@ -32,7 +32,7 @@ async function request(path: string, init?: RequestInit): Promise<Profile> {
   try {
     res = await authedFetch(path, init)
   } catch {
-    throw new ProfileError('เชื่อมต่อไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่')
+    throw new ProfileError('เชื่อมต่อไม่ได้ เช็กเน็ตแล้วลองใหม่')
   }
   const body = (await res.json().catch(() => ({}))) as Partial<Profile> & { error?: string }
   if (!res.ok) {

@@ -28,7 +28,7 @@ export function AccountPanel({ navigate }: Props) {
     <div className="card plain welcome" style={{ flexDirection: 'row' }}>
       <Avatar avatar={me.profile.avatar} size={44} />
       <div className="grow">
-        <div className="tiny">ยินดีต้อนรับกลับมา</div>
+        <div className="tiny">ยินดีต้อนรับ</div>
         <div className="card-title" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {myName(me)}
         </div>

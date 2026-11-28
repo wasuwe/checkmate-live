@@ -45,19 +45,19 @@ export function isUntimed(tc: string): boolean {
 }
 
 export const TIME_CONTROLS: TimeControlOption[] = [
-  { value: '5+3', label: '5 นาที + 3 วิ', hint: 'เร็ว' },
-  { value: '10+0', label: '10 นาที', hint: 'มาตรฐาน' },
-  { value: '15+10', label: '15 นาที + 10 วิ', hint: 'คิดนาน' },
+  { value: '5+3', label: '5 นาที', hint: 'เพิ่มตาละ 3 วิ' },
+  { value: '10+0', label: '10 นาที', hint: 'กำลังดี' },
+  { value: '15+10', label: '15 นาที', hint: 'เพิ่มตาละ 10 วิ' },
   { value: NO_TIME, label: 'ไม่จับเวลา', hint: 'เล่นสบาย ๆ' },
 ]
 
 export const DEFAULT_TIME_CONTROL = '10+0'
 
-/** "5+3" → "5 นาที +3 วินาทีต่อตา" */
+/** "5+3" → "ฝ่ายละ 5 นาที เพิ่มตาละ 3 วินาที" */
 export function describeTimeControl(tc: string): string {
   if (isUntimed(tc)) return 'ไม่จับเวลา'
   const match = /^(\d+)\+(\d+)$/.exec(tc)
   if (!match) return tc
   const [, minutes, increment] = match
-  return increment === '0' ? `${minutes} นาที` : `${minutes} นาที +${increment} วินาทีต่อตา`
+  return increment === '0' ? `ฝ่ายละ ${minutes} นาที` : `ฝ่ายละ ${minutes} นาที เพิ่มตาละ ${increment} วินาที`
 }

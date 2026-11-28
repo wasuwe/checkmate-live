@@ -26,6 +26,8 @@ export interface GameConnection extends Snapshot {
   sendKick: () => boolean
   sendSet: (set: string) => boolean
   sendRematch: () => boolean
+  /** ย้ายมาเล่นที่เครื่องนี้ (เมื่อ state.you.elsewhere) */
+  sendTakeover: () => boolean
 }
 
 /**
@@ -81,5 +83,6 @@ export function useGameSocket(roomId: string): GameConnection {
     sendKick: () => socketRef.current?.sendKick() ?? false,
     sendSet: (set) => socketRef.current?.sendSet(set) ?? false,
     sendRematch: () => socketRef.current?.sendRematch() ?? false,
+    sendTakeover: () => socketRef.current?.sendTakeover() ?? false,
   }
 }

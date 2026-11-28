@@ -57,7 +57,7 @@ function App() {
       case 'not_found':
         return (
           <main className="screen">
-            <h1 className="title">ไม่พบหน้านี้</h1>
+            <h1 className="title">หาหน้านี้ไม่เจอ</h1>
             <button type="button" className="btn pink" onClick={() => navigate('/')}>
               กลับหน้าแรก
             </button>

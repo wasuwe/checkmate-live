@@ -23,7 +23,7 @@ export function seatStatus(seat: LobbySeat | undefined): SeatStatus {
 
 export const SEAT_STATUS_TEXT: Record<SeatStatus, string> = {
   empty: 'รอผู้เล่น…',
-  away: 'หลุดการเชื่อมต่อ',
+  away: 'หลุดอยู่',
   ready: 'พร้อมแล้ว',
   waiting: 'ยังไม่พร้อม',
 }
@@ -51,8 +51,8 @@ export function lobbyHint(lobby: LobbyInfo): string {
   if (lobby.removed) return 'เจ้าของห้องเชิญคุณออกจากที่นั่ง คุณยังดูเกมนี้ได้'
   if (lobby.seats.length < 2) return me ? 'ส่งรหัสหรือลิงก์ให้เพื่อน แล้วรอเพื่อนเข้าห้อง' : 'รอผู้เล่นเข้าห้อง'
   if (!me) return 'คุณเป็นผู้ชม เกมจะเริ่มเมื่อผู้เล่นทั้งสองกดพร้อม'
-  if (others.some((s) => !s.connected)) return 'คู่แข่งหลุดการเชื่อมต่อ รอสักครู่'
-  if (!me.ready) return others.every((s) => s.ready) ? 'คู่แข่งพร้อมแล้ว กดพร้อมเพื่อเริ่มเกม' : 'กดพร้อมเมื่อคุณพร้อมเริ่มเกม'
+  if (others.some((s) => !s.connected)) return 'คู่แข่งหลุดไป รอสักครู่'
+  if (!me.ready) return others.every((s) => s.ready) ? 'คู่แข่งพร้อมแล้ว กดพร้อมเพื่อเริ่มเกม' : 'พร้อมแล้วกดปุ่มพร้อมได้เลย'
   return 'รอคู่แข่งกดพร้อม'
 }
 

@@ -55,7 +55,7 @@ export type AuthResult = { ok: true; needsEmailConfirm: boolean } | { ok: false;
 const MESSAGES: Record<string, string> = {
   invalid_credentials: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
   email_not_confirmed: 'ยังไม่ได้ยืนยันอีเมล เปิดลิงก์ในอีเมลที่ส่งไปก่อน',
-  user_already_exists: 'อีเมลนี้สมัครไว้แล้ว ลองเข้าสู่ระบบแทน',
+  user_already_exists: 'อีเมลนี้สมัครไว้แล้ว เข้าสู่ระบบได้เลย',
   weak_password: 'รหัสผ่านสั้นหรือเดาง่ายเกินไป',
   over_email_send_rate_limit: 'ส่งอีเมลบ่อยเกินไป รอสักครู่แล้วลองใหม่',
   over_request_rate_limit: 'ลองบ่อยเกินไป รอสักครู่แล้วลองใหม่',
@@ -64,17 +64,17 @@ const MESSAGES: Record<string, string> = {
 }
 
 function failure(error: { code?: string }): AuthResult {
-  return { ok: false, message: MESSAGES[error.code ?? ''] ?? 'ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง' }
+  return { ok: false, message: MESSAGES[error.code ?? ''] ?? 'ไม่สำเร็จ ลองใหม่อีกครั้ง' }
 }
 
 export async function signIn(email: string, password: string): Promise<AuthResult> {
-  if (!supabase) return { ok: false, message: 'ระบบสมาชิกยังไม่เปิดใช้งาน' }
+  if (!supabase) return { ok: false, message: 'ระบบสมาชิกยังไม่เปิดให้ใช้' }
   const { error } = await supabase.auth.signInWithPassword({ email, password })
   return error ? failure(error) : { ok: true, needsEmailConfirm: false }
 }
 
 export async function signUp(email: string, password: string): Promise<AuthResult> {
-  if (!supabase) return { ok: false, message: 'ระบบสมาชิกยังไม่เปิดใช้งาน' }
+  if (!supabase) return { ok: false, message: 'ระบบสมาชิกยังไม่เปิดให้ใช้' }
   const { data, error } = await supabase.auth.signUp({ email, password })
   if (error) return failure(error)
   // ถ้าโปรเจกต์เปิดการยืนยันอีเมล จะยังไม่ได้ session จนกว่าจะกดลิงก์ในอีเมล

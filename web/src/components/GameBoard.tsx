@@ -14,17 +14,12 @@ import {
 } from '../lib/moves'
 import { halfOf, isDarkSquare, piecesFor, sideSets, squareStyle, useSetPrefs, type Kind } from '../lib/pieceSets'
 import { RULES } from '../lib/rules'
+import { placeTag } from '../lib/pieceTag'
 import { colorName } from '../lib/text'
 import { useStylePrefs } from '../lib/pieceStyles'
 import type { GameId, Promo, StateMsg } from '../lib/protocol'
 import { FxBurst } from './Fx'
 import { PromotionDialog } from './PromotionDialog'
-
-/** ชื่อและวิธีเดินของหมากที่ชี้อยู่ */
-export interface PieceInfo {
-  name: string
-  desc: string
-}
 
 interface Props {
   state: StateMsg
@@ -35,8 +30,6 @@ interface Props {
   /** เปลี่ยนทุกครั้งที่การเชื่อมต่อขาด ตาเดินที่ยังรอคำตอบจาก socket เดิมถือว่าไม่ถึงเซิร์ฟเวอร์ */
   session: number
   sendMove: (from: string, to: string, promo: Promo) => boolean
-  /** บอกหน้าที่ครอบอยู่ว่ากำลังชี้ที่หมากตัวไหน (null = ไม่ได้ชี้) ให้แสดงคำอธิบายนอกกระดานได้ */
-  onPieceInfo?: (info: PieceInfo | null) => void
 }
 
 /** ตาเดินที่ส่งไปแล้วและกำลังรอเซิร์ฟเวอร์ยืนยัน */
@@ -49,34 +42,118 @@ interface Pending {
   session: number
 }
 
-// สไตล์นิทาน: ตาที่เพิ่งเดินและหมากที่เลือกเป็นแสงทอง
-// (backgroundImage: none เพื่อให้สีทองทับลายของช่องเหมือนกันทั้งสองครึ่งกระดาน)
-const LAST_MOVE: CSSProperties = { backgroundColor: '#F3DC9C', backgroundImage: 'none' }
-const SELECTED: CSSProperties = { backgroundColor: '#E9C46E', backgroundImage: 'none' }
-// โทนแดง (เจ้าของโปรเจกต์กำหนด): คิงที่ถูก Check และทุกอย่างที่เป็นการกิน
-const RED = '#C8352B'
-const CHECK: CSSProperties = {
-  backgroundImage:
-    'radial-gradient(circle, rgba(200, 40, 32, 0.95) 0%, rgba(200, 40, 32, 0.6) 48%, rgba(200, 40, 32, 0.18) 80%)',
-  boxShadow: `inset 0 0 0 0.6cqw ${RED}`,
+// ---------- ไฮไลต์ช่อง: กรอบภาพปิดทองของหนังสือนิทาน ----------
+// ไฮไลต์ทุกแบบเป็น "กรอบ" ที่วางทับบนช่อง กลางช่องโปร่ง สีและลายของชุดกระดานจึงยังเห็นครบ
+// (เจ้าของโปรเจกต์กำหนด 2026-11-28: ไฮไลต์แบบถมทั้งช่องทำให้กระดานเสียกิมมิค คือลายและสีของแต่ละชุดหายไป
+// และไฮไลต์ต้องสวย ขี้เล่น เด่น และเข้ากับธีม) ไม่ใช้จุดและไม่ใช้ลูกศร (กำหนด 2026-11-27: ไม่เข้าธีม)
+// ทอง = เดินไปได้ / หมากที่เลือก / ตาที่เพิ่งเดิน, แดง = คิงที่ถูก Check และทุกอย่างที่เป็นการกิน
+
+/** ไฮไลต์หนึ่งแบบ: ภาพที่วางทับพื้นของช่อง และแสงที่เต้นเบา ๆ (ถ้ามี) */
+interface Highlight {
+  overlay: string
+  /** สีของแสงที่เต้นที่ขอบในของช่อง (keyframes `sq-pulse` ใน index.css) ไม่ใส่ = ไม่เต้น */
+  pulse?: string
 }
-// ช่องที่เดินไปได้ไฮไลต์ทั้งช่อง ไม่ใช้จุดและไม่ใช้ลูกศร (เจ้าของโปรเจกต์กำหนด 2026-11-27: จุดกับลูกศรไม่เข้าธีม)
-// แสงทองกรอบทอง = เดินไปได้, แสงแดงกรอบแดง = เป็นการกิน (ช่องที่เดินไปกิน และหมากที่จะถูกกิน)
-// แบบ HOVER จางกว่า ใช้ตอนชี้ที่หมากโดยยังไม่ได้เลือก
-// สีพื้นเป็นทองอ่อนที่ทึบพอ ช่องจึงออกโทนอุ่นเหมือนกันทุกชุดกระดาน (ทองโปร่งบนช่องสีฟ้าหรือเขียวจะกลายเป็นสีเทาหม่น)
-const fill = (rgb: string, alpha: number, edge: string, width: number): CSSProperties => ({
-  backgroundImage: `linear-gradient(rgba(${rgb}, ${alpha}), rgba(${rgb}, ${alpha}))`,
-  boxShadow: `inset 0 0 0 ${width}cqw ${edge}`,
-})
-const GLOW_RGB = '246, 226, 168'
-const BLUSH_RGB = '236, 150, 132'
-const MOVE = fill(GLOW_RGB, 0.9, 'rgba(201, 151, 58, 1)', 0.5)
-const MOVE_HOVER = fill(GLOW_RGB, 0.62, 'rgba(201, 151, 58, 0.75)', 0.35)
-const CAPTURE = fill(BLUSH_RGB, 0.88, `${RED}`, 0.6)
-const CAPTURE_HOVER = fill(BLUSH_RGB, 0.6, 'rgba(200, 53, 43, 0.8)', 0.4)
+
+type Shade = 'light' | 'dark'
+
+interface Tone {
+  /** สีกรอบ */
+  edge: string
+  /** เส้นแสงบาง ๆ กลางกรอบ ให้ดูเป็นกรอบปิดทอง */
+  sheen: string
+  /** แสงเรืองด้านในกรอบ */
+  glow: string
+}
+
+const GOLD = '#C9973A'
+const RED = '#C8352B'
+// แสงเรืองมีสองสี: บนช่องอ่อนเป็นทองอ่อน บนช่องเข้มเป็นขาวนวล (ช่องเข้มจึงสว่างขึ้นเป็นสีพาสเทลของชุดนั้น ไม่กลายเป็นสีเทา)
+const TONES = {
+  gold: { light: { edge: GOLD, sheen: '#FFF3C4', glow: '#FFE9A6' }, dark: { edge: GOLD, sheen: '#FFF3C4', glow: '#FFFBEA' } },
+  red: { light: { edge: RED, sheen: '#FFD9CF', glow: '#FF9C8A' }, dark: { edge: RED, sheen: '#FFD9CF', glow: '#FFC9BD' } },
+} satisfies Record<string, Record<Shade, Tone>>
+type ToneName = keyof typeof TONES
+
+const svgUrl = (body: string): string =>
+  `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>${body}</svg>`)}")`
+
+/** ประกายสี่แฉกที่มุมกรอบ */
+const sparkle = (cx: number, cy: number, s: number, tone: Tone): string =>
+  `<path d='M${cx} ${cy - s}Q${cx} ${cy} ${cx + s} ${cy}Q${cx} ${cy} ${cx} ${cy + s}Q${cx} ${cy} ${cx - s} ${cy}Q${cx} ${cy} ${cx} ${cy - s}Z' fill='#FFFBEA' stroke='${tone.edge}' stroke-width='1.3' stroke-linejoin='round'/>`
+
+interface FrameOptions {
+  /** ความหนาของกรอบ (หน่วย: 1/100 ของช่อง) */
+  width: number
+  /** ความเข้มของแสงเรืองด้านในกรอบ 0–1 */
+  glow: number
+  /** ประกายที่มุม */
+  sparkles?: boolean
+  /** กรอบเส้นประแบบรอยเย็บ (ตาที่เพิ่งเดิน) */
+  stitched?: boolean
+  /** ความเข้มทั้งภาพ 0–1 (แบบชี้จางกว่าแบบเลือก) */
+  opacity?: number
+}
+
+function frame(tone: Tone, { width, glow, sparkles = false, stitched = false, opacity = 1 }: FrameOptions): string {
+  const box = `x='5' y='5' width='90' height='90' rx='10' fill='none'`
+  return svgUrl(
+    `<defs><filter id='b' x='-20%' y='-20%' width='140%' height='140%'><feGaussianBlur stdDeviation='5'/></filter></defs>` +
+      `<g opacity='${opacity}'>` +
+      `<rect ${box} stroke='${tone.glow}' stroke-width='15' opacity='${glow}' filter='url(#b)'/>` +
+      `<rect ${box} stroke='${tone.edge}' stroke-width='${width}'${stitched ? ` stroke-dasharray='8 6.4' stroke-linecap='round'` : ''}/>` +
+      (stitched ? '' : `<rect ${box} stroke='${tone.sheen}' stroke-width='${(width * 0.26).toFixed(2)}' opacity='0.95'/>`) +
+      (sparkles ? sparkle(16, 16, 12, tone) + sparkle(86, 85, 7.5, tone) : '') +
+      `</g>`,
+  )
+}
+
+/** ไฮไลต์หนึ่งแบบ สำหรับช่องอ่อนและช่องเข้ม */
+type Mark = Record<Shade, Highlight>
+const both = (make: (shade: Shade) => Highlight): Mark => ({ light: make('light'), dark: make('dark') })
+/** แสงเรืองใต้ตัวหมาก (หมากที่เลือก) */
+const HALO: Record<Shade, string> = { light: '255, 236, 170', dark: '255, 252, 235' }
+const PULSE: Record<ToneName, Record<Shade, string>> = {
+  gold: { light: 'rgba(255, 226, 140, 0.95)', dark: 'rgba(255, 250, 228, 0.95)' },
+  red: { light: 'rgba(232, 84, 66, 0.9)', dark: 'rgba(255, 190, 178, 0.95)' },
+}
+
+// ตาที่เพิ่งเดิน: กรอบทองเส้นประแบบรอยเย็บ เบากว่าแบบอื่น
+const LAST_MOVE = both((shade) => ({ overlay: frame(TONES.gold[shade], { width: 4, glow: 0.55, stitched: true }) }))
+// หมากที่เลือก: กรอบทองหนา แสงเรืองใต้ตัวหมาก
+const SELECTED = both((shade) => ({
+  overlay: `${frame(TONES.gold[shade], { width: 7, glow: 1 })}, radial-gradient(circle at 50% 58%, rgba(${HALO[shade]}, 0.85) 0%, rgba(${HALO[shade]}, 0.4) 45%, rgba(${HALO[shade]}, 0) 72%)`,
+}))
+// คิงหรือขุนที่ถูก Check: กรอบแดง แสงแดงใต้ตัวหมาก ขอบช่องยังเห็นพื้นเดิม
+const CHECK = both((shade) => ({
+  overlay: `${frame(TONES.red[shade], { width: 6.5, glow: 1 })}, radial-gradient(circle, rgba(200, 40, 32, 0.9) 0%, rgba(200, 40, 32, 0.5) 46%, rgba(200, 40, 32, 0) 76%)`,
+  pulse: 'rgba(200, 53, 43, 0.85)',
+}))
+// ช่องที่เดินไปได้ (ทอง) และการกิน (แดง: ช่องที่เดินไปกิน และหมากที่จะถูกกิน) กรอบมีประกายที่มุมและแสงเต้นเบา ๆ
+// แบบ HOVER ใช้ตอนชี้ที่หมากโดยยังไม่ได้เลือก: จางกว่า ไม่มีประกาย ไม่เต้น
+const MOVE = both((shade) => ({ overlay: frame(TONES.gold[shade], { width: 6, glow: 1, sparkles: true }), pulse: PULSE.gold[shade] }))
+const MOVE_HOVER = both((shade) => ({ overlay: frame(TONES.gold[shade], { width: 4.5, glow: 0.7, opacity: 0.8 }) }))
+const CAPTURE = both((shade) => ({ overlay: frame(TONES.red[shade], { width: 6.5, glow: 1, sparkles: true }), pulse: PULSE.red[shade] }))
+const CAPTURE_HOVER = both((shade) => ({ overlay: frame(TONES.red[shade], { width: 4.5, glow: 0.75, opacity: 0.85 }) }))
+
+/** วางไฮไลต์ทับพื้นของช่อง: ลายและสีเดิมของช่องยังอยู่ข้างใต้ ไฮไลต์ที่วางทีหลังอยู่บนสุด */
+function withHighlight(base: CSSProperties | undefined, h: Highlight): CSSProperties {
+  const under = base?.backgroundImage
+  const style: CSSProperties & { '--sq-glow'?: string } = {
+    ...base,
+    backgroundImage: under ? `${h.overlay}, ${under}` : h.overlay,
+    backgroundSize: '100% 100%',
+    backgroundRepeat: 'no-repeat',
+  }
+  if (h.pulse) {
+    style['--sq-glow'] = h.pulse
+    style.animation = 'sq-pulse 1.7s ease-in-out infinite'
+  }
+  return style
+}
 const NO_REACH: PieceReach = { targets: [], captures: [], victims: [] }
 
-export function GameBoard({ state, online, errorSeq, session, sendMove, onPieceInfo }: Props) {
+export function GameBoard({ state, online, errorSeq, session, sendMove }: Props) {
   const { set } = useSetPrefs()
   // กระดานแบ่งครึ่ง: ครึ่งของฝั่งไหนและตัวหมากของฝั่งนั้นใช้ชุดที่ผู้เล่นฝั่งนั้นเลือกไว้ในห้องรอ
   const whiteSet = sideSets(set, state.players).w
@@ -167,8 +244,8 @@ export function GameBoard({ state, online, errorSeq, session, sendMove, onPieceI
   // พื้นของทุกช่อง: ครึ่งกระดานของฝั่งไหนใช้สีและลายของชุดฝั่งนั้น แล้วไฮไลต์วางทับ
   const baseStyles = useMemo(() => halfBoardStyles(sets), [sets])
   const squareStyles: Record<string, CSSProperties> = { ...baseStyles }
-  const mark = (sq: string, style: CSSProperties) => {
-    squareStyles[sq] = { ...squareStyles[sq], ...style }
+  const mark = (sq: string, m: Mark) => {
+    squareStyles[sq] = withHighlight(squareStyles[sq], m[isDarkSquare(sq) ? 'dark' : 'light'])
   }
   if (lastMove) {
     mark(lastMove.from, LAST_MOVE)
@@ -184,15 +261,12 @@ export function GameBoard({ state, online, errorSeq, session, sendMove, onPieceI
   for (const sq of targets) mark(sq, picked.captures.includes(sq) ? CAPTURE : MOVE)
   // หมากที่จะถูกกินแม้ไม่ได้อยู่ที่ช่องปลายทาง (กินผ่าน กินข้าม หนีบ)
   for (const sq of picked.victims) mark(sq, CAPTURE)
-  const tipName = hover && hoverPiece ? pieceTip(game, hoverPiece).name : null
-  const tipDesc = hover && hoverPiece ? pieceTip(game, hoverPiece).desc : ''
-  // ส่งให้หน้าที่ครอบอยู่ทุกครั้งที่หมากที่ชี้เปลี่ยน (และล้างเมื่อกระดานถูกถอดออก)
-  useEffect(() => {
-    onPieceInfo?.(tipName === null ? null : { name: tipName, desc: tipDesc })
-    // onPieceInfo เป็นตัวตั้งค่า state ของหน้าที่ครอบอยู่ ไม่ใช่เหตุให้ส่งซ้ำ
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tipName, tipDesc])
-  useEffect(() => () => onPieceInfo?.(null), [])  // eslint-disable-line react-hooks/exhaustive-deps
+  // ป้ายคำอธิบายของหมากที่ชี้: วางข้างตัวหมาก เลือกด้านที่ทับช่องที่ไฮไลต์อยู่น้อยที่สุด
+  const tip = hover && hoverPiece ? pieceTip(game, hoverPiece) : null
+  const tipPlace =
+    tip && hover
+      ? placeTag(hover, flipped, new Set([...hovered.targets, ...hovered.victims, ...targets, ...picked.victims]), new Set(boardOf(fen).keys()))
+      : null
   const bottomSet = sets[flipped ? 'b' : 'w']
 
   return (
@@ -222,12 +296,15 @@ export function GameBoard({ state, online, errorSeq, session, sendMove, onPieceI
         />
       </div>
 
-      {/* ป้ายชื่อหมากเกาะขอบล่างของกระดาน ไม่ทับช่อง (จอกว้างซ่อนไว้ แล้วแสดงในแผงข้างพร้อมวิธีเดินแทน) */}
-      {tipName !== null && (
-        <div className="piece-tip" role="tooltip">
-          <b>{tipName}</b>
-          {tipDesc && <span>{tipDesc}</span>}
-        </div>
+      {/* ป้ายชื่อและวิธีเดินของหมากที่ชี้ วางข้างตัวหมาก มีปลายชี้ไปที่หมากตัวนั้น */}
+      {tip && tipPlace && (
+        <>
+          <span className={`piece-tag-tail ${tipPlace.side}`} style={tipPlace.tail} aria-hidden="true" />
+          <div className={`piece-tag ${tipPlace.side}`} style={tipPlace.tag} role="tooltip">
+            <b>{tip.name}</b>
+            {tip.desc && <span>{tip.desc}</span>}
+          </div>
+        </>
       )}
 
       {fx && <BoardFx key={fx.seq} event={fx.event} flipped={flipped} game={game} />}

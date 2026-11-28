@@ -52,7 +52,7 @@ describe('sample credits data', () => {
 
   test('a reference to someone who does not exist does not break the page', () => {
     expect(personOf(DATA, 'nok').name).toBe('Nok')
-    expect(personOf(DATA, 'ghost')).toMatchObject({ name: '—', link: '' })
+    expect(personOf(DATA, 'ghost')).toMatchObject({ name: 'ไม่ระบุชื่อ', link: '' })
   })
 })
 

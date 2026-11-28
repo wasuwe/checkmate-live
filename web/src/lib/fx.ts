@@ -18,9 +18,9 @@ export const FX_TYPES: { id: FxType; name: string; icon: string; color: string }
 ]
 
 export const FX_EVENTS: { id: FxEventKind; label: string; desc: string }[] = [
-  { id: 'capture', label: 'เมื่อกินหมาก', desc: 'เล่นตรงช่องที่กินได้' },
-  { id: 'check', label: 'เมื่อ Check', desc: 'เล่นที่คิงหรือขุนของฝ่ายที่ถูกรุก พร้อมป้าย "Check!" (หมากรุกสากลและหมากรุกไทย)' },
-  { id: 'mate', label: 'เมื่อ Checkmate', desc: 'เล่นเต็มกระดานพร้อมป้าย "Checkmate!" และเมื่อชนะบนกระดานในหมากฮอสกับหมากหนีบ' },
+  { id: 'capture', label: 'ตอนกินหมาก', desc: 'ขึ้นตรงช่องที่กิน' },
+  { id: 'check', label: 'ตอน Check', desc: 'ขึ้นที่คิงหรือขุนที่ถูกรุก พร้อมคำว่า Check ใช้กับหมากรุกสากลและหมากรุกไทย' },
+  { id: 'mate', label: 'ตอน Checkmate', desc: 'ขึ้นเต็มกระดานพร้อมคำว่า Checkmate รวมถึงตอนชนะในหมากฮอสและหมากหนีบ' },
 ]
 
 export type FxPrefs = Record<FxEventKind, FxType>

@@ -61,14 +61,14 @@ export interface BoardSet {
 // id เดิมของแต่ละชุดคงไว้ ชุดที่ผู้เล่นเก็บไว้ในเบราว์เซอร์จึงยังใช้ได้ (เปลี่ยนแค่สีกับชื่อ)
 export const SETS: BoardSet[] = [
   { id: 'sky', name: 'ลมเหนือกับดวงอาทิตย์', tale: 'ความอ่อนโยนชนะความรุนแรง', color: 'blue', light: '#F7F1E3', dark: '#A9B3E6', w: '#FFFDF8', b: '#1E2A6B' },
-  { id: 'soda', name: 'กากับเหยือกน้ำ', tale: 'ความเพียรกับไหวพริบพาไปถึงเป้าหมาย', color: 'blue', light: '#EEF2F4', dark: '#86A9C4', w: '#FFFFFF', b: '#1D2433' },
+  { id: 'soda', name: 'อีกากับเหยือกน้ำ', tale: 'ความเพียรกับไหวพริบพาไปถึงเป้าหมาย', color: 'blue', light: '#EEF2F4', dark: '#86A9C4', w: '#FFFFFF', b: '#1D2433' },
   { id: 'mint', name: 'กระต่ายกับเต่า', tale: 'ช้าแต่มั่นคง ย่อมถึงเส้นชัย', color: 'green', light: '#F2F2E6', dark: '#93B8A2', w: '#FFFDF6', b: '#1F4A3A' },
   { id: 'matcha', name: 'เด็กเลี้ยงแกะ', tale: 'โกหกบ่อย ๆ วันที่พูดจริงจะไม่มีใครเชื่อ', color: 'green', light: '#F0F0DE', dark: '#A3AE74', w: '#FFFBEA', b: '#3A3A38' },
   { id: 'grape', name: 'สุนัขจิ้งจอกกับองุ่นเปรี้ยว', tale: 'เอื้อมไม่ถึง อย่าแกล้งว่าไม่อยากได้', color: 'purple', light: '#F2EBF2', dark: '#A086AC', w: '#FFF9FF', b: '#3D2347' },
   { id: 'lavender', name: 'ผูกกระดิ่งแมว', tale: 'พูดนั้นง่าย ลงมือทำนั้นยาก', color: 'purple', light: '#F4F0F8', dark: '#A99BD2', w: '#FFFFFF', b: '#3A2C66' },
   { id: 'honey', name: 'ห่านทองคำ', tale: 'โลภมาก ลาภหาย', color: 'yellow', light: '#FAF3E0', dark: '#D8B56C', w: '#FFFDF6', b: '#5C3D0E' },
   { id: 'lemon', name: 'มดกับตั๊กแตน', tale: 'เตรียมพร้อมไว้ก่อนฤดูหนาวมาถึง', color: 'yellow', light: '#FBF6E6', dark: '#D9C27A', w: '#FFFFFF', b: '#4A3212' },
-  { id: 'cocoa', name: 'ราชสีห์กับหนู', tale: 'ผู้ตัวเล็กก็ช่วยผู้ยิ่งใหญ่ได้', color: 'brown', light: '#F4E6CF', dark: '#C49A62', w: '#FFF8EE', b: '#5A3414' },
+  { id: 'cocoa', name: 'ราชสีห์กับหนู', tale: 'ตัวเล็กก็ช่วยผู้ยิ่งใหญ่ได้', color: 'brown', light: '#F4E6CF', dark: '#C49A62', w: '#FFF8EE', b: '#5A3414' },
   { id: 'classic', name: 'หนูเมืองกับหนูบ้านนอก', tale: 'ความสงบเรียบง่ายมีค่ากว่าความหรูหรา', color: 'brown', light: '#F5EFE1', dark: '#B9AF9B', w: '#FFFFFF', b: '#2B2A33' },
   { id: 'sakura', name: 'สุนัขจิ้งจอกกับอีกา', tale: 'ระวังคำเยินยอของคนที่หวังผล', color: 'pink', light: '#F7EEE8', dark: '#D9A08E', w: '#FFFDF8', b: '#6E2A1E' },
   { id: 'strawberry', name: 'หมาป่าในคราบแกะ', tale: 'อย่าตัดสินจากเปลือกนอก', color: 'pink', light: '#F6ECE3', dark: '#C77B86', w: '#FFFBF5', b: '#5A1730' },

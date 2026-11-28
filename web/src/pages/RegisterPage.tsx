@@ -59,7 +59,7 @@ export function RegisterPage({ navigate }: Props) {
     setErrors(found)
     if (Object.keys(found).length > 0) return
     if (!accepted) {
-      setFormError('กรุณายอมรับข้อตกลงการใช้งานก่อนสร้างบัญชี')
+      setFormError('ติ๊กยอมรับข้อตกลงการใช้งานก่อนสมัคร')
       return
     }
 
@@ -70,7 +70,7 @@ export function RegisterPage({ navigate }: Props) {
     try {
       result = await signUp(values.email.trim(), values.password)
     } catch {
-      result = { ok: false, message: 'เชื่อมต่อไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่' }
+      result = { ok: false, message: 'เชื่อมต่อไม่ได้ เช็กเน็ตแล้วลองใหม่' }
     }
     setBusy(false)
     if (!result.ok) {
@@ -159,12 +159,12 @@ export function RegisterPage({ navigate }: Props) {
           <PieceIcon kind="P" color="b" />
         </div>
         <h1 className="title">สมัครสมาชิก</h1>
-        <p className="small center">สร้างบัญชีเพื่อตั้งชื่อและรูปโปรไฟล์ที่คู่แข่งเห็น</p>
+        <p className="small center">สมัครแล้วตั้งชื่อและรูปโปรไฟล์ให้คู่แข่งเห็นได้</p>
       </div>
 
       {loginAvailable ? (
         <form className="card" onSubmit={onSubmit} noValidate>
-          {text('name', 'ชื่อที่แสดง (ไม่บังคับ)', { placeholder: 'เช่น ม้าน้อยใจกล้า', autoComplete: 'nickname' })}
+          {text('name', 'ชื่อในเกม (ไม่ใส่ก็ได้)', { placeholder: 'เช่น ม้าน้อยใจกล้า', autoComplete: 'nickname' })}
           {text('email', 'อีเมล', { type: 'email', placeholder: 'you@example.com', autoComplete: 'email' })}
           {/* คนละบรรทัด: วางคู่กันแล้วช่องสั้นเกินจนเห็นรหัสผ่านไม่ครบ (เจ้าของโปรเจกต์กำหนด) */}
           {password('password', 'รหัสผ่าน', `อย่างน้อย ${PASSWORD_MIN} ตัว`)}
@@ -185,7 +185,7 @@ export function RegisterPage({ navigate }: Props) {
               {accepted ? '✓' : ''}
             </button>
             <span>
-              ฉันได้อ่านและยอมรับ{' '}
+              อ่านและยอมรับ{' '}
               <button type="button" className="link" onClick={() => navigate('/terms')}>
                 ข้อตกลงการใช้งาน
               </button>
@@ -202,11 +202,11 @@ export function RegisterPage({ navigate }: Props) {
             </p>
           )}
           <button type="submit" className="btn butter strong" disabled={busy}>
-            {busy ? 'กำลังสร้างบัญชี…' : 'สร้างบัญชี'}
+            {busy ? 'กำลังสมัคร…' : 'สร้างบัญชี'}
           </button>
         </form>
       ) : (
-        <p className="card center">ระบบสมาชิกยังไม่เปิดใช้งาน เล่นแบบผู้เล่นรับเชิญได้เลย</p>
+        <p className="card center">ระบบสมาชิกยังไม่เปิดให้ใช้ แต่เล่นได้เลยโดยไม่ต้องสมัคร</p>
       )}
 
       <p className="center">

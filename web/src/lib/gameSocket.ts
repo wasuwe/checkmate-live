@@ -8,11 +8,13 @@ import {
   type Promo,
   type StateMsg,
 } from './protocol'
+import { deviceId } from './device'
 
 export type Connection = 'connecting' | 'open' | 'reconnecting' | 'closed'
 
 /** สาเหตุที่ทำให้เลิกเชื่อมต่อถาวร */
-export type Fatal = 'room_not_found' | 'unauthorized' | 'too_many_connections'
+/** 'moved' = ผู้ใช้ย้ายไปเล่นห้องนี้ที่อีกเครื่อง หน้านี้จึงออกจากห้อง */
+export type Fatal = 'room_not_found' | 'unauthorized' | 'too_many_connections' | 'moved'
 
 export interface Snapshot {
   connection: Connection
@@ -254,6 +256,13 @@ export class GameSocket {
     return true
   }
 
+  /** ย้ายมาเล่นที่เครื่องนี้: เครื่องอื่นของผู้ใช้คนเดียวกันออกจากห้อง */
+  sendTakeover(): boolean {
+    if (!this.snapshot.state || !this.ws || this.ws.readyState !== OPEN) return false
+    this.send(this.ws, { type: 'takeover' })
+    return true
+  }
+
   /** บอกชุดหมากรุกที่เลือก (ใช้ในห้องรอ) เซิร์ฟเวอร์รับเฉพาะก่อนเกมเริ่ม */
   sendSet(set: string): boolean {
     if (!this.snapshot.state || !this.ws || this.ws.readyState !== OPEN) return false
@@ -323,9 +332,14 @@ export class GameSocket {
       case 'pong':
         break // มีไว้ให้รู้ว่ายังเชื่อมต่ออยู่เท่านั้น
 
+      case 'moved':
+        // ย้ายไปเล่นที่อีกเครื่องแล้ว: เลิกเชื่อมต่อ ถ้าต่อกลับเองสองเครื่องจะแย่งห้องกันไปมา
+        this.fail('moved')
+        break
+
       case 'auth_ok':
         this.unauthorizedInARow = 0
-        this.send(ws, { type: 'join', room: this.opts.roomId })
+        this.send(ws, { type: 'join', room: this.opts.roomId, device: deviceId() })
         this.watch(ws)
         break
 

@@ -128,8 +128,8 @@ describe('checkers in the games list, rules and text', () => {
 
   test('the two ways to win are explained', () => {
     const done = (reason: string) => resultParts(state({ status: 'finished', result: '1-0', reason })).reason
-    expect(done('wipeout')).toBe('กินหมากหมดกระดาน')
-    expect(done('blocked')).toBe('ไม่มีตาเดินเหลือ')
+    expect(done('wipeout')).toBe('หมากของคู่แข่งถูกกินหมด')
+    expect(done('blocked')).toBe('คู่แข่งไม่มีตาให้เดิน')
   })
 })
 

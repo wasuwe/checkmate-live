@@ -15,7 +15,7 @@ import {
 import { Avatar } from './Avatar'
 import { CropDialog } from './CropDialog'
 
-/** ฟอร์มตั้งชื่อที่แสดงและรูปโปรไฟล์ ใช้ได้เมื่อ login แล้วเท่านั้น */
+/** ฟอร์มตั้งชื่อในเกมและรูปโปรไฟล์ ใช้ได้เมื่อ login แล้วเท่านั้น */
 export function ProfileEditor() {
   const me = useMe()
   const profile = me.profile
@@ -38,7 +38,7 @@ export function ProfileEditor() {
       setDraft(null)
       setNotice(done)
     } catch (err) {
-      setError(err instanceof ProfileError ? err.message : 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง')
+      setError(err instanceof ProfileError ? err.message : 'มีบางอย่างผิดพลาด ลองใหม่อีกครั้ง')
     }
     setBusy(false)
   }
@@ -77,7 +77,7 @@ export function ProfileEditor() {
       <div className="profile-fields">
         <form onSubmit={onSubmit} className="stack" style={{ gap: 6 }}>
           <label className="field" htmlFor="profile-name">
-            ชื่อที่แสดง
+            ชื่อในเกม
           </label>
           <div className="row">
             <input
@@ -89,7 +89,7 @@ export function ProfileEditor() {
                 setNotice(null)
               }}
               maxLength={NAME_MAX}
-              placeholder={`${NAME_MIN}–${NAME_MAX} ตัวอักษร`}
+              placeholder={`${NAME_MIN} ถึง ${NAME_MAX} ตัวอักษร`}
               autoComplete="nickname"
             />
             <button type="submit" className="btn mini" disabled={busy || name.trim() === profile.name}>
@@ -137,7 +137,7 @@ export function ProfileEditor() {
             </button>
           )}
         </div>
-        <p className="tiny pretty">คู่แข่งและผู้ชมเห็นชื่อและรูปนี้ รูปที่อัปโหลดเลือกส่วนที่จะใช้ (ครอป) ได้</p>
+        <p className="tiny pretty">คู่แข่งและผู้ชมจะเห็นชื่อและรูปนี้ รูปที่อัปโหลดเองครอปได้</p>
 
         {error && (
           <p className="error anim-shake" role="alert">

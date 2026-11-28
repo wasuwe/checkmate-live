@@ -17,6 +17,8 @@ type Client struct {
 	UserID string
 	// Profile คือชื่อและรูป ณ ตอนที่เชื่อมต่อ
 	Profile PlayerProfile
+	// Device คือรหัสเครื่องที่หน้าเว็บส่งมาตอนขอเข้าห้อง ("" = ไม่ได้ส่ง) ตั้งก่อนส่ง Client เข้าห้อง แล้วไม่เปลี่ยนอีก
+	Device string
 
 	send     chan []byte
 	kick     func()

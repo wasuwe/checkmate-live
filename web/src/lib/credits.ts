@@ -72,7 +72,7 @@ export const SAMPLE_CREDITS: CreditsData = {
 }
 
 /** คนที่ไม่พบ (ข้อมูลอ้างถึง id ที่ไม่มี) แสดงเป็นชื่อว่างแทนการทำให้หน้าพัง */
-const NOBODY: Person = { id: '', rev: 0, name: '—', handle: '', link: '', bg: '#FFFFFF', image: '' }
+const NOBODY: Person = { id: '', rev: 0, name: 'ไม่ระบุชื่อ', handle: '', link: '', bg: '#FFFFFF', image: '' }
 
 export function personOf(data: CreditsData, id: string): Person {
   return data.people.find((p) => p.id === id) ?? NOBODY

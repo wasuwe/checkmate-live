@@ -85,8 +85,8 @@ func main() {
 	clientIP := func(r *http.Request) string { return ratelimit.ClientIP(r, ipHeader) }
 	log.Info("abuse protection configured", "clientIPHeader", ipHeader)
 
-	// START_DELAY คือเวลาที่ให้หน้าเว็บเล่นภาพโยนเหรียญก่อนนาฬิกาเริ่มนับ เช่น "3500ms" (ค่าเริ่มต้น) "0s" = ไม่รอ
-	startDelay := 3500 * time.Millisecond
+	// START_DELAY คือเวลาที่ให้หน้าเว็บเล่นภาพโยนเหรียญก่อนนาฬิกาเริ่มนับ เช่น "5s" (ค่าเริ่มต้น) "0s" = ไม่รอ
+	startDelay := 5 * time.Second
 	if v := os.Getenv("START_DELAY"); v != "" {
 		if startDelay, err = time.ParseDuration(v); err != nil || startDelay < 0 || startDelay > 10*time.Second {
 			log.Error("invalid START_DELAY", "value", v)

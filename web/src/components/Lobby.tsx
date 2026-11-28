@@ -49,22 +49,22 @@ export function Lobby({ state, lobby, stateAt, online, sendReady, sendKick, send
     <main className="screen wide lobby">
       {!online && (
         <p className="banner" role="status">
-          การเชื่อมต่อหลุด กำลังเชื่อมต่อใหม่…
+          หลุดจากห้อง กำลังต่อกลับเข้าไป…
         </p>
       )}
 
       <div className="row wrap lobby-head">
-        <h1 className="title grow">ห้องรอ · {gameName(gameId)}</h1>
+        <h1 className="title grow">ห้อง{gameName(gameId)}</h1>
         <span className="pill">{describeTimeControl(state.tc)}</span>
         {/* เปิดแท็บใหม่ เพื่อไม่ให้ออกจากห้อง */}
         <a className="btn mini" href={`/rules?game=${gameId}`} target="_blank" rel="noopener">
-          กฎ
+          กติกา
         </a>
       </div>
 
       {/* สี่ส่วนเป็นลูกของตารางโดยตรง CSS จึงจัดตำแหน่งตามขนาดจอได้: จอกว้างสองคอลัมน์ จอแคบเรียงลงมา */}
       <div className="lobby-grid">
-        <section className="card side lobby-invite" aria-label="เชิญเพื่อน">
+        <section className="card side lobby-invite" aria-label="ชวนเพื่อน">
           <div className="lobby-code">
             <div className="tiny">รหัสห้อง</div>
             <div className="room-code huge">{formatRoomCode(state.room)}</div>
@@ -86,7 +86,7 @@ export function Lobby({ state, lobby, stateAt, online, sendReady, sendKick, send
 
           {seconds !== null ? (
             <div className="lobby-countdown" role="status" aria-live="assertive">
-              <span>เริ่มใน</span>
+              <span>เกมเริ่มในอีก</span>
               {/* key ทำให้ตัวเลขเด้งทุกครั้งที่เปลี่ยน */}
               <b key={seconds}>{seconds}</b>
             </div>
@@ -104,7 +104,7 @@ export function Lobby({ state, lobby, stateAt, online, sendReady, sendKick, send
               disabled={!online}
               onClick={() => sendReady(!me.ready)}
             >
-              {me.ready ? 'ยกเลิกพร้อม' : 'พร้อม!'}
+              {me.ready ? 'ขอเวลาอีกนิด' : 'พร้อม!'}
             </button>
           )}
           <Stands spectators={state.spectators} watching={state.watching} />
@@ -112,13 +112,13 @@ export function Lobby({ state, lobby, stateAt, online, sendReady, sendKick, send
 
         <section className="card side lobby-sets" aria-label="ชุดหมากรุก">
           <div className="row lobby-sets-head">
-            <h2 className="card-title grow">เลือกชุดหมากรุกของคุณ</h2>
+            <h2 className="card-title grow">เลือกชุดหมากรุก</h2>
             <a className="small" href="/profile" target="_blank" rel="noopener">
-              จัดการชุด
+              ดูชุดทั้งหมด
             </a>
           </div>
           <PiecePicker />
-          <p className="tiny pretty lobby-sets-note">ครึ่งกระดานฝั่งคุณและตัวหมากของคุณใช้ชุดนี้ เลือกได้ถึงก่อนเกมเริ่ม</p>
+          <p className="tiny pretty lobby-sets-note">ชุดนี้ใช้กับตัวหมากและกระดานครึ่งฝั่งคุณ เปลี่ยนได้จนกว่าเกมจะเริ่ม</p>
         </section>
 
         <div className="lobby-chat">{chat}</div>
@@ -161,7 +161,7 @@ function SeatCard({ seat, onKick }: { seat: LobbySeat | undefined; onKick?: () =
               <h2 className="dialog-title" id="kick-title">
                 เชิญ {seat.name || 'ผู้เล่นคนนี้'} ออกจากที่นั่ง?
               </h2>
-              <p>ที่นั่งจะว่างให้คนอื่นเข้ามาแทน คนที่ถูกเชิญออกยังดูเกมได้ แต่กลับมานั่งในห้องนี้ไม่ได้</p>
+              <p>ที่นั่งจะว่างให้คนอื่นมาเล่นแทน เขายังดูเกมได้ แต่กลับมานั่งในห้องนี้ไม่ได้แล้ว</p>
               <div className="row wrap" style={{ justifyContent: 'center' }}>
                 <button type="button" className="btn mint" autoFocus onClick={() => setConfirming(false)}>
                   ยกเลิก
@@ -215,7 +215,7 @@ function CopyLinkButton() {
   }
   return (
     <button type="button" className="btn butter" onClick={copy}>
-      {copied ? 'คัดลอกแล้ว ✓' : 'คัดลอกลิงก์'}
+      {copied ? 'คัดลอกแล้ว' : 'คัดลอกลิงก์'}
     </button>
   )
 }
