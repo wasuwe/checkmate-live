@@ -140,6 +140,19 @@ export interface PieceOptions {
 }
 
 /**
+ * ชุดและฝั่งที่มีภาพวาดตัวหมากเป็นไฟล์ครบหกชนิด (web/public/pieces/<ชุด>-<ฝั่ง>-<ชนิด>.webp ขนาด 256 × 256 พื้นโปร่งใส)
+ * เจ้าของโปรเจกต์เลือกแนวนี้ 2026-11-28: ตัวละครของชุดแต่งเป็นหมากแต่ละชนิด (สวมมงกุฎ อยู่ในหอคอย ขี่ม้าไม้) วาดด้วย AI ในสไตล์เดียวกับการ์ด
+ * ฝั่งที่ยังไม่มีไฟล์ใช้ตัวละครที่วาดในโค้ดตามเดิม
+ */
+const ART_PIECES: Record<string, Color[]> = {
+  cocoa: ['w', 'b'],
+}
+
+const artPiece = (setId: string, color: Color, kind: string): JSX.Element => (
+  <image href={`/pieces/${setId}-${color}-${kind}.webp`} x="0" y="0" width="45" height="45" />
+)
+
+/**
  * ตัวละครนิทานของฝั่งหนึ่งในชุด แบบตัวเล็กหัวโต (lib/heroes.tsx) ใช้เป็นภาพประกอบ: การ์ดสะสม ฉากเปิดเกม ห้องรอ
  * ชุดที่ไม่มีตัวละคร (ไม่มีในตอนนี้) ใช้ตัวเบี้ยของชุดแทน
  */
@@ -172,10 +185,12 @@ export function pieceSvg(
   // ค่าเริ่มต้น: ตัวหมากคลาสสิก ส่วนเบี้ยเป็นตัวละครในนิทานของชุด (DEFAULT_STYLES)
   // รูปแบบ "ตัวละครนิทาน" วาดที่นี่เพราะต้องรู้ว่าใช้ชุดไหน ชุดที่ไม่มีตัวละครใช้แบบคลาสสิกแทน
   const styleId = opts.styles?.[base] ?? DEFAULT_STYLES[base]
-  const fable = styleId === FABLE_STYLE ? fablePiece(set.id, base, paint) : undefined
-  const body = fable ?? drawPiece(styleId, base, paint)
+  // ชุดที่มีภาพวาดตัวหมากเป็นไฟล์ (ART_PIECES): รูปแบบ "ตัวละครนิทาน" ใช้ภาพนั้น ตัวละครแต่งเป็นหมากแต่ละชนิดเอง จึงไม่ต้องมีป้าย
+  const art = styleId === FABLE_STYLE && ART_PIECES[set.id]?.includes(color) ? artPiece(set.id, color, base) : undefined
+  const fable = !art && styleId === FABLE_STYLE ? fablePiece(set.id, base, paint) : undefined
+  const body = art ?? fable ?? drawPiece(styleId, base, paint)
   // ป้ายบอกชนิดหมากที่มุม: ใช้เฉพาะเมื่อรูปทรงไม่ได้บอกชนิดเอง คือตัวละครนิทานที่ไม่ใช่เบี้ย และรูปที่ทีมงานอัปโหลด
-  const needsBadge = fable ? base !== 'P' : styleId.startsWith('u-')
+  const needsBadge = art ? false : fable ? base !== 'P' : styleId.startsWith('u-')
   return (
     <svg key={opts.key} viewBox="0 0 45 45" className={opts.className ?? 'piece'} style={opts.style}>
       {FLIPPED[kind] ? cloneElement(body, { transform: 'rotate(180 22.5 22.5)' }) : body}
