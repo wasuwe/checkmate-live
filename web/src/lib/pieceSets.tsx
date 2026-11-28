@@ -143,8 +143,13 @@ export interface PieceOptions {
  * ตัวละครนิทานของฝั่งหนึ่งในชุด แบบตัวเล็กหัวโต (lib/heroes.tsx) ใช้เป็นภาพประกอบ: การ์ดสะสม ฉากเปิดเกม ห้องรอ
  * ชุดที่ไม่มีตัวละคร (ไม่มีในตอนนี้) ใช้ตัวเบี้ยของชุดแทน
  */
-export function heroSvg(set: BoardSet, color: Color, opts: { className?: string; style?: CSSProperties } = {}): JSX.Element {
-  const figure = heroFigure(set.id, { fill: color === 'w' ? set.w : set.b, ink: INK, color })
+export function heroSvg(
+  set: BoardSet,
+  color: Color,
+  opts: { className?: string; style?: CSSProperties; ink?: string } = {},
+): JSX.Element {
+  // ink: สีเส้นของตัวละคร (ค่าเริ่มต้นคือหมึกเข้มของตัวหมาก การ์ดสะสมใช้สีน้ำตาลทองให้เข้ากับกรอบ)
+  const figure = heroFigure(set.id, { fill: color === 'w' ? set.w : set.b, ink: opts.ink ?? INK, color })
   if (!figure) return pieceSvg(set, color, 'P', { badge: false, className: opts.className, style: opts.style })
   return (
     <svg viewBox="0 0 100 100" className={opts.className ?? 'piece'} style={opts.style}>

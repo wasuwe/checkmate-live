@@ -1,14 +1,9 @@
-import { PieceIcon } from '../components/PieceIcon'
-import type { Kind } from '../lib/pieceSets'
-import type { Color } from '../lib/protocol'
-import { useState, type CSSProperties } from 'react'
+import { useState } from 'react'
+import { GameCard } from '../components/FableCard'
 import { createRoom, CreateRoomError } from '../lib/api'
 import { DEFAULT_TIME_CONTROL, TIME_CONTROLS } from '../lib/clock'
 import { GAMES, isGameId, type GameType } from '../lib/games'
 import { roomPath } from '../lib/router'
-
-/** ตัวหมากประจำเกมบนการ์ดเลือกเกม: [ชนิด, สี] */
-const GAME_ICON: Record<string, [Kind, Color]> = { chess: ['N', 'w'], makruk: ['R', 'w'], checkers: ['H', 'w'], neeb: ['O', 'w'] }
 
 interface Props {
   navigate: (to: string) => void
@@ -49,10 +44,7 @@ export function PlayPage({ navigate }: Props) {
             disabled={g.soon}
             onClick={() => setPicked(g)}
           >
-            <div className="game-art" style={{ '--game': g.bg } as CSSProperties} aria-hidden="true">
-              <PieceIcon kind={GAME_ICON[g.id]?.[0] ?? 'N'} color={GAME_ICON[g.id]?.[1] ?? 'w'} />
-            </div>
-            <div className="game-name">{g.name}</div>
+            <GameCard game={g.id} name={g.name} />
             <div className="game-desc pretty">{g.desc}</div>
             {g.soon && <div className="pill">เร็ว ๆ นี้</div>}
           </button>
