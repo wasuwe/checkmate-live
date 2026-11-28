@@ -27,6 +27,9 @@ for x, y in seeds:
                 part[ny, nx] = True; q.append((ny, nx))
     # ขอบนุ่มของบริเวณ: พิกเซลติดกันที่สียังเอียงไปทางสีของจุดเริ่ม
     soft = (np.asarray(Image.fromarray((part * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(5))) > 0) & ~part & (np.sqrt(((rgb - ref) ** 2).sum(axis=2)) < tol * 2.2) & (al > 200)
+    if to not in ('clear', 'cream') and rgb[y, x].mean() > 150:
+        # ทาสีเข้มทับบริเวณสีอ่อน: ขอบนุ่มที่ยังสว่างกว่าเส้นขอบ (ส่วนผสมของสีอ่อนกับเส้น) ทาด้วย ไม่ให้เหลือจุดสีอ่อนตามริม
+        soft |= (np.asarray(Image.fromarray((part * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(7))) > 0) & ~part & (rgb.mean(axis=2) > 95) & (al > 200)
     seen |= part | soft
 out = a.copy()
 if to == 'clear':
