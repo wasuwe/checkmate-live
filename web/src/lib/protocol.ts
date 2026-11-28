@@ -76,7 +76,11 @@ export interface StateMsg {
   ply: number
   lastMove?: { from: string; to: string }
   players?: Partial<Record<Color, PlayerInfo>>
-  you: { role: Role; color: Color | '' }
+  /**
+   * elsewhere = หน้านี้เข้าห้องมาตอนที่ผู้ใช้คนเดียวกันเปิดห้องนี้อยู่ในอีกเครื่อง และเครื่องนั้นยังอยู่
+   * หน้าเว็บถามว่าจะย้ายมาเล่นที่เครื่องนี้ไหม (ส่ง takeover)
+   */
+  you: { role: Role; color: Color | ''; elsewhere?: boolean }
   /** เวลาเล่น เช่น "10+0" (นาที+วินาทีที่บวกต่อตา) หรือ "none" = ไม่จับเวลา (ค่าใน clock ไม่มีความหมาย) */
   tc: string
   /** เวลาที่เหลือ (ms) ณ ตอนที่เซิร์ฟเวอร์ส่ง และฝั่งที่นาฬิกากำลังเดิน ('' = หยุด) */
@@ -161,8 +165,14 @@ export interface PongMsg {
   type: 'pong'
 }
 
+/** ผู้ใช้ย้ายไปเล่นห้องนี้ที่อีกเครื่องแล้ว หน้านี้ออกจากห้องและต้องไม่ต่อกลับเข้าไปเอง */
+export interface MovedMsg {
+  type: 'moved'
+}
+
 export type ServerMsg =
   | PongMsg
+  | MovedMsg
   | StateMsg
   | AuthOkMsg
   | GameOverMsg
@@ -173,7 +183,7 @@ export type ServerMsg =
 
 export type ClientMsg =
   | { type: 'auth'; token: string }
-  | { type: 'join'; room: string }
+  | { type: 'join'; room: string; device: string }
   | { type: 'move'; ply: number; from: string; to: string; promo: Promo }
   | { type: 'resign' }
   | { type: 'chat'; text: string }
@@ -183,8 +193,9 @@ export type ClientMsg =
   | { type: 'set'; set: string }
   | { type: 'rematch' }
   | { type: 'ping' }
+  | { type: 'takeover' }
 
-const SERVER_TYPES = new Set(['pong', 'state', 'auth_ok', 'game_over', 'error', 'chat', 'chat_history', 'report_ok'])
+const SERVER_TYPES = new Set(['pong', 'moved', 'state', 'auth_ok', 'game_over', 'error', 'chat', 'chat_history', 'report_ok'])
 
 /** แปลงข้อความจากเซิร์ฟเวอร์ คืน null ถ้าไม่ใช่รูปแบบที่รู้จัก */
 export function parseServerMsg(data: string): ServerMsg | null {

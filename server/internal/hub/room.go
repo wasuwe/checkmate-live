@@ -26,6 +26,7 @@ const (
 	evKick
 	evSet
 	evRematch
+	evTakeover
 )
 
 // event คือสิ่งที่ส่งเข้า goroutine ของห้อง
@@ -70,6 +71,8 @@ type Room struct {
 	sets    map[string]string
 	players map[game.Color]string // สี → user ID (หลังเริ่มเกม)
 	clients map[*Client]struct{}
+	// late คือ connection ที่เข้าห้องมาตอนที่ผู้ใช้คนเดียวกันเปิดห้องนี้อยู่ในอีกเครื่อง (ดู handleJoin และ handleTakeover)
+	late map[*Client]bool
 	// profiles คือชื่อและรูปล่าสุดของผู้ใช้ที่เคยเข้าห้อง (user ID → โปรไฟล์)
 	profiles   map[string]PlayerProfile
 	emptySince time.Time // เวลาที่ห้องเริ่มว่าง (zero = มีคนอยู่)
@@ -112,6 +115,7 @@ func newRoom(id string, cfg Config, variant game.Variant, tc TimeControl, create
 		sets:       map[string]string{},
 		rematch:    map[string]bool{},
 		clients:    map[*Client]struct{}{},
+		late:       map[*Client]bool{},
 		profiles:   map[string]PlayerProfile{},
 		emptySince: time.Now(),
 		abandonAt:  map[game.Color]time.Time{},
@@ -298,10 +302,16 @@ func (r *Room) handle(ev event) {
 		r.handleSet(ev.client, ev.text)
 	case evRematch:
 		r.handleRematch(ev.client)
+	case evTakeover:
+		r.handleTakeover(ev.client)
 	}
 }
 
 func (r *Room) handleJoin(c *Client) {
+	// ผู้ใช้คนเดียวกันเปิดห้องนี้อยู่ในอีกเครื่อง: connection ใหม่เข้าห้องได้ตามปกติ แต่หน้าเว็บจะถามว่าจะย้ายมาเครื่องนี้ไหม
+	if r.onOtherDevice(c) {
+		r.late[c] = true
+	}
 	r.clients[c] = struct{}{}
 	r.emptySince = time.Time{}
 	r.profiles[c.UserID] = c.Profile // connection ล่าสุดมีข้อมูลใหม่สุด
@@ -342,6 +352,7 @@ func (r *Room) handleLeave(c *Client) {
 		return
 	}
 	delete(r.clients, c)
+	delete(r.late, c)
 	now := time.Now()
 	if len(r.clients) == 0 {
 		r.emptySince = now
@@ -359,6 +370,44 @@ func (r *Room) handleLeave(c *Client) {
 		delete(r.ready, c.UserID)
 		r.updateCountdown(now)
 	}
+	r.broadcastState()
+}
+
+// onOtherDevice บอกว่าผู้ใช้ของ c มี connection อื่นในห้องนี้ที่มาจากเครื่องอื่นหรือไม่
+// connection ที่ไม่ได้ส่งรหัสเครื่อง (หน้าเว็บรุ่นเก่า) ไม่นับ และแท็บอื่นของเครื่องเดียวกันก็ไม่นับ
+func (r *Room) onOtherDevice(c *Client) bool {
+	if c.Device == "" {
+		return false
+	}
+	for o := range r.clients {
+		if o != c && o.UserID == c.UserID && o.Device != "" && o.Device != c.Device {
+			return true
+		}
+	}
+	return false
+}
+
+// movedGrace คือเวลาที่ให้ connection ซึ่งถูกย้ายออกได้รับข้อความ moved ก่อนถูกตัด
+const movedGrace = 2 * time.Second
+
+// handleTakeover ย้ายผู้ใช้มาเล่นที่เครื่องของ c: connection ของผู้ใช้คนเดียวกันจากเครื่องอื่นออกจากห้องทั้งหมด
+// (เจ้าของโปรเจกต์กำหนด 2026-11-28: เข้าจากอีกเครื่องให้เลือกว่าจะย้ายไหม ถ้าย้าย เครื่องก่อนหน้าออกจากห้อง)
+// ที่นั่ง สี นาฬิกา และการนับถอยหลังต่าง ๆ ไม่เปลี่ยน เพราะผูกกับ user ID ซึ่งยังเชื่อมต่ออยู่ทาง c
+func (r *Room) handleTakeover(c *Client) {
+	if _, ok := r.clients[c]; !ok || c.Device == "" {
+		return
+	}
+	for o := range r.clients {
+		if o == c || o.UserID != c.UserID || o.Device == "" || o.Device == c.Device {
+			continue
+		}
+		delete(r.clients, o)
+		delete(r.late, o)
+		o.Send(movedMsg)
+		// หน้าเว็บปิดการเชื่อมต่อเองเมื่อได้ moved ตัดซ้ำไว้กันกรณีที่ไม่ปิด
+		time.AfterFunc(movedGrace, o.Kick)
+	}
+	delete(r.late, c)
 	r.broadcastState()
 }
 
@@ -660,15 +709,22 @@ func (r *Room) broadcastState() {
 	}
 
 	// ผู้ใช้คนเดียวกันได้ข้อความเหมือนกัน จึง encode ครั้งเดียวต่อ user
-	encoded := map[string][]byte{}
+	// ยกเว้น connection ที่ต้องถามว่าจะย้ายเครื่องไหม (you.elsewhere) ซึ่งได้ข้อความของตัวเอง
+	type audience struct {
+		userID    string
+		elsewhere bool
+	}
+	encoded := map[audience][]byte{}
 	for c := range r.clients {
-		b, ok := encoded[c.UserID]
+		key := audience{c.UserID, r.late[c] && r.onOtherDevice(c)}
+		b, ok := encoded[key]
 		if !ok {
 			msg := base
 			msg.You = r.youInfo(c.UserID)
+			msg.You.Elsewhere = key.elsewhere
 			msg.Lobby = r.lobbyFor(c.UserID, now)
 			b = mustJSON(msg)
-			encoded[c.UserID] = b
+			encoded[key] = b
 		}
 		c.Send(b)
 	}

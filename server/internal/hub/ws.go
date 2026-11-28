@@ -110,6 +110,7 @@ func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			target := h.room(msg.Room)
+			client.Device = msg.Device
 			if target == nil || !target.post(event{kind: evJoin, client: client}) {
 				client.Send(encodeError(errCodeRoomNotFound))
 				continue
@@ -162,6 +163,13 @@ func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			room.post(event{kind: evRematch, client: client})
+
+		case msgTakeover:
+			if room == nil {
+				client.Send(encodeError(errCodeNotJoined))
+				continue
+			}
+			room.post(event{kind: evTakeover, client: client})
 
 		case msgKick:
 			if room == nil {

@@ -14,32 +14,34 @@ import (
 
 // ชนิดข้อความขาเข้า
 const (
-	msgAuth    = "auth"
-	msgJoin    = "join"
-	msgMove    = "move"
-	msgResign  = "resign"
-	msgChat    = "chat"
-	msgReport  = "report"
-	msgReady   = "ready"
-	msgKick    = "kick"
-	msgSet     = "set"
-	msgRematch = "rematch"
-	msgPing    = "ping"
+	msgAuth     = "auth"
+	msgJoin     = "join"
+	msgMove     = "move"
+	msgResign   = "resign"
+	msgChat     = "chat"
+	msgReport   = "report"
+	msgReady    = "ready"
+	msgKick     = "kick"
+	msgSet      = "set"
+	msgRematch  = "rematch"
+	msgPing     = "ping"
+	msgTakeover = "takeover"
 )
 
 // inbound คือข้อความขาเข้าทุกชนิดรวมกัน field ที่ไม่รู้จักจะถูกปฏิเสธ
 type inbound struct {
-	Type  string `json:"type"`
-	Token string `json:"token,omitempty"`
-	Room  string `json:"room,omitempty"`
-	Ply   *int   `json:"ply,omitempty"`
-	From  string `json:"from,omitempty"`
-	To    string `json:"to,omitempty"`
-	Promo string `json:"promo,omitempty"`
-	Text  string `json:"text,omitempty"`
-	ID    *int   `json:"id,omitempty"`
-	Ready *bool  `json:"ready,omitempty"`
-	Set   string `json:"set,omitempty"`
+	Type   string `json:"type"`
+	Token  string `json:"token,omitempty"`
+	Room   string `json:"room,omitempty"`
+	Ply    *int   `json:"ply,omitempty"`
+	From   string `json:"from,omitempty"`
+	To     string `json:"to,omitempty"`
+	Promo  string `json:"promo,omitempty"`
+	Text   string `json:"text,omitempty"`
+	ID     *int   `json:"id,omitempty"`
+	Ready  *bool  `json:"ready,omitempty"`
+	Set    string `json:"set,omitempty"`
+	Device string `json:"device,omitempty"`
 }
 
 var (
@@ -52,6 +54,8 @@ var (
 	// ตัวอักษรผสมตัวเลข 6 ตัว (ดู newRoomID) หรือรหัสตัวเลข 6 หลักแบบเดิม ซึ่งยังรับไว้ให้ห้องที่เปิดค้างก่อนเปลี่ยน
 	// กู้คืนและเข้าได้จนกว่าจะปิดไปเอง
 	roomIDRe = regexp.MustCompile(`^(?:[A-HJKMNP-Z2-9]{6}|[1-9][0-9]{5})$`)
+	// รหัสเครื่องที่หน้าเว็บสุ่มเองและเก็บไว้ในเบราว์เซอร์ ใช้แยกว่าผู้ใช้คนเดียวกันเข้าห้องจากเครื่องอื่นหรือแท็บอื่นของเครื่องเดิม
+	deviceRe = regexp.MustCompile(`^[A-Za-z0-9_-]{8,40}$`)
 )
 
 // decodeInbound แปลงและตรวจรูปแบบข้อความ ห้ามมี field แปลกปลอมหรือข้อมูลต่อท้าย
@@ -73,7 +77,7 @@ func decodeInbound(data []byte) (inbound, error) {
 	case msgAuth:
 		allowed.Token = m.Token
 	case msgJoin:
-		allowed.Room = m.Room
+		allowed.Room, allowed.Device = m.Room, m.Device
 	case msgMove:
 		allowed.Ply, allowed.From, allowed.To, allowed.Promo = m.Ply, m.From, m.To, m.Promo
 	case msgChat:
@@ -95,7 +99,8 @@ func decodeInbound(data []byte) (inbound, error) {
 			return inbound{}, errBadMessage
 		}
 	case msgJoin:
-		if !roomIDRe.MatchString(m.Room) {
+		// device ไม่บังคับ: หน้าเว็บรุ่นเก่าที่ยังค้างอยู่ในเบราว์เซอร์ไม่ส่งมา
+		if !roomIDRe.MatchString(m.Room) || (m.Device != "" && !deviceRe.MatchString(m.Device)) {
 			return inbound{}, errBadMessage
 		}
 	case msgMove:
@@ -107,6 +112,8 @@ func decodeInbound(data []byte) (inbound, error) {
 		// ไม่มี field เพิ่ม: หน้าเว็บถามว่าการเชื่อมต่อยังใช้ได้อยู่ไหม เซิร์ฟเวอร์ตอบ pong
 	case msgRematch:
 		// ไม่มี field เพิ่ม: ผู้ขอเล่นต่อคือเจ้าของ connection
+	case msgTakeover:
+		// ไม่มี field เพิ่ม: ย้ายมาเล่นที่เครื่องของ connection นี้ เครื่องอื่นของผู้ใช้คนเดียวกันออกจากห้อง
 	case msgKick:
 		// ไม่มี field เพิ่ม: คนที่ถูกให้ออกคือผู้เล่นอีกคนในห้องรอเสมอ เซิร์ฟเวอร์ไม่รับว่าจะให้ใครออกจาก client
 	case msgResign:
@@ -256,6 +263,9 @@ type clockInfo struct {
 type youInfo struct {
 	Role  string     `json:"role"`
 	Color game.Color `json:"color"` // "" ถ้าเป็นคนดู หรือยังไม่ได้สุ่มสี
+	// Elsewhere = connection นี้เข้าห้องมาตอนที่ผู้ใช้คนเดียวกันเปิดห้องนี้อยู่ในอีกเครื่อง และเครื่องนั้นยังอยู่
+	// หน้าเว็บถามว่าจะย้ายมาเล่นที่เครื่องนี้ไหม (ส่ง takeover) เครื่องที่อยู่มาก่อนไม่ได้ค่านี้
+	Elsewhere bool `json:"elsewhere,omitempty"`
 }
 
 // stateMsg คือภาพรวมทั้งหมดของห้อง ส่งทุกครั้งที่มีอะไรเปลี่ยน
@@ -312,6 +322,11 @@ func mustJSON(v any) []byte {
 var pongMsg = mustJSON(struct {
 	Type string `json:"type"`
 }{Type: "pong"})
+
+// movedMsg บอก connection ว่าผู้ใช้ย้ายไปเล่นห้องนี้ที่อีกเครื่องแล้ว connection นี้ออกจากห้องและหน้าเว็บต้องไม่ต่อกลับเข้ามาเอง
+var movedMsg = mustJSON(struct {
+	Type string `json:"type"`
+}{Type: "moved"})
 
 func encodeError(code string) []byte {
 	return mustJSON(errorMsg{Type: "error", Code: code})

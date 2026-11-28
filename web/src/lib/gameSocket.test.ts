@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
+import { deviceId } from './device'
 import { GameSocket, HEARTBEAT_MS, PROBE_MS, SILENCE_MS, type Snapshot, type SocketLike } from './gameSocket'
 import type { StateMsg } from './protocol'
 
@@ -90,7 +91,7 @@ test('sends auth first, then joins after auth_ok', async () => {
   expect(ws.sent).toEqual([{ type: 'auth', token: 'token-old' }])
 
   ws.receive({ type: 'auth_ok', userId: 'guest_1' })
-  expect(ws.sent[1]).toEqual({ type: 'join', room: ROOM })
+  expect(ws.sent[1]).toEqual({ type: 'join', room: ROOM, device: deviceId() })
 })
 
 test('exposes server state and marks the connection open', async () => {
@@ -192,7 +193,7 @@ test('reconnects with backoff and rejoins the same room', async () => {
   sockets[2].receive({ type: 'auth_ok', userId: 'guest_1' })
   expect(sockets[2].sent).toEqual([
     { type: 'auth', token: 'token-old' },
-    { type: 'join', room: ROOM },
+    { type: 'join', room: ROOM, device: deviceId() },
   ])
   sockets[2].receive(stateMsg({ ply: 5 }))
   expect(socket.getSnapshot().connection).toBe('open')
@@ -277,7 +278,7 @@ test('pause closes the socket without reconnecting; resume rejoins', async () =>
   expect(sockets).toHaveLength(2)
   sockets[1].open()
   sockets[1].receive({ type: 'auth_ok', userId: 'guest_1' })
-  expect(sockets[1].sent.at(-1)).toEqual({ type: 'join', room: ROOM })
+  expect(sockets[1].sent.at(-1)).toEqual({ type: 'join', room: ROOM, device: deviceId() })
   sockets[1].receive(stateMsg({ ply: 4 }))
   expect(socket.getSnapshot().connection).toBe('open')
 })
@@ -486,7 +487,7 @@ test('a connection that goes silent is dropped and replaced, and the new one sho
 
   sockets[1].open()
   sockets[1].receive({ type: 'auth_ok', userId: 'guest_1' })
-  expect(sockets[1].sent.at(-1)).toEqual({ type: 'join', room: ROOM })
+  expect(sockets[1].sent.at(-1)).toEqual({ type: 'join', room: ROOM, device: deviceId() })
   sockets[1].receive(stateMsg({ ply: 9 }))
   expect(socket.getSnapshot().connection).toBe('open')
   expect(socket.getSnapshot().state?.ply).toBe(9)
@@ -552,4 +553,32 @@ test('no pings and no reconnects after stop or a fatal error', async () => {
   await vi.advanceTimersByTimeAsync(5 * SILENCE_MS)
   b.socket.wake()
   expect(b.sockets).toHaveLength(1)
+})
+
+// ---------- ย้ายเครื่อง ----------
+
+test('the join message carries the same device id every time, in the shape the server accepts', async () => {
+  expect(deviceId()).toMatch(/^[A-Za-z0-9_-]{8,40}$/)
+  expect(deviceId()).toBe(deviceId())
+  const { ws } = await joined()
+  expect(ws.sent[1]).toEqual({ type: 'join', room: ROOM, device: deviceId() })
+})
+
+test('moving to this device sends takeover; being moved away is fatal and never reconnects', async () => {
+  // เครื่องใหม่: ถูกถาม (you.elsewhere) แล้วกดย้าย
+  const fresh = await joined()
+  fresh.ws.receive(stateMsg({ you: { role: 'player', color: 'w', elsewhere: true } }))
+  expect(fresh.socket.getSnapshot().state?.you.elsewhere).toBe(true)
+  expect(fresh.socket.sendTakeover()).toBe(true)
+  expect(fresh.ws.sent.at(-1)).toEqual({ type: 'takeover' })
+
+  // เครื่องเดิม: ได้ moved แล้วต้องปิดและไม่ต่อกลับเอง ไม่งั้นสองเครื่องจะแย่งห้องกันไปมา
+  const old = await joined()
+  old.ws.receive({ type: 'moved' })
+  expect(old.socket.getSnapshot().fatal).toBe('moved')
+  expect(old.ws.closed).toBe(true)
+  await vi.advanceTimersByTimeAsync(5 * SILENCE_MS)
+  old.socket.wake()
+  expect(old.sockets).toHaveLength(1)
+  expect(old.socket.sendTakeover()).toBe(false)
 })

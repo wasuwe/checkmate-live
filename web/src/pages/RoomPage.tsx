@@ -77,6 +77,20 @@ export function RoomPage({ roomId, navigate }: Props) {
     )
   }
 
+  // ย้ายไปเล่นที่อีกเครื่องแล้ว: หน้านี้ออกจากห้อง จะย้ายกลับมาก็ได้ (โหลดใหม่แล้วจะถูกถามอีกครั้ง)
+  if (game.fatal === 'moved') {
+    return (
+      <CurtainScreen title="ย้ายไปเล่นที่อีกเครื่องแล้ว" text={FATAL_TEXT.moved}>
+        <button type="button" className="btn pink strong" autoFocus onClick={() => navigate('/')}>
+          กลับหน้าแรก
+        </button>
+        <button type="button" className="btn" onClick={() => window.location.reload()}>
+          กลับมาเล่นที่เครื่องนี้
+        </button>
+      </CurtainScreen>
+    )
+  }
+
   if (game.fatal) {
     return (
       <main className="screen">
@@ -115,9 +129,19 @@ export function RoomPage({ roomId, navigate }: Props) {
     />
   )
 
+  // บัญชีเดียวกันเปิดห้องนี้อยู่ในอีกเครื่อง: ถามก่อนว่าจะย้ายมาเล่นที่เครื่องนี้ไหม
+  const elsewhere = state.you.elsewhere ? (
+    <ElsewhereDialog online={online} onMove={game.sendTakeover} onStay={() => navigate('/')} />
+  ) : null
+
   // ก่อนเกมเริ่ม: ห้องรอ (รอคน แชท กดพร้อม)
   if (state.status === 'waiting' && state.lobby) {
-    return <Lobby state={state} lobby={state.lobby} stateAt={game.stateAt} online={online} sendReady={game.sendReady} sendKick={game.sendKick} sendSet={game.sendSet} chat={chat} />
+    return (
+      <>
+        <Lobby state={state} lobby={state.lobby} stateAt={game.stateAt} online={online} sendReady={game.sendReady} sendKick={game.sendKick} sendSet={game.sendSet} chat={chat} />
+        {elsewhere}
+      </>
+    )
   }
 
   // ตราในแผงข้างกระดานเป็นสีทองเมื่อถึงตาของผู้ดู
@@ -225,7 +249,8 @@ export function RoomPage({ roomId, navigate }: Props) {
         </div>
       </div>
 
-      {toss && <CoinToss view={toss} onDone={dismissToss} />}
+      {toss && !elsewhere && <CoinToss view={toss} onDone={dismissToss} />}
+      {elsewhere}
       <MoveErrorToast code={game.moveError} seq={game.errorSeq} />
       {state.status === 'finished' && (
         <GameOverDialog state={state} navigate={navigate} online={online} sendRematch={game.sendRematch} />
@@ -273,6 +298,7 @@ const FATAL_TEXT: Record<NonNullable<ReturnType<typeof useGameSocket>['fatal']>,
   room_not_found: 'ห้องนี้ปิดไปแล้ว หรือรหัสห้องไม่ถูก ลองดูลิงก์อีกที หรือสร้างห้องใหม่ได้เลย',
   unauthorized: 'เข้าห้องไม่สำเร็จ ลองโหลดหน้านี้ใหม่',
   too_many_connections: 'คุณเปิดเกมไว้หลายแท็บเกินไป ปิดแท็บอื่นแล้วโหลดหน้านี้ใหม่',
+  moved: 'คุณย้ายไปเล่นห้องนี้ที่อีกเครื่อง เครื่องนี้จึงออกจากห้องแล้ว',
 }
 
 function seatText(state: StateMsg): string {
@@ -562,6 +588,32 @@ function SideStatus({ state }: { state: StateMsg }) {
       <p className="game-side-status starred">{headline}</p>
       {reason && <p>{reason}</p>}
     </>
+  )
+}
+
+/**
+ * ถามเมื่อบัญชีเดียวกันเปิดห้องนี้อยู่ในอีกเครื่อง (เจ้าของโปรเจกต์กำหนด 2026-11-28)
+ * ย้าย = เครื่องนี้เล่นต่อ อีกเครื่องออกจากห้อง, ไม่ย้าย = เครื่องนี้กลับหน้าแรก อีกเครื่องเล่นต่อ
+ * ปิดกล่องโดยไม่เลือกไม่ได้ เพราะสองเครื่องเล่นที่นั่งเดียวกันพร้อมกันจะสับสน
+ */
+function ElsewhereDialog({ online, onMove, onStay }: { online: boolean; onMove: () => boolean; onStay: () => void }) {
+  return (
+    <div className="overlay">
+      <div className="dialog narrow" role="alertdialog" aria-modal="true" aria-labelledby="elsewhere-title">
+        <h2 className="title" id="elsewhere-title">
+          ห้องนี้เปิดอยู่ในอีกเครื่อง
+        </h2>
+        <p className="pretty">บัญชีของคุณอยู่ในห้องนี้จากอีกเครื่องหนึ่ง จะย้ายมาเล่นที่เครื่องนี้ไหม ถ้าย้าย อีกเครื่องจะออกจากห้อง</p>
+        <div className="row wrap center">
+          <button type="button" className="btn pink strong" autoFocus disabled={!online} onClick={onMove}>
+            ย้ายมาเครื่องนี้
+          </button>
+          <button type="button" className="btn" onClick={onStay}>
+            ไม่ย้าย
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
