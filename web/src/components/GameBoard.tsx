@@ -17,7 +17,10 @@ import { RULES } from '../lib/rules'
 import { placeTag } from '../lib/pieceTag'
 import { colorName } from '../lib/text'
 import { useStylePrefs } from '../lib/pieceStyles'
-import type { GameId, Promo, StateMsg } from '../lib/protocol'
+import type { Color, GameId, Promo, StateMsg } from '../lib/protocol'
+import { fableLine, type FableMoment } from '../lib/fables'
+import { keepThaiWords } from '../lib/thaiBreak'
+import { CutIn } from './CutIn'
 import { FxBurst } from './Fx'
 import { PromotionDialog } from './PromotionDialog'
 
@@ -200,6 +203,34 @@ export function GameBoard({ state, online, errorSeq, session, sendMove }: Props)
     [hover, hoverPiece, activePending, state],
   )
   const fx = useBoardFx(state)
+  // ฉากตัวละครโผล่ตอนกินหมาก ตอน Check และตอนชนะบนกระดาน: ตัวละครคือหมากที่เพิ่งเดิน (ตัวอักษรใน FEN ตัวพิมพ์ใหญ่ = ฝ่ายขาว)
+  // ผู้เล่นปิดได้ด้วยการตั้งเอฟเฟกต์ของเหตุการณ์นั้นเป็น "ไม่มี"
+  const fxPrefs = useFxPrefs()
+  const moved = state.lastMove ? boardOf(state.fen).get(state.lastMove.to) : undefined
+  const cut =
+    fx && moved && fxPrefs[fx.event.kind] !== 'none'
+      ? (() => {
+          const color: Color = moved === moved.toUpperCase() ? 'w' : 'b'
+          const { kind } = fx.event
+          // หมากที่ถูกกิน (ตัวที่มีค่ามากที่สุดถ้ากินหลายตัว): เบี้ยและหมากกลมเป็นขั้นแรก ควีนเป็นขั้นสูงสุด ที่เหลืออยู่ตรงกลาง
+          const taken = (fx.event.pieces ?? []).map((ch) => ch.toUpperCase())
+          const top = taken.includes('Q') ? 'Q' : (taken.find((ch) => !'PCO'.includes(ch)) ?? taken[0] ?? 'P')
+          const moment: FableMoment = kind === 'mate' ? 'mate' : kind === 'check' ? 'check' : top === 'Q' ? 'queen' : 'PCO'.includes(top) ? 'pawn' : 'piece'
+          const words = checkWords(game)
+          const takenName = RULES[game].pieces.find((p) => p.kind === top)?.name
+          const tag = kind === 'mate' ? words.mate : kind === 'check' ? words.check || 'รุก!' : takenName ? `กิน${takenName}` : 'กินหมาก'
+          return {
+            kind,
+            // คำพูดของตัวละครตามเนื้อเรื่องนิทาน พูดกับฝ่ายตรงข้าม ชุดที่ไม่มีคำพูดใช้คำบอกเหตุการณ์แทน
+            word: fableLine(sets[color].id, color, moment) || tag,
+            tag,
+            color,
+            set: sets[color],
+            pieceKind: moved.toUpperCase(),
+            from: color === (myColor === 'b' ? 'b' : 'w') ? ('right' as const) : ('left' as const),
+          }
+        })()
+      : null
 
   // หมากที่เพิ่งเดินเด้งลงช่องหนึ่งครั้งต่อตาเดิน
   const landOn = lastMove?.to
@@ -302,12 +333,14 @@ export function GameBoard({ state, online, errorSeq, session, sendMove }: Props)
           <span className={`piece-tag-tail ${tipPlace.side}`} style={tipPlace.tail} aria-hidden="true" />
           <div className={`piece-tag ${tipPlace.side}`} style={tipPlace.tag} role="tooltip">
             <b>{tip.name}</b>
-            {tip.desc && <span>{tip.desc}</span>}
+            {tip.desc && <span>{keepThaiWords(tip.desc)}</span>}
           </div>
         </>
       )}
 
-      {fx && <BoardFx key={fx.seq} event={fx.event} flipped={flipped} game={game} />}
+      {fx && <BoardFx key={fx.seq} event={fx.event} flipped={flipped} game={game} quiet={cut !== null} />}
+      {/* ฉากตัวละครโผล่: ตัวที่เพิ่งกิน หรือตัวที่ปิดเกม */}
+      {cut && fx && <CutIn key={`cut${fx.seq}`} {...cut} />}
 
       {activePromotion && myColor !== '' && (
         <PromotionDialog
@@ -363,12 +396,13 @@ function useBoardFx(state: StateMsg): { event: FxEvent; seq: number } | null {
   return fx
 }
 
-function BoardFx({ event, flipped, game }: { event: FxEvent; flipped: boolean; game: GameId }) {
+function BoardFx({ event, flipped, game, quiet }: { event: FxEvent; flipped: boolean; game: GameId; quiet?: boolean }) {
   const prefs = useFxPrefs()
   const type = prefs[event.kind]
   const seed = (event.square ? event.square.charCodeAt(0) * 8 + event.square.charCodeAt(1) : 7) + event.kind.length
   const words = checkWords(game)
-  const banner = event.kind === 'mate' ? words.mate : event.kind === 'check' ? words.check : undefined
+  // quiet: ฉากตัวละครโผล่บอกเหตุการณ์อยู่แล้ว (ป้าย Check! / Checkmate!) จึงไม่ขึ้นป้ายกลางกระดานซ้ำ
+  const banner = quiet ? undefined : event.kind === 'mate' ? words.mate : event.kind === 'check' ? words.check : undefined
 
   const level = FX_LEVEL[event.kind].level
 

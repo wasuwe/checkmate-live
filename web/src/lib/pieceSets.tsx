@@ -9,6 +9,7 @@
 
 import { cloneElement, useSyncExternalStore, type CSSProperties, type JSX } from 'react'
 import { FABLE_PATTERNS, fablePiece } from './fables'
+import { heroFigure } from './heroes'
 import { DEFAULT_STYLES, drawPiece, FABLE_STYLE, styleKind, type StylePrefs } from './pieceStyles'
 import type { Color } from './protocol'
 
@@ -138,6 +139,64 @@ export interface PieceOptions {
   bySide?: Record<Color, BoardSet>
 }
 
+/**
+ * ชุดและฝั่งที่มีภาพวาดตัวหมากเป็นไฟล์ครบหกชนิด (web/public/pieces/<ชุด>-<ฝั่ง>-<ชนิด>.webp ขนาด 384 × 384 พื้นโปร่งใส)
+ * เจ้าของโปรเจกต์เลือกแนวนี้ 2026-11-28: ตัวละครของชุดแต่งเป็นหมากแต่ละชนิด (สวมมงกุฎ อยู่ในหอคอย ขี่ม้าไม้) วาดด้วย AI ในสไตล์เดียวกับการ์ด
+ * ฝั่งที่ยังไม่มีไฟล์ใช้ตัวละครที่วาดในโค้ดตามเดิม
+ */
+const ART_PIECES: Record<string, Color[]> = {
+  cocoa: ['w', 'b'],
+  sky: ['w', 'b'],
+  soda: ['w', 'b'],
+  mint: ['w', 'b'],
+  matcha: ['w', 'b'],
+  grape: ['w', 'b'],
+  lavender: ['w', 'b'],
+  honey: ['w', 'b'],
+  lemon: ['w', 'b'],
+  classic: ['w', 'b'],
+  sakura: ['w', 'b'],
+  strawberry: ['w', 'b'],
+}
+
+const artPiece = (setId: string, color: Color, kind: string): JSX.Element => (
+  <image href={`/pieces/${setId}-${color}-${kind}.webp`} x="0" y="0" width="45" height="45" />
+)
+
+/**
+ * ตัวละครตัวใหญ่ของฝั่งหนึ่ง ใช้ในฉากตัวละครโผล่: ถ้าชุดนั้นมีภาพวาดตัวหมาก ใช้ภาพของหมากชนิด kind (แต่ละชนิดมีท่าของตัวเอง)
+ * ไม่งั้นใช้ตัวละครที่วาดในโค้ด
+ */
+export function characterSvg(set: BoardSet, color: Color, kind: string | undefined, opts: { className?: string } = {}): JSX.Element {
+  if (kind && 'KQRBNP'.includes(kind) && ART_PIECES[set.id]?.includes(color)) {
+    return (
+      <svg viewBox="0 0 45 45" className={opts.className ?? 'piece'}>
+        {artPiece(set.id, color, kind)}
+      </svg>
+    )
+  }
+  return heroSvg(set, color, opts)
+}
+
+/**
+ * ตัวละครนิทานของฝั่งหนึ่งในชุด แบบตัวเล็กหัวโต (lib/heroes.tsx) ใช้เป็นภาพประกอบ: การ์ดสะสม ฉากเปิดเกม ห้องรอ
+ * ชุดที่ไม่มีตัวละคร (ไม่มีในตอนนี้) ใช้ตัวเบี้ยของชุดแทน
+ */
+export function heroSvg(
+  set: BoardSet,
+  color: Color,
+  opts: { className?: string; style?: CSSProperties; ink?: string } = {},
+): JSX.Element {
+  // ink: สีเส้นของตัวละคร (ค่าเริ่มต้นคือหมึกเข้มของตัวหมาก การ์ดสะสมใช้สีน้ำตาลทองให้เข้ากับกรอบ)
+  const figure = heroFigure(set.id, { fill: color === 'w' ? set.w : set.b, ink: opts.ink ?? INK, color })
+  if (!figure) return pieceSvg(set, color, 'P', { badge: false, className: opts.className, style: opts.style })
+  return (
+    <svg viewBox="0 0 100 100" className={opts.className ?? 'piece'} style={opts.style}>
+      {figure}
+    </svg>
+  )
+}
+
 /** ตัวหมากหนึ่งตัวเป็น SVG ใช้ได้ทั้งบนกระดานและที่อื่น */
 export function pieceSvg(
   set: BoardSet,
@@ -152,10 +211,12 @@ export function pieceSvg(
   // ค่าเริ่มต้น: ตัวหมากคลาสสิก ส่วนเบี้ยเป็นตัวละครในนิทานของชุด (DEFAULT_STYLES)
   // รูปแบบ "ตัวละครนิทาน" วาดที่นี่เพราะต้องรู้ว่าใช้ชุดไหน ชุดที่ไม่มีตัวละครใช้แบบคลาสสิกแทน
   const styleId = opts.styles?.[base] ?? DEFAULT_STYLES[base]
-  const fable = styleId === FABLE_STYLE ? fablePiece(set.id, base, paint) : undefined
-  const body = fable ?? drawPiece(styleId, base, paint)
+  // ชุดที่มีภาพวาดตัวหมากเป็นไฟล์ (ART_PIECES): รูปแบบ "ตัวละครนิทาน" ใช้ภาพนั้น ตัวละครแต่งเป็นหมากแต่ละชนิดเอง จึงไม่ต้องมีป้าย
+  const art = styleId === FABLE_STYLE && ART_PIECES[set.id]?.includes(color) ? artPiece(set.id, color, base) : undefined
+  const fable = !art && styleId === FABLE_STYLE ? fablePiece(set.id, base, paint) : undefined
+  const body = art ?? fable ?? drawPiece(styleId, base, paint)
   // ป้ายบอกชนิดหมากที่มุม: ใช้เฉพาะเมื่อรูปทรงไม่ได้บอกชนิดเอง คือตัวละครนิทานที่ไม่ใช่เบี้ย และรูปที่ทีมงานอัปโหลด
-  const needsBadge = fable ? base !== 'P' : styleId.startsWith('u-')
+  const needsBadge = art ? false : fable ? base !== 'P' : styleId.startsWith('u-')
   return (
     <svg key={opts.key} viewBox="0 0 45 45" className={opts.className ?? 'piece'} style={opts.style}>
       {FLIPPED[kind] ? cloneElement(body, { transform: 'rotate(180 22.5 22.5)' }) : body}

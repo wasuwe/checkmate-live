@@ -537,6 +537,8 @@ func (r *Room) handleSet(c *Client, set string) {
 	}
 	r.sets[c.UserID] = set
 	r.persist()
+	// ที่นั่งในห้องรอแสดงตัวละครของชุดที่เลือก อีกคนจึงต้องเห็นทันที
+	r.broadcastState()
 }
 
 // rematchWait คือเวลาอย่างน้อยที่ห้องยังเปิดรออีกคนหลังมีคนกดเล่นต่อ (กดตอนใกล้ปิดห้อง อีกคนจะได้มีเวลากด)
@@ -774,6 +776,7 @@ func (r *Room) lobbyFor(userID string, now time.Time) *lobbyInfo {
 			You:       id == userID,
 			Sender:    r.chatSender(id),
 			Host:      id == host,
+			Set:       r.sets[id],
 		}
 	}
 	if !r.startAt.IsZero() {

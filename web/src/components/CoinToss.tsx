@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { FABLE_CAST } from '../lib/fables'
-import { pieceSvg, sideSets, useSetPrefs } from '../lib/pieceSets'
+import { heroSvg, sideSets, useSetPrefs } from '../lib/pieceSets'
 import { TOSS_TOTAL_MS, type TossPage, type TossView } from '../lib/toss'
 
 interface Props {
@@ -32,7 +32,7 @@ export function CoinToss({ view, onDone }: Props) {
     <div className={`story-page ${side}`}>
       <span className="story-ribbon">{page.ribbon}</span>
       <div className="story-hero" aria-hidden="true">
-        {pieceSvg(sets[page.color], page.color, 'P', { badge: false, className: 'story-hero-piece' })}
+        {heroSvg(sets[page.color], page.color, { className: 'story-hero-piece' })}
       </div>
       <b className="story-name">{page.name}</b>
       {page.you && <span className="story-you">คุณ</span>}

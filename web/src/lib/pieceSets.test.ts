@@ -86,13 +86,16 @@ describe('board sets', () => {
     expect(piecesFor(SETS[0], { landOn: 'e4', landKey: 8 }).wP({ square: 'e4' }).key).toBe('land-8')
   })
 
-  test('the badge can be left out', () => {
-    // ตัวหมากคลาสสิกบอกชนิดด้วยรูปทรงเอง จึงไม่มีป้าย ส่วนตัวละครนิทานที่ไม่ใช่เบี้ยมีป้าย
+  test('pieces that show their kind by shape carry no badge', () => {
+    // ตัวหมากคลาสสิกบอกชนิดด้วยรูปทรงเอง จึงไม่มีป้าย
     const fable = { K: 'fable', Q: 'fable', R: 'fable', B: 'fable', N: 'fable', P: 'fable' }
     expect(piecesFor(SETS[0]).wK().props.children[1]).toBe(false)
-    expect(piecesFor(SETS[0], { styles: fable }).wK().props.children[1]).toBeTruthy()
-    expect(piecesFor(SETS[0], { styles: fable }).wP().props.children[1]).toBe(false)
-    expect(piecesFor(SETS[0], { styles: fable, badge: false }).wK().props.children[1]).toBe(false)
+    // ตัวละครนิทานของทุกชุดเป็นไฟล์ภาพวาด ตัวละครแต่งเป็นหมากแต่ละชนิดเอง (สวมมงกุฎ อยู่ในหอคอย) จึงไม่มีป้ายเช่นกัน
+    for (const set of SETS) {
+      expect(piecesFor(set, { styles: fable }).wK().props.children[1]).toBeFalsy()
+      expect(piecesFor(set, { styles: fable }).wK().props.children[0].type).toBe('image')
+    }
+    expect(piecesFor(SETS[0], { styles: fable, badge: false }).wK().props.children[1]).toBeFalsy()
   })
 
   test('preview shows four pieces on a 4x4 board', () => {

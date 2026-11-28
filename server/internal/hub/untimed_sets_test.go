@@ -89,6 +89,13 @@ func TestPlayersSetsAreChosenInTheLobbyOnly(t *testing.T) {
 	alice.lobbyState("two seats", seats(2))
 
 	alice.pickSet(r, "mint")
+	// อีกคนในห้องรอเห็นชุดที่เลือกทันที (ที่นั่งแสดงตัวละครของชุดนั้น)
+	seen := bob.untilState("alice picked mint", func(m serverMsg) bool {
+		return m.Lobby != nil && len(m.Lobby.Seats) == 2 && m.Lobby.Seats[0].Set == "mint"
+	})
+	if seen.Lobby.Seats[1].Set != "" {
+		t.Fatalf("bob has not picked a set, got %q", seen.Lobby.Seats[1].Set)
+	}
 	alice.pickSet(r, "cocoa") // เปลี่ยนใจได้ระหว่างรอ
 	carol.pickSet(r, "grape") // ผู้ชมเลือกไม่ได้
 	alice.ready(r, true)

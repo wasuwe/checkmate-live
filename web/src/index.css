@@ -1585,78 +1585,65 @@ body:has(.home)::before {
 }
 
 /* ---------- เลือกเกม ---------- */
+/* แต่ละเกมเป็นการ์ดสะสม (GameCard) มีคำอธิบายสั้นใต้การ์ด ขนาดการ์ดคิดจาก --game-w ซึ่งหน้าเลือกเกมกำหนดตามจอ */
 
 .game-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(10px, 3vw, 16px);
+  gap: clamp(10px, 3vw, 18px);
+  justify-items: center;
 }
 
 .game-card {
   position: relative;
+  width: min(100%, var(--game-w, 240px));
   min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
   text-align: center;
-  padding: clamp(10px, 3vw, 16px) clamp(10px, 3vw, 16px) clamp(14px, 3.6vw, 20px);
-  border: 1px solid var(--frame);
-  border-radius: 50% 50% 14px 14px / 120px 120px 14px 14px; /* ซุ้มโค้งแบบเวที */
-  background: var(--paper);
-  box-shadow: var(--lift);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 8px;
   font-family: var(--font-body);
-  transition:
-    translate 0.35s var(--bounce),
-    box-shadow 0.2s ease,
-    background-color 0.25s ease;
 }
 
-.game-card:hover:not(:disabled) {
-  translate: 0 -4px;
-  border-color: var(--gold);
-  box-shadow: 0 18px 34px rgba(30, 42, 107, 0.2);
+.game-card:hover:not(:disabled) .fable-card,
+.game-card:focus-visible .fable-card {
+  translate: 0 -2%;
+  rotate: -1.4deg;
+  box-shadow: 0 16px 28px rgba(20, 25, 70, 0.36);
 }
 
-.game-card.picked {
-  border-color: var(--gold);
+.game-card:hover:not(:disabled) .fc-hero {
+  translate: 0 -6%;
+}
+
+.game-card:hover:not(:disabled) .fc-hero.small {
+  transition-delay: 0.08s;
+}
+
+.game-card.picked .fable-card {
   box-shadow:
-    0 0 0 3px rgba(201, 164, 92, 0.35),
-    var(--lift);
-  translate: 0 -3px;
+    0 0 0 3px var(--paper),
+    0 0 0 5px var(--gold),
+    0 10px 20px rgba(20, 25, 70, 0.3);
 }
 
-/* รูปเกมในซุ้มโค้ง: ตัวหมากสีงาช้างบนฟ้ากลางคืน สีประจำเกม (games.ts) เป็นแสงเรืองหลังตัวหมาก */
-.game-art {
-  background:
-    radial-gradient(closest-side at 50% 58%, color-mix(in srgb, var(--game, #fff) 60%, transparent), transparent),
-    linear-gradient(180deg, #151d52 0%, var(--night-1) 35%, var(--night-2) 100%);
-  align-self: stretch;
-  height: clamp(96px, 28vw, 150px);
-  border-radius: 50% 50% 8px 8px / 90px 90px 8px 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: clamp(64px, 19vw, 108px);
-  line-height: 1;
-  color: var(--ink);
-}
-
-.game-name {
-  font-family: var(--font-head);
-  font-weight: 700;
-  font-size: clamp(17px, 4.5vw, 21px);
+.game-card:disabled .fable-card {
+  filter: saturate(0.4) brightness(0.9);
 }
 
 .game-desc {
-  font-size: clamp(12px, 3.4vw, 14px);
-  line-height: 1.45;
+  font-size: clamp(12px, 3.3vw, 14px);
+  line-height: 1.4;
 }
 
 .game-card .pill {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 8px;
+  right: 8px;
 }
 
 .tc-grid {
@@ -2287,7 +2274,8 @@ body:has(.home)::before {
 
 .catalog {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(27vw, 130px), 1fr));
+  /* การ์ดสะสม: กว้างพอให้อ่านชื่อบนริบบิ้นได้ จอมือถือได้สองใบต่อแถว */
+  grid-template-columns: repeat(auto-fill, minmax(min(36vw, 168px), 1fr));
   gap: clamp(8px, 2.5vw, 14px);
 }
 
@@ -5190,33 +5178,30 @@ a.cb-card:focus-visible {
   }
 }
 
-/* ---- เลือกเกม: รูปในซุ้มสูงเท่าที่จอเหลือให้ การ์ดทั้งสี่ใบจึงอยู่ในจอเดียว ---- */
-.screen.play .game-art {
-  --art: clamp(52px, min(28vw, (100dvh - 452px) / 2), 150px);
-  height: var(--art);
-  font-size: calc(var(--art) * 0.72);
+/* ---- เลือกเกม: การ์ดกว้างเท่าที่ความสูงจอเหลือให้ (การ์ดสูง 1.5 เท่าของความกว้าง) สี่ใบจึงอยู่ในจอเดียว ---- */
+/* จอแคบ: สองแถว แถวละสองใบ เผื่อที่ให้แถบบน หัวเรื่อง และคำอธิบายสองบรรทัดใต้การ์ดแต่ละแถว */
+.screen.play {
+  --game-w: clamp(96px, (100dvh - 300px) / 3, 240px);
 }
 
-/* จอกว้างแต่เตี้ย: เรียงสี่ใบในแถวเดียว */
-@media (min-width: 900px) and (max-height: 720px) {
+/* จอกว้าง: สี่ใบในแถวเดียว เหมือนไพ่ที่ถืออยู่ในมือ */
+@media (min-width: 900px) {
   .screen.medium.play {
-    max-width: 1040px;
+    max-width: 1080px;
+    --game-w: clamp(120px, (100dvh - 260px) / 1.5, 250px);
   }
 
   .screen.play .game-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-
-  .screen.play .game-art {
-    --art: clamp(52px, min(14vw, 100dvh - 330px), 150px);
-  }
 }
 
-/* มือถือแนวนอน: สี่ใบในแถวเดียว เหลือแค่รูปกับชื่อเกม */
+/* มือถือแนวนอน: สี่ใบในแถวเดียว เหลือแค่การ์ด */
 @media (min-width: 600px) and (max-height: 520px) {
   .screen.medium.play {
     max-width: 900px;
     gap: 8px;
+    --game-w: clamp(90px, (100dvh - 150px) / 1.5, 240px);
   }
 
   .screen.play .title {
@@ -5228,17 +5213,8 @@ a.cb-card:focus-visible {
     gap: 10px;
   }
 
-  .screen.play .game-card {
-    padding: 8px 8px 10px;
-    gap: 4px;
-  }
-
   .screen.play .game-desc {
     display: none;
-  }
-
-  .screen.play .game-art {
-    --art: clamp(48px, 100dvh - 210px, 150px);
   }
 }
 
@@ -6237,58 +6213,6 @@ a.cb-card:focus-visible {
   }
 }
 
-/* ---------- ภาพตัวอย่างของชุดหมากรุกในคลัง: ตัวหมากเป็นตัวเด่น ---------- */
-
-.set-show {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  border: 1px solid var(--gold);
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 3px 10px rgba(30, 42, 107, 0.16);
-}
-
-.set-show > div {
-  aspect-ratio: 1;
-  display: grid;
-  place-items: center;
-}
-
-/* เบี้ยตัวละครของสองฝั่ง: ช่องใหญ่ครึ่งความกว้าง */
-.set-show > .big {
-  grid-column: span 2;
-}
-
-.set-show .show-piece {
-  width: 84%;
-  height: 84%;
-  overflow: visible;
-  filter: drop-shadow(0 2px 1.5px rgba(20, 25, 70, 0.28));
-}
-
-.set-show > .big .show-piece {
-  width: 92%;
-  height: 92%;
-  transition: translate 0.4s var(--bounce);
-}
-
-/* ชี้ที่ชุดไหน ตัวละครของชุดนั้นเด้งขึ้นเล็กน้อย ฝั่งดำตามหลังนิดหนึ่ง */
-.catalog-item:hover .set-show > .big .show-piece,
-.slot-pick:hover .set-show > .big .show-piece {
-  translate: 0 -5%;
-}
-
-.catalog-item:hover .set-show > .big + .big .show-piece,
-.slot-pick:hover .set-show > .big + .big .show-piece {
-  transition-delay: 0.07s;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .set-show > .big .show-piece {
-    transition: none;
-  }
-}
-
 /* ---------- ไฮไลต์ช่องบนกระดาน: แสงที่ขอบในของช่องเต้นเบา ๆ ---------- */
 /* สีมาจาก --sq-glow ที่ GameBoard ใส่ให้ช่อง ประกาศใน no-preference เท่านั้น ผู้ที่ขอลดการเคลื่อนไหวจึงไม่เห็นการเต้น */
 
@@ -6643,5 +6567,568 @@ a.cb-card:focus-visible {
 
   .toss-title {
     display: none;
+  }
+}
+
+/* ---------- การ์ดสะสมของชุดหมากรุก (FableCard) ---------- */
+/* ขนาดทุกอย่างคิดจากความกว้างการ์ด (cqw) พิกัดตรงกับกรอบ SVG ขนาด 200 × 300 ใน FableCard.tsx */
+
+.fable-card {
+  --card-deep: var(--night-1);
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  container-type: inline-size;
+  overflow: hidden;
+  /* หน่วย cqw ของตัวการ์ดเองอ้างถึง container ชั้นนอก จึงใช้ % ที่นี่ ส่วนชิ้นส่วนข้างในใช้ cqw ได้ */
+  border-radius: 7% / 4.67%;
+  /* พื้นสีเข้มของชุด ทับด้วยลายข้าวหลามตัดจาง ๆ และแสงสว่างจากด้านบน */
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 60%),
+    linear-gradient(45deg, rgba(255, 255, 255, 0.055) 25%, transparent 25% 75%, rgba(255, 255, 255, 0.055) 75%) 0 0 / 14% 9.33%,
+    linear-gradient(-45deg, rgba(0, 0, 0, 0.1) 25%, transparent 25% 75%, rgba(0, 0, 0, 0.1) 75%) 0 0 / 14% 9.33%,
+    var(--card-deep);
+  box-shadow: 0 5px 14px rgba(20, 25, 70, 0.28);
+  transition:
+    translate 0.4s var(--bounce),
+    rotate 0.4s var(--bounce),
+    box-shadow 0.3s ease;
+}
+
+/* เวทีของตัวละคร: กลางการ์ด เหนือริบบิ้น */
+.fc-stage {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 11%;
+  bottom: 19%;
+}
+
+/* ตัวละครและตัวหมากบนการ์ดมีขอบทองรอบตัวแบบสติกเกอร์ จึงเด่นขึ้นจากพื้นเข้มแม้ตัวจะสีเดียวกับพื้น */
+.fc-hero {
+  position: absolute;
+  height: auto;
+  aspect-ratio: 1;
+  overflow: visible;
+  filter: drop-shadow(0.75cqw 0 0 #f0c987) drop-shadow(-0.75cqw 0 0 #f0c987) drop-shadow(0 0.75cqw 0 #f0c987) drop-shadow(0 -0.75cqw 0 #f0c987)
+    drop-shadow(0 1.4cqw 1.2cqw rgba(0, 0, 0, 0.3));
+  transition: translate 0.4s var(--bounce);
+}
+
+/* ตัวใหญ่กลางการ์ด */
+.fc-hero.big {
+  left: 4%;
+  bottom: 0;
+  width: 92%;
+}
+
+/* ตัวเล็กยืนบนหัวตัวใหญ่ เยื้องไปทางซ้าย */
+.fc-hero.small {
+  left: 4%;
+  top: 0;
+  width: 42%;
+}
+
+/* ตัวหมากที่ตัวใหญ่กอดไว้ (การ์ดเกม) */
+.fc-hero.held {
+  right: 0;
+  bottom: -3%;
+  width: 50%;
+}
+
+.fc-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ชื่อบนริบบิ้น: ชื่อยาวขึ้นสองบรรทัด */
+.fc-name {
+  position: absolute;
+  left: 13%;
+  right: 13%;
+  top: 77%;
+  height: 11%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 7cqw;
+  line-height: 1.1;
+  text-align: center;
+  text-wrap: balance;
+  color: #6b3f12;
+}
+
+/* ประกายดาวกะพริบช้า ๆ สลับจังหวะกัน */
+.fc-spark {
+  animation: fcTwinkle 2.6s ease-in-out infinite;
+}
+
+@keyframes fcTwinkle {
+  0%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+
+  50% {
+    opacity: 0.55;
+    scale: 0.78;
+  }
+}
+
+/* ชี้ที่การ์ด: การ์ดลอยขึ้นและเอียงเล็กน้อย ตัวละครเด้ง ฝั่งดำตามหลังนิดหนึ่ง */
+.catalog-item:hover .fable-card,
+.slot-pick:hover .fable-card {
+  translate: 0 -1.5%;
+  rotate: -1.2deg;
+  box-shadow: 0 12px 22px rgba(20, 25, 70, 0.34);
+}
+
+.catalog-item:hover .fc-hero,
+.slot-pick:hover .fc-hero {
+  translate: 0 -6%;
+}
+
+.catalog-item:hover .fc-hero.small,
+.slot-pick:hover .fc-hero.small {
+  transition-delay: 0.08s;
+}
+
+/* การ์ดที่เลือกอยู่: วงทองรอบการ์ด */
+.catalog-item[aria-pressed='true'] .fable-card {
+  box-shadow:
+    0 0 0 3px var(--paper),
+    0 0 0 5px var(--gold),
+    0 8px 18px rgba(20, 25, 70, 0.3);
+}
+
+/* ---------- ตัวละครนิทานแทนรูปโปรไฟล์ และในจุดต่าง ๆ ของระบบ ---------- */
+
+/* ผู้เล่นที่ไม่มีรูปโปรไฟล์: ตัวละครของฝั่งนั้นในวงกลม */
+.avatar-hero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.avatar-hero-art {
+  width: 118%;
+  height: 118%;
+  flex: none;
+  translate: 0 6%;
+}
+
+/* ห้องรอ: ตัวละครสองตัวของชุดที่เลือก ยืนซ้อนกันในวงกลม */
+.hero-duo {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-duo-back,
+.hero-duo-front {
+  position: absolute;
+}
+
+.hero-duo-back {
+  right: -10%;
+  top: -2%;
+  width: 72%;
+  height: 72%;
+}
+
+.hero-duo-front {
+  left: -8%;
+  bottom: -10%;
+  width: 88%;
+  height: 88%;
+}
+
+/* ปุ่มเลือกชุด: หน้าตัวละครฝ่ายขาวบนสีเข้มของชุด */
+.hero-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.hero-swatch-art {
+  width: 150%;
+  height: 150%;
+  flex: none;
+  translate: 0 12%;
+}
+
+/* ป็อปอัปจบเกม: ตัวละครในซุ้มเหรียญ ชนะแล้วเด้ง แพ้แล้วก้มหน้าเล็กน้อย */
+.result-hero {
+  width: 92%;
+  height: auto;
+  margin-top: 14%;
+  filter: drop-shadow(0 3px 2px rgba(20, 25, 70, 0.3));
+}
+
+.result-hero.win {
+  animation: heroCheer 0.9s var(--bounce) 0.2s both;
+}
+
+.result-hero.loss {
+  rotate: -7deg;
+  opacity: 0.9;
+}
+
+@keyframes heroCheer {
+  0% {
+    translate: 0 10%;
+    scale: 0.8;
+  }
+
+  55% {
+    translate: 0 -10%;
+    scale: 1.06;
+  }
+}
+
+/* การ์ดจากไฟล์ภาพ: ภาพเต็มใบ ชื่อวางทับริบบิ้นในภาพ */
+.fable-card.art {
+  background: var(--night-1);
+}
+
+.fc-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fable-card.art .fc-name {
+  left: 21%;
+  right: 21%;
+  font-size: 7.6cqw;
+}
+
+/* ---------- ฉากตัวละครโผล่ (CutIn): ตอนกินหมาก และตอน Checkmate ---------- */
+/*
+ * แถบสีของฝั่งนั้นพาดเฉียงกลางกระดาน ตัวละครพุ่งเข้ามาจากด้านข้าง คำตัวโตเข้ามาจากอีกด้าน มีเส้นแสงตัดและดาวพุ่งผ่าน
+ * แล้วทั้งฉากหายไปเอง กินหมาก 1.15 วินาที / Checkmate 2.5 วินาที (--cut-ms) ทุกการเคลื่อนไหวจบที่ค่าโปร่งใส
+ * ผู้ที่ปิดการเคลื่อนไหวจึงไม่เห็นฉากนี้เลย (สไตล์พื้นฐานคือซ่อน)
+ */
+
+.cutin {
+  --cut-ms: 1.15s;
+  position: absolute;
+  inset: 0;
+  /* เหนือป้ายคำอธิบายหมาก (z-index 11–12) ฉากจึงไม่ถูกป้ายบัง */
+  z-index: 13;
+  overflow: hidden;
+  border-radius: 4px;
+  container-type: inline-size;
+  pointer-events: none;
+  opacity: 0;
+  animation: cutLife var(--cut-ms) linear both;
+}
+
+.cutin.kind-mate {
+  --cut-ms: 2.5s;
+}
+
+@keyframes cutLife {
+  0%,
+  100% {
+    opacity: 0;
+  }
+
+  6%,
+  86% {
+    opacity: 1;
+  }
+}
+
+/* แถบสี: ขอบทองสองชั้น พาดตรงกลางกระดาน กวาดเข้ามาแล้วค้าง (เจ้าของโปรเจกต์: แถบและข้อความเอียงดูไม่สวย ให้ตรง) */
+.cutin-band {
+  position: absolute;
+  left: -12%;
+  right: -12%;
+  top: 50%;
+  height: 34cqw;
+  margin-top: -17cqw;
+  overflow: hidden;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--cut) 86%, #fff) 0%, var(--cut) 55%, color-mix(in srgb, var(--cut) 88%, #000) 100%);
+  box-shadow:
+    0 0 0 0.7cqw #f0c987,
+    0 0 0 1.5cqw rgba(20, 25, 70, 0.55),
+    0 3cqw 6cqw rgba(0, 0, 0, 0.35);
+  animation: cutBand var(--cut-ms) cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+.cutin.kind-mate .cutin-band {
+  height: 44cqw;
+  margin-top: -22cqw;
+}
+
+@keyframes cutBand {
+  0% {
+    scale: 1 0;
+  }
+
+  12%,
+  84% {
+    scale: 1 1;
+  }
+
+  100% {
+    scale: 1 0;
+  }
+}
+
+/* เส้นความเร็วในแถบ วิ่งไปทางที่ตัวละครพุ่งเข้ามา */
+.cutin-speed {
+  position: absolute;
+  inset: 0 -40%;
+  background: repeating-linear-gradient(90deg, transparent 0 9cqw, color-mix(in srgb, var(--cut-ink) 16%, transparent) 9cqw 9.6cqw, transparent 9.6cqw 21cqw);
+  animation: cutSpeed 0.5s linear infinite;
+}
+
+.cutin.from-left .cutin-speed {
+  animation-direction: reverse;
+}
+
+@keyframes cutSpeed {
+  to {
+    translate: -21cqw 0;
+  }
+}
+
+/* ตัวละครตัวใหญ่: พุ่งเข้าจากด้านข้าง เลยไปนิดแล้วเด้งกลับ มีขอบสีครีมรอบตัวแบบสติกเกอร์ กินที่ครึ่งหนึ่งของกระดาน */
+.cutin-hero {
+  position: absolute;
+  bottom: 17%;
+  width: 54cqw;
+  height: auto;
+  aspect-ratio: 1;
+  overflow: visible;
+  filter: drop-shadow(0.5cqw 0 0 #fff6da) drop-shadow(-0.5cqw 0 0 #fff6da) drop-shadow(0 0.5cqw 0 #fff6da) drop-shadow(0 -0.5cqw 0 #fff6da)
+    drop-shadow(0 2cqw 1.6cqw rgba(0, 0, 0, 0.4));
+  animation: cutHero var(--cut-ms) cubic-bezier(0.2, 1.3, 0.3, 1) both;
+}
+
+.cutin.kind-mate .cutin-hero {
+  width: 60cqw;
+  bottom: 13%;
+}
+
+.cutin.from-right .cutin-hero {
+  right: -3%;
+  --from: 70cqw;
+}
+
+.cutin.from-left .cutin-hero {
+  left: -3%;
+  --from: -70cqw;
+}
+
+@keyframes cutHero {
+  0% {
+    translate: var(--from) 0;
+    scale: 0.7;
+  }
+
+  22% {
+    translate: 0 0;
+    scale: 1.06;
+  }
+
+  30%,
+  82% {
+    translate: 0 0;
+    scale: 1;
+  }
+
+  100% {
+    translate: var(--from) 0;
+    scale: 0.9;
+  }
+}
+
+/* ข้อความ: อยู่กลางครึ่งแถบฝั่งตรงข้ามกับตัวละคร วางตรง ป้ายเล็กอยู่บน คำตัวโตอยู่ล่าง */
+.cutin-text {
+  position: absolute;
+  top: 50%;
+  width: 48%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4cqw;
+  translate: 0 -50%;
+  animation: cutWord var(--cut-ms) cubic-bezier(0.2, 1.2, 0.3, 1) both;
+}
+
+.cutin.from-right .cutin-text {
+  left: 1.5%;
+  --word-from: -60cqw;
+}
+
+.cutin.from-left .cutin-text {
+  right: 1.5%;
+  --word-from: 60cqw;
+}
+
+@keyframes cutWord {
+  0%,
+  8% {
+    translate: var(--word-from) -50%;
+    opacity: 0;
+  }
+
+  26%,
+  82% {
+    translate: 0 -50%;
+    opacity: 1;
+  }
+
+  100% {
+    translate: calc(var(--word-from) * -0.4) -50%;
+    opacity: 0;
+  }
+}
+
+/* ป้ายเล็กบอกว่าเกิดอะไรขึ้น: แถบครีมขอบทองแบบริบบิ้น */
+/* ตัวอักษรต้องอยู่กลางป้ายทั้งแนวนอนและแนวตั้ง (เจ้าของโปรเจกต์กำหนด 2026-11-28): ตัดที่ว่างเหนือและใต้ตัวอักษรของฟอนต์ออก
+   (text-box) แล้วใช้ระยะขอบบนล่างเท่ากัน เบราว์เซอร์ที่ยังไม่รองรับใช้ระยะขอบที่ชดเชยด้วยตาแทน */
+.cutin-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5em 1em 0.42em;
+  border: 0.35cqw solid #c9973a;
+  border-radius: 999px;
+  background: #fff6da;
+  box-shadow: 0 0.6cqw 0 rgba(0, 0, 0, 0.25);
+  color: #4a3212;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 3.7cqw;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+}
+
+@supports (text-box: trim-both cap alphabetic) {
+  .cutin-tag {
+    padding: 0.62em 1em;
+    text-box: trim-both cap alphabetic;
+  }
+}
+
+.cutin.kind-mate .cutin-tag {
+  font-size: 4.6cqw;
+}
+
+/* Check: ใหญ่กว่าตอนกินเล็กน้อย อยู่นานขึ้นนิดหนึ่ง */
+.cutin.kind-check {
+  --cut-ms: 1.35s;
+}
+
+/* คำพูดตัวโต: ตัวหนาเอียง สีครีม ขอบเข้มหนา มีเงาซ้อนเป็นชั้นให้ดูนูน ขนาดมาจาก CutIn (พอดีกับครึ่งแถบ ไม่เกินสองบรรทัด) */
+.cutin-word {
+  font-family: var(--font-head);
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1.12;
+  text-align: center;
+  /* แต่ละบรรทัดมาจากจุดตัดที่กำหนดไว้กับคำ ไม่ตัดเองกลางบรรทัด */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  white-space: nowrap;
+  color: #fff6da;
+  -webkit-text-stroke: 0.9cqw #2b2a33;
+  paint-order: stroke fill;
+  text-shadow:
+    0.35cqw 0.35cqw 0 #2b2a33,
+    0.7cqw 0.7cqw 0 #2b2a33,
+    1.05cqw 1.05cqw 0 #2b2a33,
+    1.4cqw 1.4cqw 0 rgba(0, 0, 0, 0.35);
+}
+
+/* เส้นแสงสองเส้นตัดผ่านฉาก */
+.cutin-slash {
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  top: 50%;
+  height: 0.9cqw;
+  background: linear-gradient(90deg, transparent, #fff 30%, #fff 70%, transparent);
+  box-shadow: 0 0 2cqw #fff;
+  animation: cutSlash var(--cut-ms) ease-out both;
+}
+
+.cutin-slash.a {
+  rotate: 38deg;
+}
+
+.cutin-slash.b {
+  rotate: -52deg;
+  animation-delay: 0.07s;
+}
+
+@keyframes cutSlash {
+  0%,
+  6% {
+    scale: 0 1;
+    opacity: 1;
+  }
+
+  22% {
+    scale: 1 1;
+    opacity: 1;
+  }
+
+  40%,
+  100% {
+    scale: 1 0.2;
+    opacity: 0;
+  }
+}
+
+/* ดาวสี่แฉกพุ่งผ่านแถบ */
+.cutin-star {
+  position: absolute;
+  aspect-ratio: 1;
+  background: #fff6da;
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+  animation: cutStar var(--cut-ms) ease-out both;
+}
+
+@keyframes cutStar {
+  0%,
+  8% {
+    scale: 0;
+    opacity: 0;
+  }
+
+  28% {
+    scale: 1.2;
+    opacity: 1;
+  }
+
+  80% {
+    scale: 0.9;
+    rotate: 40deg;
+    opacity: 0.9;
+  }
+
+  100% {
+    scale: 0;
+    rotate: 70deg;
+    opacity: 0;
   }
 }

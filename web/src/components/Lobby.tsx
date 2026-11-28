@@ -6,7 +6,7 @@ import { countdownSeconds, lobbyHint, mySeat, SEAT_STATUS_TEXT, seatName, seatSt
 import type { LobbyInfo, LobbySeat, StateMsg } from '../lib/protocol'
 import { formatRoomCode } from '../lib/text'
 import { Avatar } from './Avatar'
-import { useSetPrefs } from '../lib/pieceSets'
+import { heroSvg, SETS, useSetPrefs, type BoardSet } from '../lib/pieceSets'
 import { PiecePicker } from './PiecePicker'
 import { Stands } from './Stands'
 
@@ -130,11 +130,18 @@ export function Lobby({ state, lobby, stateAt, online, sendReady, sendKick, send
 function SeatCard({ seat, onKick }: { seat: LobbySeat | undefined; onKick?: () => void }) {
   const status = seatStatus(seat)
   const [confirming, setConfirming] = useState(false)
+  // ชุดของที่นั่งนี้: ชุดที่คนนั้นเลือก ถ้ายังไม่ได้เลือกใช้ชุดของผู้ดู (เหมือนบนกระดาน)
+  const { set: localSet } = useSetPrefs()
+  const seatSet = SETS.find((s) => s.id === seat?.set) ?? localSet
   // ปุ่มเชิญออกอยู่บนที่นั่งของอีกคนเท่านั้น
   const canKick = !!seat && !seat.you && !!onKick
   return (
     <div className={`lobby-seat ${status}`}>
-      {seat ? <Avatar avatar={seat.avatar ?? ''} size={56} /> : <span className="lobby-seat-empty" aria-hidden="true" />}
+      {seat ? (
+        <Avatar avatar={seat.avatar ?? ''} size={72} fallback={<HeroDuo set={seatSet} />} />
+      ) : (
+        <span className="lobby-seat-empty" aria-hidden="true" />
+      )}
       <b className="lobby-seat-name">{seat ? seatName(seat) : 'ที่นั่งว่าง'}</b>
       {seat?.host && <span className="lobby-seat-host">เจ้าของห้อง</span>}
       <span className="pill lobby-seat-status">
@@ -233,5 +240,15 @@ function ShareButton() {
     >
       แชร์
     </button>
+  )
+}
+
+/** ตัวละครสองตัวของชุด ใช้แทนรูปโปรไฟล์ในห้องรอ (ยังไม่รู้ว่าจะได้ฝ่ายไหนจนกว่าจะสุ่ม จึงแสดงทั้งคู่) */
+function HeroDuo({ set }: { set: BoardSet }) {
+  return (
+    <span className="hero-duo" style={{ background: set.dark }}>
+      {heroSvg(set, 'b', { className: 'hero-duo-back' })}
+      {heroSvg(set, 'w', { className: 'hero-duo-front' })}
+    </span>
   )
 }

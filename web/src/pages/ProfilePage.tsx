@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { FxBurst } from '../components/Fx'
-import { SetPreview } from '../components/PiecePicker'
+import { FableCard } from '../components/FableCard'
 import { ProfileEditor } from '../components/ProfileEditor'
 import { FABLE_CAST } from '../lib/fables'
 import { FX_EVENTS, FX_LEVEL, FX_TYPES, setFx, useFxPrefs, type FxEventKind, type FxType } from '../lib/fx'
@@ -107,12 +107,11 @@ function SetSlots() {
                   aria-label={`แก้ชุดที่ ${slot + 1}: ${set.name}`}
                   onClick={() => setEditing(slot)}
                 >
-                  <SetPreview set={set} />
+                  <FableCard set={set} />
                   <span>
                     <span className="tiny" style={{ display: 'block' }}>
                       ชุดที่ {slot + 1}
                     </span>
-                    <b style={{ fontSize: 15 }}>{set.name}</b>
                     <span className="set-tale">“{set.tale}”</span>
                     {FABLE_CAST[set.id] && (
                       <span className="tiny" style={{ display: 'block' }}>
@@ -193,13 +192,7 @@ function SetSlots() {
                 aria-label={`ใส่ชุด${set.name}ในชุดที่ ${editSlot + 1}`}
                 onClick={() => updateSetPrefs((p) => withSlot(p, editSlot, set.id))}
               >
-                <SetPreview set={set} />
-                <span className="row" style={{ gap: 4, alignItems: 'flex-start' }}>
-                  <b className="grow small">{set.name}</b>
-                  <span className="tiny" aria-hidden="true">
-                    {on ? '✓' : ''}
-                  </span>
-                </span>
+                <FableCard set={set} />
                 <span className="set-tale">“{set.tale}”</span>
               </button>
             )

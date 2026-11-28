@@ -1,7 +1,10 @@
+import type { ReactNode } from 'react'
 import { PieceIcon } from './PieceIcon'
 import { avatarUrl } from '../lib/profile'
 
 interface Props {
+  /** ภาพที่ใช้แทนเมื่อไม่มีรูปโปรไฟล์ เช่น ตัวละครนิทานของชุดที่ผู้เล่นใช้ (ไม่ระบุ = ไอคอนม้า) */
+  fallback?: ReactNode
   /** รหัสรูป ถ้าว่างจะแสดงรูปหมากแทน */
   avatar?: string
   size?: number
@@ -9,11 +12,18 @@ interface Props {
 }
 
 /** รูปโปรไฟล์ทรงกลม เป็นของประดับ ชื่อผู้เล่นแสดงเป็นข้อความอยู่ข้าง ๆ เสมอ */
-export function Avatar({ avatar, size = 36, className = '' }: Props) {
+export function Avatar({ avatar, size = 36, className = '', fallback }: Props) {
   const style = { width: size, height: size, fontSize: size * 0.6 }
   if (avatar) {
     return (
       <img className={`avatar ${className}`} src={avatarUrl(avatar)} alt="" style={style} draggable={false} />
+    )
+  }
+  if (fallback) {
+    return (
+      <span className={`avatar avatar-hero ${className}`} style={style} aria-hidden="true">
+        {fallback}
+      </span>
     )
   }
   return (

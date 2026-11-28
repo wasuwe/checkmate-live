@@ -51,6 +51,8 @@ export interface LobbySeat {
   sender?: string
   /** ที่นั่งของเจ้าของห้อง */
   host?: boolean
+  /** รหัสชุดหมากรุกที่คนนี้เลือกไว้ */
+  set?: string
 }
 
 /** สถานะของห้องรอ มีเฉพาะตอนรอเริ่มเกม */
