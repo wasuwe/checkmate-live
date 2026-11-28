@@ -2287,7 +2287,8 @@ body:has(.home)::before {
 
 .catalog {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(27vw, 130px), 1fr));
+  /* การ์ดสะสม: กว้างพอให้อ่านชื่อบนริบบิ้นได้ จอมือถือได้สองใบต่อแถว */
+  grid-template-columns: repeat(auto-fill, minmax(min(36vw, 168px), 1fr));
   gap: clamp(8px, 2.5vw, 14px);
 }
 
@@ -6237,58 +6238,6 @@ a.cb-card:focus-visible {
   }
 }
 
-/* ---------- ภาพตัวอย่างของชุดหมากรุกในคลัง: ตัวหมากเป็นตัวเด่น ---------- */
-
-.set-show {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  border: 1px solid var(--gold);
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 3px 10px rgba(30, 42, 107, 0.16);
-}
-
-.set-show > div {
-  aspect-ratio: 1;
-  display: grid;
-  place-items: center;
-}
-
-/* เบี้ยตัวละครของสองฝั่ง: ช่องใหญ่ครึ่งความกว้าง */
-.set-show > .big {
-  grid-column: span 2;
-}
-
-.set-show .show-piece {
-  width: 84%;
-  height: 84%;
-  overflow: visible;
-  filter: drop-shadow(0 2px 1.5px rgba(20, 25, 70, 0.28));
-}
-
-.set-show > .big .show-piece {
-  width: 92%;
-  height: 92%;
-  transition: translate 0.4s var(--bounce);
-}
-
-/* ชี้ที่ชุดไหน ตัวละครของชุดนั้นเด้งขึ้นเล็กน้อย ฝั่งดำตามหลังนิดหนึ่ง */
-.catalog-item:hover .set-show > .big .show-piece,
-.slot-pick:hover .set-show > .big .show-piece {
-  translate: 0 -5%;
-}
-
-.catalog-item:hover .set-show > .big + .big .show-piece,
-.slot-pick:hover .set-show > .big + .big .show-piece {
-  transition-delay: 0.07s;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .set-show > .big .show-piece {
-    transition: none;
-  }
-}
-
 /* ---------- ไฮไลต์ช่องบนกระดาน: แสงที่ขอบในของช่องเต้นเบา ๆ ---------- */
 /* สีมาจาก --sq-glow ที่ GameBoard ใส่ให้ช่อง ประกาศใน no-preference เท่านั้น ผู้ที่ขอลดการเคลื่อนไหวจึงไม่เห็นการเต้น */
 
@@ -6644,4 +6593,141 @@ a.cb-card:focus-visible {
   .toss-title {
     display: none;
   }
+}
+
+/* ---------- การ์ดสะสมของชุดหมากรุก (FableCard) ---------- */
+/* ขนาดทุกอย่างคิดจากความกว้างการ์ด (cqw) พิกัดตรงกับกรอบ SVG ขนาด 200 × 300 ใน FableCard.tsx */
+
+.fable-card {
+  --card-deep: var(--night-1);
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  container-type: inline-size;
+  overflow: hidden;
+  /* หน่วย cqw ของตัวการ์ดเองอ้างถึง container ชั้นนอก จึงใช้ % ที่นี่ ส่วนชิ้นส่วนข้างในใช้ cqw ได้ */
+  border-radius: 7% / 4.67%;
+  /* พื้นสีเข้มของชุด ทับด้วยลายข้าวหลามตัดจาง ๆ และแสงสว่างจากด้านบน */
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 60%),
+    linear-gradient(45deg, rgba(255, 255, 255, 0.055) 25%, transparent 25% 75%, rgba(255, 255, 255, 0.055) 75%) 0 0 / 14% 9.33%,
+    linear-gradient(-45deg, rgba(0, 0, 0, 0.1) 25%, transparent 25% 75%, rgba(0, 0, 0, 0.1) 75%) 0 0 / 14% 9.33%,
+    var(--card-deep);
+  box-shadow: 0 5px 14px rgba(20, 25, 70, 0.28);
+  transition:
+    translate 0.4s var(--bounce),
+    rotate 0.4s var(--bounce),
+    box-shadow 0.3s ease;
+}
+
+/* หน้าต่างโค้ง: ช่องกระดานสองสีของชุดแบ่งเฉียง มีตัวละครของสองฝั่งยืนเยื้องกัน */
+.fc-window {
+  position: absolute;
+  left: 13%;
+  right: 13%;
+  top: 12%;
+  bottom: 28.67%;
+  overflow: hidden;
+  border-radius: 37cqw 37cqw 1.5cqw 1.5cqw;
+}
+
+.fc-ground {
+  position: absolute;
+  inset: 0;
+}
+
+/* ครึ่งล่างซ้ายเป็นช่องเข้ม: ใต้เส้นที่ลากจาก 22% ทางซ้ายลงไป 78% ทางขวา */
+.fc-ground.dark {
+  clip-path: polygon(0 22%, 100% 78%, 100% 100%, 0 100%);
+}
+
+.fc-hero {
+  position: absolute;
+  width: 58%;
+  height: auto;
+  aspect-ratio: 1;
+  overflow: visible;
+  filter: drop-shadow(0 0.9cqw 0.7cqw rgba(20, 25, 70, 0.38));
+  transition: translate 0.4s var(--bounce);
+}
+
+.fc-hero.front {
+  left: 2%;
+  bottom: 4%;
+}
+
+.fc-hero.back {
+  right: 3%;
+  top: 19%;
+}
+
+.fc-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ชื่อชุดบนริบบิ้น: ชื่อยาวขึ้นสองบรรทัด */
+.fc-name {
+  position: absolute;
+  left: 13%;
+  right: 13%;
+  top: 76.4%;
+  height: 10.6%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 6.8cqw;
+  line-height: 1.12;
+  text-align: center;
+  text-wrap: balance;
+  color: #4a3212;
+}
+
+/* ประกายดาวกะพริบช้า ๆ สลับจังหวะกัน */
+.fc-spark {
+  animation: fcTwinkle 2.6s ease-in-out infinite;
+}
+
+@keyframes fcTwinkle {
+  0%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+
+  50% {
+    opacity: 0.55;
+    scale: 0.78;
+  }
+}
+
+/* ชี้ที่การ์ด: การ์ดลอยขึ้นและเอียงเล็กน้อย ตัวละครเด้ง ฝั่งดำตามหลังนิดหนึ่ง */
+.catalog-item:hover .fable-card,
+.slot-pick:hover .fable-card {
+  translate: 0 -1.5%;
+  rotate: -1.2deg;
+  box-shadow: 0 12px 22px rgba(20, 25, 70, 0.34);
+}
+
+.catalog-item:hover .fc-hero,
+.slot-pick:hover .fc-hero {
+  translate: 0 -6%;
+}
+
+.catalog-item:hover .fc-hero.back,
+.slot-pick:hover .fc-hero.back {
+  transition-delay: 0.08s;
+}
+
+/* การ์ดที่เลือกอยู่: วงทองรอบการ์ด */
+.catalog-item[aria-pressed='true'] .fable-card {
+  box-shadow:
+    0 0 0 3px var(--paper),
+    0 0 0 5px var(--gold),
+    0 8px 18px rgba(20, 25, 70, 0.3);
 }
