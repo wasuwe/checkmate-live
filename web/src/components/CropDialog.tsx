@@ -164,7 +164,7 @@ export function CropDialog({ file, aspect, title, round = false, maxSide = 1600,
                 onChange={(e) => update({ ...view, zoom: Number(e.target.value) })}
               />
             </label>
-            <p className="tiny">ลากรูปเพื่อเลื่อน · ส่วนที่อยู่ในกรอบคือส่วนที่จะถูกใช้</p>
+            <p className="tiny">ลากรูปเพื่อเลื่อน ส่วนที่อยู่ในกรอบคือส่วนที่จะใช้</p>
           </>
         )}
         <div className="row wrap" style={{ justifyContent: 'center' }}>

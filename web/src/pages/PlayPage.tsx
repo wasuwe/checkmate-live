@@ -27,7 +27,7 @@ export function PlayPage({ navigate }: Props) {
     try {
       navigate(roomPath(await createRoom(timeControl, isGameId(picked?.id) ? picked.id : 'chess')))
     } catch (err) {
-      setError(err instanceof CreateRoomError ? err.message : 'สร้างห้องไม่สำเร็จ ตรวจการเชื่อมต่อแล้วลองใหม่')
+      setError(err instanceof CreateRoomError ? err.message : 'สร้างห้องไม่ได้ เช็กเน็ตแล้วลองใหม่')
       setCreating(false)
     }
   }
@@ -54,7 +54,7 @@ export function PlayPage({ navigate }: Props) {
             </div>
             <div className="game-name">{g.name}</div>
             <div className="game-desc pretty">{g.desc}</div>
-            {g.soon && <div className="pill">เร็วๆ นี้</div>}
+            {g.soon && <div className="pill">เร็ว ๆ นี้</div>}
           </button>
         ))}
       </div>
@@ -70,17 +70,17 @@ export function PlayPage({ navigate }: Props) {
           >
             <div className="row">
               <h2 className="dialog-title grow" id="new-game-title">
-                เริ่มเกมใหม่ · {picked.name}
+                เล่น{picked.name}
               </h2>
               <button type="button" className="close" aria-label="ปิด" onClick={close}>
                 ✕
               </button>
             </div>
             <p className="small pretty">
-              สร้างห้องแล้วส่งลิงก์ให้เพื่อน คนแรกที่เข้ามาจะเป็นคู่แข่ง คนถัดไปเป็นผู้ชม
+              สร้างห้องแล้วส่งลิงก์ให้เพื่อน คนแรกที่เข้ามาจะได้เล่นกับคุณ คนที่มาทีหลังเป็นผู้ชม
             </p>
             <div className="small" style={{ fontWeight: 600 }} id="tc-label">
-              เวลาเล่นต่อฝั่ง
+              เวลาฝ่ายละ
             </div>
             <div className="tc-grid" role="group" aria-labelledby="tc-label">
               {TIME_CONTROLS.map((tc) => (

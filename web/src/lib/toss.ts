@@ -43,15 +43,15 @@ export function tossView(state: StateMsg): TossView {
   const you = state.you.color
   const game = gameOf(state)
   if (game === 'chess' || game === 'makruk') {
-    const base = { title: 'สุ่มฝ่ายขาว–ดำ', faces: 'colors', front: colorName('w'), back: colorName('b') } as const
+    const base = { title: 'สุ่มฝ่ายขาวดำ', faces: 'colors', front: colorName('w'), back: colorName('b') } as const
     if (you === '') {
       const name = (c: Color) => playerName(state.players?.[c], c)
-      return { ...base, landsOn: 'front', result: 'ขาว: ' + name('w') + ' · ดำ: ' + name('b') }
+      return { ...base, landsOn: 'front', result: name('w') + ' ได้ฝ่ายขาว ' + name('b') + ' ได้ฝ่ายดำ' }
     }
     const order = you === first ? 'เดินก่อน' : 'เดินทีหลัง'
     return { ...base, landsOn: you === 'w' ? 'front' : 'back', result: 'คุณได้ฝ่าย' + colorName(you) + ' ' + order }
   }
-  const base = { title: 'โยนเหรียญหาคนเริ่มก่อน', faces: 'sides' } as const
+  const base = { title: 'โยนเหรียญหาคนเดินก่อน', faces: 'sides' } as const
   if (you === '') {
     const name = playerName(state.players?.[first], first)
     return {
@@ -59,7 +59,7 @@ export function tossView(state: StateMsg): TossView {
       front: colorName('w'),
       back: colorName('b'),
       landsOn: first === 'w' ? 'front' : 'back',
-      result: 'ฝ่าย' + colorName(first) + ' (' + name + ') ได้เริ่มก่อน',
+      result: 'ฝ่าย' + colorName(first) + ' (' + name + ') ได้เดินก่อน',
     }
   }
   const mine = you === first
@@ -68,6 +68,6 @@ export function tossView(state: StateMsg): TossView {
     front: 'คุณ',
     back: 'คู่แข่ง',
     landsOn: mine ? 'front' : 'back',
-    result: mine ? 'คุณได้เริ่มก่อน!' : 'คู่แข่งได้เริ่มก่อน',
+    result: mine ? 'คุณได้เดินก่อน!' : 'คู่แข่งได้เดินก่อน',
   }
 }

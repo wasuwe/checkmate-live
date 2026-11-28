@@ -108,10 +108,10 @@ describe('rematch after the game', () => {
 
   test('a player can ask, and sees who is waiting for whom', () => {
     expect(rematchView(done())).toMatchObject({ canAsk: true, asked: false, opponentAsked: false, button: 'เล่นต่อ' })
-    expect(rematchView(done({ rematch: ['w'] }))).toMatchObject({ asked: true, opponentAsked: false, button: 'รอคู่แข่งกดเล่นต่อ…' })
+    expect(rematchView(done({ rematch: ['w'] }))).toMatchObject({ asked: true, opponentAsked: false, button: 'รอคู่แข่ง…' })
     const waited = rematchView(done({ rematch: ['b'] }))
     expect(waited).toMatchObject({ asked: false, opponentAsked: true, button: 'เล่นต่อ' })
-    expect(waited.note).toContain('คู่แข่งอยากเล่นต่อ')
+    expect(waited.note).toContain('คู่แข่งชวนเล่นต่อ')
   })
 
   test('when the opponent has left the room the player is told, whether or not they asked first', () => {

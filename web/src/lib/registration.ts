@@ -33,16 +33,16 @@ export function passwordChecks(password: string): PasswordCheck[] {
 /** ข้อความผิดพลาดของอีเมล หรือ undefined ถ้าใช้ได้ */
 export function emailError(email: string): string | undefined {
   const value = email.trim()
-  if (value === '') return 'กรุณากรอกอีเมล'
+  if (value === '') return 'ใส่อีเมลก่อน'
   if (/\s/.test(value)) return 'อีเมลต้องไม่มีช่องว่าง'
   if (!value.includes('@')) return 'อีเมลต้องมี @ เช่น you@example.com'
-  if (value.length > EMAIL_MAX || !EMAIL_PATTERN.test(value)) return 'รูปแบบอีเมลไม่ถูกต้อง เช่น you@example.com'
+  if (value.length > EMAIL_MAX || !EMAIL_PATTERN.test(value)) return 'อีเมลไม่ถูกต้อง ตัวอย่างที่ถูกคือ you@example.com'
   return undefined
 }
 
 /** ข้อความผิดพลาดของรหัสผ่าน หรือ undefined ถ้าใช้ได้ */
 export function passwordError(password: string): string | undefined {
-  if (password === '') return 'กรุณาตั้งรหัสผ่าน'
+  if (password === '') return 'ตั้งรหัสผ่านก่อน'
   if (new TextEncoder().encode(password).length > PASSWORD_MAX) return 'รหัสผ่านยาวเกินไป'
   if (password !== password.trim()) return 'รหัสผ่านต้องไม่ขึ้นต้นหรือลงท้ายด้วยช่องว่าง'
   const missing = passwordChecks(password).filter((c) => !c.ok)
@@ -56,14 +56,14 @@ export function validateField(field: RegisterField, v: Record<RegisterField, str
     case 'name': {
       const length = [...v.name.trim()].length
       // ชื่อไม่บังคับ แต่ถ้ากรอกต้องยาวตามที่เซิร์ฟเวอร์รับ
-      return length !== 0 && (length < NAME_MIN || length > NAME_MAX) ? `ชื่อต้องยาว ${NAME_MIN}–${NAME_MAX} ตัวอักษร` : undefined
+      return length !== 0 && (length < NAME_MIN || length > NAME_MAX) ? `ชื่อต้องยาว ${NAME_MIN} ถึง ${NAME_MAX} ตัวอักษร` : undefined
     }
     case 'email':
       return emailError(v.email)
     case 'password':
       return passwordError(v.password)
     case 'confirm':
-      if (v.confirm === '') return 'กรุณาพิมพ์รหัสผ่านอีกครั้ง'
+      if (v.confirm === '') return 'พิมพ์รหัสผ่านอีกครั้ง'
       return v.confirm !== v.password ? 'รหัสผ่านสองช่องไม่ตรงกัน' : undefined
   }
 }

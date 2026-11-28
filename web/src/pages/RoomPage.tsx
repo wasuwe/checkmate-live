@@ -53,9 +53,9 @@ export function RoomPage({ roomId, navigate }: Props) {
   // เกมจบมาครบเวลาแล้ว: ม่านปิด (เซิร์ฟเวอร์ปิดห้องในเวลาเดียวกัน หลังจากนั้นการเชื่อมต่อจะได้ "ไม่พบห้อง")
   if (closing.closed || (game.fatal === 'room_not_found' && state?.status === 'finished')) {
     return (
-      <CurtainScreen closing title="ม่านปิดแล้ว" text="เกมจบแล้วและไม่มีการเล่นต่อ ห้องจึงปิดลง ขอบคุณที่มาเล่นด้วยกัน">
+      <CurtainScreen closing title="ม่านปิดแล้ว" text="เกมจบแล้วและไม่มีใครเล่นต่อ ห้องนี้เลยปิดแล้ว ขอบคุณที่มาเล่นด้วยกัน">
         <button type="button" className="btn pink strong" autoFocus onClick={() => navigate('/play')}>
-          เล่นเกมใหม่
+          สร้างห้องใหม่
         </button>
         <button type="button" className="btn" onClick={() => navigate('/')}>
           กลับหน้าแรก
@@ -67,7 +67,7 @@ export function RoomPage({ roomId, navigate }: Props) {
   // เปิดลิงก์ของห้องที่ไม่มีแล้ว
   if (game.fatal === 'room_not_found') {
     return (
-      <CurtainScreen title="ไม่พบห้องนี้" text={FATAL_TEXT.room_not_found}>
+      <CurtainScreen title="หาห้องนี้ไม่เจอ" text={FATAL_TEXT.room_not_found}>
         <button type="button" className="btn pink strong" autoFocus onClick={() => navigate('/play')}>
           สร้างห้องใหม่
         </button>
@@ -129,7 +129,7 @@ export function RoomPage({ roomId, navigate }: Props) {
     <main className="screen full room">
       {!online && (
         <p className="banner" role="status">
-          การเชื่อมต่อหลุด กำลังเชื่อมต่อใหม่…
+          หลุดจากห้อง กำลังต่อกลับเข้าไป…
         </p>
       )}
 
@@ -138,21 +138,21 @@ export function RoomPage({ roomId, navigate }: Props) {
         <div className="game-col board-col">
           <div className="room-bar">
             <details className="room-details">
-              <summary aria-label={`ห้อง ${formatRoomCode(roomId)} กดเพื่อเชิญเพื่อนหรือดูกฎ`}>
+              <summary aria-label={`ห้อง ${formatRoomCode(roomId)} กดเพื่อชวนเพื่อนหรือดูกติกา`}>
                 <span className="tiny">ห้อง</span>
                 <b className="room-code">{formatRoomCode(roomId)}</b>
                 <span className="room-caret" aria-hidden="true" />
               </summary>
               <div className="room-pop">
-                <div className="tiny">{gameName(gameId)} · เชิญเพื่อนด้วยลิงก์หรือรหัสห้อง</div>
+                <div className="tiny">ห้อง{gameName(gameId)} ชวนเพื่อนได้ด้วยลิงก์หรือรหัสห้อง</div>
                 <div className="row wrap">
                   <CopyLinkButton />
                   {/* เปิดแท็บใหม่ เพื่อไม่ให้ออกจากห้องกลางเกม */}
                   <a className="btn mini" href={`/rules?game=${gameId}`} target="_blank" rel="noopener">
-                    กฎ
+                    กติกา
                   </a>
                   <button type="button" className="btn mini" onClick={() => navigate('/')}>
-                    ออกไปหน้าแรก
+                    ออกจากห้อง
                   </button>
                 </div>
                 <TurnSoundToggle />
@@ -165,7 +165,7 @@ export function RoomPage({ roomId, navigate }: Props) {
                 {statusText(state)}
               </p>
               <p className="seat">
-                {seatText(state)} · {describeTimeControl(state.tc)}
+                {seatText(state)} {describeTimeControl(state.tc)}
               </p>
             </div>
 
@@ -184,7 +184,7 @@ export function RoomPage({ roomId, navigate }: Props) {
                 </button>
               ) : (
                 <button type="button" className="btn mini pink" onClick={() => navigate('/play')}>
-                  เล่นเกมใหม่
+                  สร้างห้องใหม่
                 </button>
               ))}
           </div>
@@ -193,9 +193,9 @@ export function RoomPage({ roomId, navigate }: Props) {
               เป็นสำเนาของแถบสถานะด้านบน จึงซ่อนจากโปรแกรมอ่านหน้าจอ */}
           <div className="game-side" aria-hidden="true">
             <Emblem width={190} className={myTurn ? 'gold' : undefined} />
-            <p className="game-side-status starred">{statusText(state)}</p>
+            <SideStatus state={state} />
             <p className="small">
-              {gameName(gameId)} · {describeTimeControl(state.tc)}
+              {gameName(gameId)} {describeTimeControl(state.tc)}
             </p>
             {pieceInfo ? (
               <div className="piece-info">
@@ -203,7 +203,7 @@ export function RoomPage({ roomId, navigate }: Props) {
                 {pieceInfo.desc && <span>{pieceInfo.desc}</span>}
               </div>
             ) : (
-              <p className="tiny game-side-tip">ชี้ที่หมากเพื่อดูว่าเดินอย่างไร · กดปุ่ม "แชท" เพื่อคุยกับคู่แข่ง</p>
+              <p className="tiny game-side-tip">ชี้ที่หมากเพื่อดูวิธีเดิน กดปุ่มแชทเพื่อคุยกับคู่แข่ง</p>
             )}
           </div>
 
@@ -215,7 +215,7 @@ export function RoomPage({ roomId, navigate }: Props) {
           )}
           {closing.seconds !== null && (
             <p className="count-chip close-chip" role="status">
-              ห้องจะปิดใน {closing.seconds} วินาที
+              อีก {closing.seconds} วินาทีห้องจะปิด
             </p>
           )}
           <AbsenceNotice state={state} stateAt={game.stateAt} />
@@ -278,15 +278,15 @@ function useRoomClosing(state: StateMsg | null, stateAt: number): { seconds: num
 }
 
 const FATAL_TEXT: Record<NonNullable<ReturnType<typeof useGameSocket>['fatal']>, string> = {
-  room_not_found: 'การแสดงรอบนี้จบไปแล้ว หรือรหัสห้องไม่ถูกต้อง ลองตรวจลิงก์อีกครั้ง หรือสร้างห้องใหม่ได้เลย',
-  unauthorized: 'ยืนยันตัวตนไม่สำเร็จ ลองโหลดหน้านี้ใหม่',
+  room_not_found: 'ห้องนี้ปิดไปแล้ว หรือรหัสห้องไม่ถูก ลองดูลิงก์อีกที หรือสร้างห้องใหม่ได้เลย',
+  unauthorized: 'เข้าห้องไม่สำเร็จ ลองโหลดหน้านี้ใหม่',
   too_many_connections: 'คุณเปิดเกมไว้หลายแท็บเกินไป ปิดแท็บอื่นแล้วโหลดหน้านี้ใหม่',
 }
 
 function seatText(state: StateMsg): string {
-  if (state.you.role === 'spectator') return 'คุณกำลังดูเกมนี้ในฐานะผู้ชม'
-  if (state.you.color === '') return 'สีจะถูกสุ่มเมื่อคู่แข่งเข้าห้อง'
-  return `คุณเล่นฝ่าย${colorName(state.you.color)}`
+  if (state.you.role === 'spectator') return 'คุณเป็นผู้ชม'
+  if (state.you.color === '') return 'จะสุ่มฝ่ายเมื่อคู่แข่งเข้าห้อง'
+  return `คุณเป็นฝ่าย${colorName(state.you.color)}`
 }
 
 /** แถบผู้เล่นสองฝั่งครอบกระดาน: ฝั่งตรงข้ามอยู่บน ฝั่งของผู้ดูอยู่ล่าง (ตรงกับการหมุนกระดาน) */
@@ -327,8 +327,8 @@ function Clocks({
       <ClockRow
         key={alert ? `${color}-${turnSeq}` : color}
         alert={alert}
-        label={info ? playerName(info, color) + (mine ? ' (คุณ)' : '') : mine ? 'คุณ' : `ฝั่ง${colorName(color)}`}
-        detail={info || mine ? `ฝั่ง${colorName(color)}` : 'ยังไม่มีผู้เล่น'}
+        label={info ? playerName(info, color) + (mine ? ' (คุณ)' : '') : mine ? 'คุณ' : `ฝ่าย${colorName(color)}`}
+        detail={info || mine ? `ฝ่าย${colorName(color)}` : 'ยังไม่มีผู้เล่น'}
         avatar={info ? (info.avatar ?? '') : undefined}
         ms={left[color]}
         untimed={untimed}
@@ -441,7 +441,7 @@ function useTurnAlert(state: StateMsg | null): [number, boolean] {
   useEffect(() => {
     const base = 'CheckMate Live'
     const apply = () => {
-      document.title = myTurn && document.hidden ? '● ถึงตาคุณแล้ว! · ' + base : base
+      document.title = myTurn && document.hidden ? 'ถึงตาคุณแล้ว ' + base : base
     }
     apply()
     document.addEventListener('visibilitychange', apply)
@@ -470,7 +470,7 @@ function TurnSoundToggle() {
         if (!on) playMoveSound('move') // ให้ได้ยินตัวอย่างตอนเปิด
       }}
     >
-      {on ? 'เสียงในเกม: เปิด' : 'เสียงในเกม: ปิด'}
+      {on ? 'เสียงในเกมเปิดอยู่' : 'เสียงในเกมปิดอยู่'}
     </button>
   )
 }
@@ -497,7 +497,7 @@ function AbsenceNotice({ state, stateAt }: { state: StateMsg; stateAt: number })
         const who = state.you.color === '' ? `ฝ่าย${colorName(color)}` : 'คู่แข่ง'
         return (
           <p key={color}>
-            {who}หลุดจากเกม ถ้าไม่กลับมาใน {secondsLeft} วินาทีจะถูกปรับแพ้
+            {who}หลุดจากเกม ถ้าอีก {secondsLeft} วินาทียังไม่กลับมาจะโดนปรับแพ้
           </p>
         )
       })}
@@ -525,7 +525,7 @@ function CopyLinkButton({ big = false }: { big?: boolean }) {
 
   return (
     <button type="button" className={big ? 'btn butter' : 'btn mini butter'} onClick={copy}>
-      {copied ? 'คัดลอกแล้ว ✓' : 'คัดลอกลิงก์'}
+      {copied ? 'คัดลอกแล้ว' : 'คัดลอกลิงก์'}
     </button>
   )
 }
@@ -534,9 +534,9 @@ function CopyLinkButton({ big = false }: { big?: boolean }) {
 function WaitingCard({ roomId }: { roomId: string }) {
   const canShare = typeof navigator.share === 'function'
   return (
-    <section className="card side waiting" aria-label="เชิญเพื่อน">
+    <section className="card side waiting" aria-label="ชวนเพื่อน">
       <h2 className="card-title">รอเพื่อนเข้าห้อง</h2>
-      <p className="small pretty">ส่งลิงก์หรือรหัสนี้ให้เพื่อน เกมเริ่มทันทีเมื่อเพื่อนเข้ามา</p>
+      <p className="small pretty">ส่งลิงก์หรือรหัสนี้ให้เพื่อน พอเพื่อนเข้ามาเกมจะเริ่มทันที</p>
       <div className="room-code huge">{formatRoomCode(roomId)}</div>
       <div className="row wrap" style={{ justifyContent: 'center' }}>
         <CopyLinkButton big />
@@ -558,6 +558,21 @@ function WaitingCard({ roomId }: { roomId: string }) {
 }
 
 /** ป็อปอัปผลเกม ปิดเพื่อดูกระดานต่อได้ */
+/**
+ * สถานะตัวใหญ่ในแผงข้างกระดาน ตอนเกมจบแยกเป็นผล ("คุณชนะ!") กับเหตุผลบรรทัดถัดไป
+ * เพราะประโยคเต็มอย่าง "คุณชนะเพราะคู่แข่งยอมแพ้" ยาวเกินตัวอักษรขนาดนี้และถูกตัดกลางคำ
+ */
+function SideStatus({ state }: { state: StateMsg }) {
+  if (state.status !== 'finished') return <p className="game-side-status starred">{statusText(state)}</p>
+  const { headline, reason } = resultParts(state)
+  return (
+    <>
+      <p className="game-side-status starred">{headline}</p>
+      {reason && <p>{reason}</p>}
+    </>
+  )
+}
+
 function GameOverDialog({
   state,
   navigate,
@@ -619,7 +634,7 @@ function GameOverDialog({
             </button>
           ) : (
             <button type="button" className="btn pink strong" autoFocus onClick={() => navigate('/play')}>
-              เล่นเกมใหม่
+              สร้างห้องใหม่
             </button>
           )}
           {rematch.canAsk && (

@@ -27,7 +27,7 @@ export function RulesPage({ navigate }: Props) {
 
   return (
     <main className="screen wide" style={{ gap: 20 }}>
-      <h1 className="title">กฎการเล่น · {gameName(game)}</h1>
+      <h1 className="title">กติกา{gameName(game)}</h1>
       <div className="row wrap" role="group" aria-label="เลือกเกม" style={{ justifyContent: 'center' }}>
         {PLAYABLE.map((id) => (
           <button key={id} type="button" className="chip" aria-pressed={id === game} onClick={() => pick(id)}>
@@ -49,7 +49,7 @@ export function RulesPage({ navigate }: Props) {
         ))}
       </div>
 
-      <h2 className="subtitle">หมากแต่ละตัวเดินอย่างไร</h2>
+      <h2 className="subtitle">หมากแต่ละตัวเดินยังไง</h2>
       <div className="piece-grid">
         {rules.pieces.map((p) => (
           <section key={p.kind} className="card side piece-card">

@@ -122,7 +122,7 @@ describe('neeb result text', () => {
     const done = (game: 'neeb' | 'checkers') =>
       resultParts(state({ game, status: 'finished', result: '1-0', reason: 'wipeout' })).reason
     expect(done('neeb')).toBe('คู่แข่งเหลือหมากไม่เกิน 2 ตัว')
-    expect(done('checkers')).toBe('กินหมากหมดกระดาน')
-    expect(RULES.neeb.basics[0].body).toContain('เหลือ 2 ตัวหรือน้อยกว่า')
+    expect(done('checkers')).toBe('หมากของคู่แข่งถูกกินหมด')
+    expect(RULES.neeb.basics[0].body).toContain('เหลือไม่เกิน 2 ตัว')
   })
 })

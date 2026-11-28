@@ -19,8 +19,8 @@ const ERRORS: Record<string, string> = {
   forbidden: 'บัญชีนี้ไม่ใช่ผู้ดูแล',
   bad_image: 'ไฟล์นี้ใช้ไม่ได้ ใช้ได้เฉพาะรูป PNG หรือ JPEG',
   image_too_large: 'รูปใหญ่เกินไป',
-  bad_style: 'ชื่อรูปแบบต้องยาว 1–30 ตัวอักษร',
-  rate_limited: 'ทำรายการถี่เกินไป รอสักครู่แล้วลองใหม่',
+  bad_style: 'ชื่อรูปแบบต้องยาว 1 ถึง 30 ตัวอักษร',
+  rate_limited: 'กดเร็วเกินไป รอสักครู่แล้วลองใหม่',
   limit: 'มีรูปแบบครบจำนวนสูงสุดแล้ว ลบรูปแบบที่ไม่ใช้ก่อน',
 }
 
@@ -35,7 +35,7 @@ export function readPieceResult(status: number, body: unknown): PieceResult {
   if (status === 409 && code === 'conflict') {
     return { status: 'conflict', message: 'มีคนแก้รูปแบบนี้ไปก่อน แสดงข้อมูลล่าสุดให้แล้ว ลองทำอีกครั้ง', styles: parseRemoteStyles(raw) }
   }
-  return { status: 'error', message: ERRORS[code] ?? 'ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง' }
+  return { status: 'error', message: ERRORS[code] ?? 'ไม่สำเร็จ ลองใหม่อีกครั้ง' }
 }
 
 async function send(path: string, init: RequestInit): Promise<PieceResult> {
@@ -43,7 +43,7 @@ async function send(path: string, init: RequestInit): Promise<PieceResult> {
   try {
     res = await authedFetch(path, init)
   } catch {
-    return { status: 'error', message: 'เชื่อมต่อไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่' }
+    return { status: 'error', message: 'เชื่อมต่อไม่ได้ เช็กเน็ตแล้วลองใหม่' }
   }
   const result = readPieceResult(res.status, await res.json().catch(() => ({})))
   // ให้ตัวเลือกในหน้าโปรไฟล์และกระดานของแท็บนี้เห็นข้อมูลล่าสุดทันที

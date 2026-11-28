@@ -85,7 +85,7 @@ export function ChatPanel({ messages, players, names, tall = false, online, rate
       </form>
       {rateLimitedSeq > dismissedSeq && (
         <p className="error" role="alert">
-          ส่งข้อความถี่เกินไป รอสักครู่แล้วลองใหม่
+          พิมพ์เร็วเกินไป รอสักครู่แล้วค่อยส่งใหม่
         </p>
       )}
     </section>

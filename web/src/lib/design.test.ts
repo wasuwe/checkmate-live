@@ -198,12 +198,12 @@ describe('result popup', () => {
   test('describes the result from the viewer side', () => {
     const done = (patch: Partial<StateMsg>) => resultParts(state({ status: 'finished', ...patch }))
     expect(done({ result: '1-0', reason: 'checkmate' })).toMatchObject({ headline: 'คุณชนะ!', outcome: 'win' })
-    expect(done({ result: '0-1', reason: 'timeout' })).toMatchObject({ headline: 'คุณแพ้', outcome: 'loss', reason: 'หมดเวลา' })
+    expect(done({ result: '0-1', reason: 'timeout' })).toMatchObject({ headline: 'คุณแพ้', outcome: 'loss', reason: 'คุณหมดเวลา' })
     expect(done({ result: '1/2-1/2', reason: 'stalemate' })).toMatchObject({ headline: 'เสมอ', outcome: 'draw' })
     expect(done({ result: '0-1', reason: 'resign', you: { role: 'spectator', color: '' } })).toMatchObject({
       headline: 'ฝ่ายดำชนะ',
       outcome: 'watch',
-      reason: 'ยอมแพ้',
+      reason: 'ฝ่ายขาวยอมแพ้',
     })
   })
 

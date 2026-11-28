@@ -183,8 +183,8 @@ function MembersView({ navigate }: Props) {
       </section>
 
       <p className="small member-count" role="status">
-        แสดง {shown.length} จาก {sum.total} คน · อัปเดตเมื่อ {new Date(load.at).toLocaleTimeString('th-TH')}
-        {stale && <span className="error"> · โหลดล่าสุดไม่สำเร็จ ข้อมูลอาจไม่ใช่ปัจจุบัน</span>}
+        แสดง {shown.length} จาก {sum.total} คน อัปเดตเมื่อ {new Date(load.at).toLocaleTimeString('th-TH')}
+        {stale && <span className="error"> โหลดล่าสุดไม่สำเร็จ ข้อมูลอาจไม่ใช่ปัจจุบัน</span>}
       </p>
 
       {shown.length === 0 ? (
@@ -237,7 +237,7 @@ function LivePill({ live }: { live?: Live }) {
   return (
     <span className={`member-live ${playing ? 'is-playing' : 'is-waiting'}${live.connected ? '' : ' is-away'}`}>
       <span className="member-live-dot" aria-hidden="true" />
-      {playing ? 'กำลังเล่น' : 'รอในห้อง'} · {gameLabel(live.game)}
+      {playing ? 'กำลังเล่น' : 'รอในห้อง'} {gameLabel(live.game)}
       {!live.connected && ' (หลุดอยู่)'}
     </span>
   )
@@ -374,7 +374,7 @@ function MemberBody({ member: m, canJump, onJump }: Pick<RowProps, 'member' | 'c
             <dt>ตอนนี้</dt>
             <dd>
               {m.live.status === 'playing' ? 'กำลังเล่น' : 'รอในห้อง'} {gameLabel(m.live.game)}
-              {liveOpponent(m.live) && ` กับ ${liveOpponent(m.live)}`} ·{' '}
+              {liveOpponent(m.live) && ` กับ ${liveOpponent(m.live)}`}{' '}
               <a href={roomPath(m.live.room)} target="_blank" rel="noopener">
                 เปิดดูห้อง {formatRoomCode(m.live.room)}
               </a>

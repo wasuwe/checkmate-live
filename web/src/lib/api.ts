@@ -49,15 +49,15 @@ export async function roomExists(roomId: string): Promise<'yes' | 'no' | 'limite
 }
 
 const CREATE_ROOM_ERRORS: Record<string, string> = {
-  too_many_rooms: 'คุณมีห้องที่ยังเล่นไม่จบค้างอยู่หลายห้อง เล่นให้จบหรือรอสักครู่ก่อนสร้างห้องใหม่',
-  rate_limited: 'สร้างห้องถี่เกินไป รอสักครู่แล้วลองใหม่',
-  server_full: 'ตอนนี้ห้องเต็มทั้งระบบ ลองใหม่ภายหลัง',
+  too_many_rooms: 'คุณมีห้องที่ยังเล่นไม่จบอยู่หลายห้อง เล่นให้จบก่อน หรือรอสักครู่แล้วค่อยสร้างห้องใหม่',
+  rate_limited: 'สร้างห้องบ่อยเกินไป รอสักครู่แล้วลองใหม่',
+  server_full: 'ตอนนี้ห้องเต็มหมดแล้ว อีกสักพักค่อยลองใหม่',
 }
 
 /** สร้างห้องไม่สำเร็จ message เป็นข้อความที่แสดงให้ผู้ใช้ได้เลย */
 export class CreateRoomError extends Error {
   constructor(code: string) {
-    super(CREATE_ROOM_ERRORS[code] ?? 'สร้างห้องไม่สำเร็จ ตรวจการเชื่อมต่อแล้วลองใหม่')
+    super(CREATE_ROOM_ERRORS[code] ?? 'สร้างห้องไม่ได้ เช็กเน็ตแล้วลองใหม่')
   }
 }
 

@@ -13,7 +13,7 @@ import { absences } from './presence'
 import { extractRoomId, isRoomId, parseServerMsg, type StateMsg } from './protocol'
 import { parseRoute, roomPath } from './router'
 import { centerSquare } from './profile'
-import { errorText, playerName, resultText, statusText } from './text'
+import { errorText, playerName, resultParts, resultText, statusText } from './text'
 import { becameMyTurn } from './turnAlert'
 
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
@@ -154,8 +154,8 @@ describe('clock', () => {
   })
 
   test('describeTimeControl', () => {
-    expect(describeTimeControl('10+0')).toBe('10 นาที')
-    expect(describeTimeControl('5+3')).toBe('5 นาที +3 วินาทีต่อตา')
+    expect(describeTimeControl('10+0')).toBe('ฝ่ายละ 10 นาที')
+    expect(describeTimeControl('5+3')).toBe('ฝ่ายละ 5 นาที เพิ่มตาละ 3 วินาที')
     expect(describeTimeControl('weird')).toBe('weird')
     expect(describeTimeControl(NO_TIME)).toBe('ไม่จับเวลา')
     expect(isUntimed(NO_TIME)).toBe(true)
@@ -224,24 +224,44 @@ describe('text', () => {
   test('statusText while playing depends on whose turn it is', () => {
     expect(statusText(base)).toBe('ตาคุณเดิน')
     expect(statusText({ ...base, turn: 'b' })).toBe('รอคู่แข่งเดิน')
-    expect(statusText({ ...base, you: { role: 'spectator', color: '' } })).toBe('ตาของขาว')
+    expect(statusText({ ...base, you: { role: 'spectator', color: '' } })).toBe('ตาฝ่ายขาวเดิน')
     expect(statusText({ ...base, status: 'waiting' })).toBe('รอคู่แข่งเข้าห้อง')
   })
 
   test('resultText is written from the viewer’s side', () => {
     const over: StateMsg = { ...base, status: 'finished', result: '0-1', reason: 'checkmate' }
-    expect(resultText(over)).toBe('คุณแพ้ — Checkmate')
-    expect(resultText({ ...over, you: { role: 'player', color: 'b' } })).toBe('คุณชนะ — Checkmate')
-    expect(resultText({ ...over, you: { role: 'spectator', color: '' } })).toBe('ดำชนะ — Checkmate')
-    expect(resultText({ ...over, result: '1/2-1/2', reason: 'stalemate' })).toBe('เสมอ — อับ (stalemate)')
-    expect(statusText(over)).toBe('คุณแพ้ — Checkmate')
-    expect(resultText({ ...over, result: '1-0', reason: 'resign' })).toBe('คุณชนะ — ยอมแพ้')
-    expect(resultText({ ...over, result: '1-0', reason: 'abandon' })).toBe('คุณชนะ — หลุดจากเกมเกินเวลา')
+    const asBlack = { role: 'player', color: 'b' } as const
+    const watching = { role: 'spectator', color: '' } as const
+    expect(resultText(over)).toBe('คุณแพ้เพราะโดน Checkmate')
+    expect(resultText({ ...over, you: asBlack })).toBe('คุณชนะด้วย Checkmate')
+    expect(resultText({ ...over, you: watching })).toBe('ฝ่ายดำชนะด้วย Checkmate')
+    expect(resultText({ ...over, result: '1/2-1/2', reason: 'stalemate' })).toBe('เสมอเพราะอับ')
+    expect(resultText({ ...over, result: '1/2-1/2', reason: 'draw' })).toBe('เสมอตามกติกา')
+    expect(statusText(over)).toBe('คุณแพ้เพราะโดน Checkmate')
+    // เหตุผลบอกว่าใครเป็นคนทำ: ฝ่ายขาว (ผู้ดูในชุดทดสอบนี้) ชนะเพราะคู่แข่งยอมแพ้ หลุด หรือหมดเวลา
+    expect(resultText({ ...over, result: '1-0', reason: 'resign' })).toBe('คุณชนะเพราะคู่แข่งยอมแพ้')
+    expect(resultText({ ...over, result: '1-0', reason: 'abandon' })).toBe('คุณชนะเพราะคู่แข่งหลุดจากเกมนานเกินไป')
+    expect(resultText({ ...over, result: '1-0', reason: 'timeout' })).toBe('คุณชนะเพราะคู่แข่งหมดเวลา')
+    expect(resultText({ ...over, reason: 'resign' })).toBe('คุณยอมแพ้')
+    expect(resultText({ ...over, reason: 'timeout' })).toBe('คุณแพ้เพราะหมดเวลา')
+    expect(resultText({ ...over, reason: 'wipeout' })).toBe('คุณแพ้เพราะหมากถูกกินหมด')
+    expect(resultText({ ...over, reason: 'resign', you: watching })).toBe('ฝ่ายดำชนะเพราะฝ่ายขาวยอมแพ้')
+    expect(resultParts({ ...over, reason: 'resign' })).toMatchObject({ headline: 'คุณแพ้', reason: 'คุณยอมแพ้' })
+    expect(resultParts({ ...over, reason: 'timeout' })).toMatchObject({ headline: 'คุณแพ้', reason: 'คุณหมดเวลา' })
+    expect(resultParts({ ...over, result: '1/2-1/2', reason: 'draw' })).toMatchObject({ headline: 'เสมอ', reason: 'ตามกติกา' })
+    // ไม่มีขีดยาวหรือจุดคั่นในข้อความผลเกม
+    for (const reason of ['checkmate', 'resign', 'timeout', 'abandon', 'blocked', 'wipeout', 'draw', 'count', 'stalemate']) {
+      for (const result of ['1-0', '0-1', '1/2-1/2']) {
+        for (const you of [over.you, asBlack, watching]) {
+          expect(resultText({ ...over, result, reason, you })).not.toMatch(/[—–·]/)
+        }
+      }
+    }
   })
 
   test('errorText falls back for unknown codes', () => {
     expect(errorText('illegal_move')).toBe('เดินแบบนี้ไม่ได้')
-    expect(errorText('???')).toBe('เกิดข้อผิดพลาด ลองใหม่อีกครั้ง')
+    expect(errorText('???')).toBe('มีบางอย่างผิดพลาด ลองใหม่อีกครั้ง')
   })
 })
 

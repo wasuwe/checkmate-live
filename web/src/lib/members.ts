@@ -196,7 +196,7 @@ export const SORTS: { id: MemberSort; label: string }[] = [
   { id: 'recent', label: 'เล่นล่าสุด' },
   { id: 'games', label: 'เล่นมากที่สุด' },
   { id: 'time', label: 'ใช้เวลามากที่สุด' },
-  { id: 'name', label: 'ชื่อ ก–ฮ' },
+  { id: 'name', label: 'ชื่อ ก ถึง ฮ' },
 ]
 
 const time = (iso: string | undefined) => (iso ? new Date(iso).getTime() || 0 : 0)

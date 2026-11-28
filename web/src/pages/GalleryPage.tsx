@@ -154,13 +154,13 @@ function Characters({ data }: { data: CreditsData }) {
             <div className="oc-links">
               <LinkCard link={personOf(data, oc.owner).link}>
                 <span className="grow person-text">
-                  <span className="tiny">เจ้าของ (Owner)</span>
+                  <span className="tiny">เจ้าของ</span>
                   <b>{personOf(data, oc.owner).name}</b>
                 </span>
               </LinkCard>
               <LinkCard link={personOf(data, oc.artist).link}>
                 <span className="grow person-text">
-                  <span className="tiny">ผู้วาด (Artist)</span>
+                  <span className="tiny">ผู้วาด</span>
                   <b>{personOf(data, oc.artist).name}</b>
                 </span>
               </LinkCard>

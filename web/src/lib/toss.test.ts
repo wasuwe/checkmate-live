@@ -30,10 +30,10 @@ describe('coin toss', () => {
     expect(shouldToss(state({ clock: { w: 1, b: 1, running: 'w' } }))).toBe(false)
   })
 
-  // หมากรุกสากลและหมากรุกไทย: สุ่มฝ่ายขาว–ดำ ไม่ใช่สุ่มว่าใครเริ่มก่อน (เจ้าของโปรเจกต์กำหนด)
+  // หมากรุกสากลและหมากรุกไทย: สุ่มฝ่ายขาวดำ ไม่ใช่สุ่มว่าใครเริ่มก่อน (เจ้าของโปรเจกต์กำหนด)
   test('chess: the coin has a white and a black face and lands on the colour the player got', () => {
     expect(tossView(state())).toEqual({
-      title: 'สุ่มฝ่ายขาว–ดำ',
+      title: 'สุ่มฝ่ายขาวดำ',
       faces: 'colors',
       front: 'ขาว',
       back: 'ดำ',
@@ -50,24 +50,24 @@ describe('coin toss', () => {
 
   test('chess: a spectator sees who got which colour', () => {
     const view = tossView(state({ you: { role: 'spectator', color: '' } }))
-    expect(view).toMatchObject({ faces: 'colors', front: 'ขาว', back: 'ดำ', result: 'ขาว: น้ำผึ้ง · ดำ: ผู้เล่นรับเชิญ' })
+    expect(view).toMatchObject({ faces: 'colors', front: 'ขาว', back: 'ดำ', result: 'น้ำผึ้ง ได้ฝ่ายขาว ผู้เล่นรับเชิญ ได้ฝ่ายดำ' })
   })
 
   // หมากฮอสและหมากหนีบ: โยนหาคนเริ่มก่อนตามเดิม
   test('checkers and neeb: the player who moves first sees the coin land on their own side', () => {
     expect(tossView(state({ game: 'checkers' }))).toEqual({
-      title: 'โยนเหรียญหาคนเริ่มก่อน',
+      title: 'โยนเหรียญหาคนเดินก่อน',
       faces: 'sides',
       front: 'คุณ',
       back: 'คู่แข่ง',
       landsOn: 'front',
-      result: 'คุณได้เริ่มก่อน!',
+      result: 'คุณได้เดินก่อน!',
     })
     expect(tossView(state({ game: 'neeb', you: { role: 'player', color: 'b' } }))).toMatchObject({
       front: 'คุณ',
       back: 'คู่แข่ง',
       landsOn: 'back',
-      result: 'คู่แข่งได้เริ่มก่อน',
+      result: 'คู่แข่งได้เดินก่อน',
     })
   })
 
@@ -81,7 +81,7 @@ describe('coin toss', () => {
 
   test('checkers: a spectator sees which colour starts, with the player name', () => {
     const view = tossView(state({ game: 'checkers', you: { role: 'spectator', color: '' } }))
-    expect(view).toMatchObject({ front: 'ขาว', back: 'ดำ', landsOn: 'front', result: 'ฝ่ายขาว (น้ำผึ้ง) ได้เริ่มก่อน' })
+    expect(view).toMatchObject({ front: 'ขาว', back: 'ดำ', landsOn: 'front', result: 'ฝ่ายขาว (น้ำผึ้ง) ได้เดินก่อน' })
   })
 
   test('the clock does not count down during the toss, and the picture ends before the clock starts', () => {

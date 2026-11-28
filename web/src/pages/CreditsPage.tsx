@@ -43,9 +43,9 @@ export function CreditsPage({ navigate }: Props) {
       ) : (
         <section className="cb" aria-label="ทีมงาน">
           <div className="cb-sides" aria-hidden="true">
-            <span className="cb-side">{board.sides[0].join(' · ')}</span>
+            <span className="cb-side">{board.sides[0].join(', ')}</span>
             <span className="cb-vs">VS</span>
-            <span className="cb-side right">{board.sides[1].join(' · ')}</span>
+            <span className="cb-side right">{board.sides[1].join(', ')}</span>
           </div>
           <div className="cb-stage">
             <ul className="cb-plane">

@@ -44,14 +44,14 @@ export function HomePage({ navigate }: Props) {
     e.preventDefault()
     if (!full || checking) return
     if (!ready) {
-      setJoinError('ไม่พบห้องรหัสนี้ ตรวจรหัสอีกครั้ง (รหัสห้องมีทั้งตัวอักษรและตัวเลข และไม่มี 0 O 1 I L)')
+      setJoinError('รหัสห้องไม่ถูกต้อง ลองดูอีกครั้ง รหัสมีทั้งตัวอักษรและตัวเลข แต่ไม่มี 0 O 1 I L')
       return
     }
     setChecking(true)
     const found = await roomExists(code)
     setChecking(false)
-    if (found === 'no') setJoinError('ไม่พบห้องรหัสนี้ ห้องอาจปิดไปแล้ว หรือรหัสไม่ถูกต้อง')
-    else if (found === 'limited') setJoinError('ลองถี่เกินไป รอสักครู่แล้วลองใหม่')
+    if (found === 'no') setJoinError('หาห้องนี้ไม่เจอ ห้องอาจปิดไปแล้ว หรือพิมพ์รหัสผิด')
+    else if (found === 'limited') setJoinError('ลองบ่อยเกินไป รอสักครู่แล้วลองใหม่')
     // ตรวจไม่ได้ (เช่น เน็ตสะดุด): พาเข้าห้องตามเดิม หน้าห้องจะแจ้งเองถ้าเข้าไม่ได้
     else navigate(roomPath(code))
   }
@@ -77,12 +77,12 @@ export function HomePage({ navigate }: Props) {
         <h1 className="hero-name">
           CheckMate <em>Live</em>
         </h1>
-        <p className="center pretty">เล่นหมากรุก หมากฮอส และหมากหนีบกับเพื่อนผ่านลิงก์ ไม่ต้องสมัครสมาชิก</p>
+        <p className="center pretty">ชวนเพื่อนมาเล่นหมากรุก หมากฮอส และหมากหนีบ แค่ส่งลิงก์ ไม่ต้องสมัครสมาชิก</p>
       </div>
 
       <div className="menu">
         <button type="button" className="btn big pink block" onClick={() => navigate('/play')}>
-          ▶ เล่นเลย
+          เล่นเลย
         </button>
 
         {joinOpen ? (
@@ -141,7 +141,7 @@ export function HomePage({ navigate }: Props) {
         )}
 
         <button type="button" className="btn lavender block" onClick={() => navigate('/profile')}>
-          โปรไฟล์ &amp; ชุดหมากรุก
+          โปรไฟล์และชุดหมากรุก
         </button>
 
         <AccountPanel navigate={navigate} />
@@ -149,7 +149,7 @@ export function HomePage({ navigate }: Props) {
 
       <nav className="footer-links">
         <button type="button" className="link" onClick={() => navigate('/rules')}>
-          กฎการเล่น
+          กติกา
         </button>
         <button type="button" className="link" onClick={() => navigate('/terms')}>
           ข้อตกลงการใช้งาน

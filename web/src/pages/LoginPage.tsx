@@ -36,7 +36,7 @@ export function LoginPage({ navigate }: Props) {
     try {
       result = await signIn(email.trim(), password)
     } catch {
-      result = { ok: false, message: 'เชื่อมต่อไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่' }
+      result = { ok: false, message: 'เชื่อมต่อไม่ได้ เช็กเน็ตแล้วลองใหม่' }
     }
     setBusy(false)
     if (!result.ok) setError(result.message)
@@ -56,7 +56,7 @@ export function LoginPage({ navigate }: Props) {
         </div>
         <h1 className="title">เข้าสู่ระบบ</h1>
         <p className="small center pretty">
-          ไม่บังคับ เล่นได้เลยโดยไม่ต้องมีบัญชี บัญชีใช้ตั้งชื่อและรูปโปรไฟล์ที่คู่แข่งเห็น
+          ไม่มีบัญชีก็เล่นได้ ถ้าเข้าสู่ระบบจะตั้งชื่อและรูปโปรไฟล์ให้คู่แข่งเห็นได้
         </p>
       </div>
 
@@ -104,7 +104,7 @@ export function LoginPage({ navigate }: Props) {
           </button>
         </form>
       ) : (
-        <p className="card center">ระบบสมาชิกยังไม่เปิดใช้งาน เล่นแบบผู้เล่นรับเชิญได้เลย</p>
+        <p className="card center">ระบบสมาชิกยังไม่เปิดให้ใช้ แต่เล่นได้เลยโดยไม่ต้องสมัคร</p>
       )}
 
       <p className="center">

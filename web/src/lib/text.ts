@@ -7,18 +7,18 @@ const REASONS: Record<string, string> = {
   checkmate: 'Checkmate',
   resign: 'ยอมแพ้',
   timeout: 'หมดเวลา',
-  stalemate: 'อับ (stalemate)',
-  abandon: 'หลุดจากเกมเกินเวลา',
+  stalemate: 'อับ',
+  abandon: 'หลุดจากเกมนานเกินไป',
   draw: 'เสมอตามกติกา',
   count: 'นับศักดิ์ครบ',
   wipeout: 'กินหมากหมดกระดาน',
-  blocked: 'ไม่มีตาเดินเหลือ',
+  blocked: 'ไม่มีตาให้เดิน',
 }
 
 /** เหตุผลที่เกมจบเป็นข้อความ บางเหตุผลมีความหมายต่างกันตามเกม (ใช้ทั้งในเกมและในประวัติเกม) */
 export function reasonLabel(reason: string | undefined, game: string): string {
   // หมากหนีบชนะเมื่อคู่แข่งเหลือหมากไม่เกิน 2 ตัว ไม่ต้องกินจนหมด
-  if (reason === 'wipeout' && game === 'neeb') return 'คู่แข่งเหลือหมากไม่เกิน 2 ตัว'
+  if (reason === 'wipeout' && game === 'neeb') return 'ฝ่ายแพ้เหลือหมากไม่เกิน 2 ตัว'
   return REASONS[reason ?? ''] ?? ''
 }
 
@@ -31,9 +31,9 @@ const ERRORS: Record<string, string> = {
   not_your_turn: 'ยังไม่ถึงตาคุณ',
   stale_move: 'กระดานเปลี่ยนไปแล้ว ลองเดินใหม่',
   not_a_player: 'คุณเป็นผู้ชม เดินหมากไม่ได้',
-  game_not_active: 'เกมนี้ไม่ได้อยู่ระหว่างเล่น',
-  bad_message: 'ส่งข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง',
-  rate_limited: 'ทำรายการถี่เกินไป รอสักครู่แล้วลองใหม่',
+  game_not_active: 'เกมนี้ยังไม่เริ่มหรือจบไปแล้ว',
+  bad_message: 'ส่งไม่สำเร็จ ลองใหม่อีกครั้ง',
+  rate_limited: 'กดเร็วเกินไป รอสักครู่แล้วลองใหม่',
 }
 
 export function colorName(color: Color): string {
@@ -48,7 +48,7 @@ export function playerName(info: PlayerInfo | undefined, color: Color): string {
 }
 
 export function errorText(code: string): string {
-  return ERRORS[code] ?? 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง'
+  return ERRORS[code] ?? 'มีบางอย่างผิดพลาด ลองใหม่อีกครั้ง'
 }
 
 function winnerOf(result: string | undefined): Color | 'draw' | null {
@@ -58,17 +58,79 @@ function winnerOf(result: string | undefined): Color | 'draw' | null {
   return null
 }
 
-/** ข้อความสรุปผลเกม จากมุมของผู้ที่กำลังดูหน้าจอ */
-export function resultText(state: StateMsg): string {
-  const winner = winnerOf(state.result)
-  const reason = reasonText(state)
-  if (winner === null) return 'เกมจบแล้ว'
-  if (winner === 'draw') return reason ? `เสมอ — ${reason}` : 'เสมอ'
+type Outcome = 'win' | 'loss' | 'draw' | 'watch'
 
+interface ResultParts {
+  headline: string
+  /** เหตุผลที่เกมจบ เขียนจากมุมของผู้ที่กำลังดูหน้าจอ เช่น "คู่แข่งหมดเวลา" หรือ '' */
+  reason: string
+  outcome: Outcome
+}
+
+const other = (color: Color): Color => (color === 'w' ? 'b' : 'w')
+
+/**
+ * เหตุผลที่ฝ่ายหนึ่งแพ้ เขียนให้รู้ว่าใครเป็นคนทำ `loser` คือคำเรียกฝ่ายที่แพ้:
+ * "คู่แข่ง", "ฝ่ายขาว" หรือ "คุณ" เมื่อผู้ที่ดูอยู่เป็นฝ่ายแพ้เอง
+ */
+function lossReason(reason: string | undefined, game: string, loser: string): string {
+  switch (reason) {
+    case 'checkmate':
+      return loser === 'คุณ' ? 'โดน Checkmate' : 'Checkmate'
+    case 'resign':
+      return `${loser}ยอมแพ้`
+    case 'timeout':
+      return `${loser}หมดเวลา`
+    case 'abandon':
+      return `${loser}หลุดจากเกมนานเกินไป`
+    case 'blocked':
+      return `${loser}ไม่มีตาให้เดิน`
+    case 'wipeout':
+      // หมากหนีบชนะเมื่อคู่แข่งเหลือหมากไม่เกิน 2 ตัว ไม่ต้องกินจนหมด
+      return game === 'neeb' ? `${loser}เหลือหมากไม่เกิน 2 ตัว` : `หมากของ${loser}ถูกกินหมด`
+    default:
+      return reasonLabel(reason, game)
+  }
+}
+
+/** ผลเกมแยกเป็นส่วน ๆ สำหรับป็อปอัปจบเกม */
+export function resultParts(state: StateMsg): ResultParts {
+  const winner = winnerOf(state.result)
+  const game = gameOf(state)
+  if (winner === null) return { headline: 'เกมจบแล้ว', reason: reasonText(state), outcome: 'watch' }
+  if (winner === 'draw') {
+    // "เสมอตามกติกา" ซ้ำกับหัวเรื่อง "เสมอ" จึงเหลือแค่ "ตามกติกา"
+    return { headline: 'เสมอ', reason: state.reason === 'draw' ? 'ตามกติกา' : reasonText(state), outcome: 'draw' }
+  }
   const you = state.you.color
-  const headline =
-    you === '' ? `${colorName(winner)}ชนะ` : you === winner ? 'คุณชนะ' : 'คุณแพ้'
-  return reason ? `${headline} — ${reason}` : headline
+  if (you === '') {
+    return {
+      headline: `ฝ่าย${colorName(winner)}ชนะ`,
+      reason: lossReason(state.reason, game, `ฝ่าย${colorName(other(winner))}`),
+      outcome: 'watch',
+    }
+  }
+  return you === winner
+    ? { headline: 'คุณชนะ!', reason: lossReason(state.reason, game, 'คู่แข่ง'), outcome: 'win' }
+    : { headline: 'คุณแพ้', reason: lossReason(state.reason, game, 'คุณ'), outcome: 'loss' }
+}
+
+/**
+ * ข้อความสรุปผลเกมบรรทัดเดียว จากมุมของผู้ที่กำลังดูหน้าจอ เขียนเป็นประโยคเดียว ไม่ใช้ขีดคั่น
+ * เช่น "คุณชนะเพราะคู่แข่งหมดเวลา", "คุณชนะด้วย Checkmate", "คุณแพ้เพราะหมดเวลา", "คุณยอมแพ้", "เสมอตามกติกา"
+ */
+export function resultText(state: StateMsg): string {
+  const { headline, reason, outcome } = resultParts(state)
+  const head = headline.replace('!', '')
+  if (!reason) return head
+  if (outcome === 'draw') return state.reason === 'draw' ? 'เสมอตามกติกา' : `เสมอเพราะ${reason}`
+  if (outcome === 'loss') {
+    if (state.reason === 'resign') return reason
+    // "คุณแพ้เพราะคุณหมดเวลา" ซ้ำคำ จึงตัด "คุณ" ในเหตุผลออก
+    return `${head}เพราะ${reason.replace('หมากของคุณ', 'หมาก').replace(/^คุณ/, '')}`
+  }
+  if (state.reason === 'checkmate') return `${head}ด้วย Checkmate`
+  return `${head}เพราะ${reason}`
 }
 
 /** ข้อความการนับศักดิ์ของหมากรุกไทย เช่น "นับศักดิ์หมาก 6/16" หรือ '' ถ้าไม่ได้นับอยู่ */
@@ -95,27 +157,10 @@ export function statusText(state: StateMsg): string {
       return resultText(state)
     case 'playing': {
       const you = state.you.color
-      if (you === '') return `ตาของ${colorName(state.turn)}`
+      if (you === '') return `ตาฝ่าย${colorName(state.turn)}เดิน`
       return you === state.turn ? 'ตาคุณเดิน' : 'รอคู่แข่งเดิน'
     }
   }
-}
-
-/** ผลเกมแยกเป็นส่วน ๆ สำหรับป็อปอัปจบเกม */
-export function resultParts(state: StateMsg): {
-  headline: string
-  reason: string
-  outcome: 'win' | 'loss' | 'draw' | 'watch'
-} {
-  const winner = winnerOf(state.result)
-  const reason = reasonText(state)
-  if (winner === null) return { headline: 'เกมจบแล้ว', reason, outcome: 'watch' }
-  if (winner === 'draw') return { headline: 'เสมอ', reason, outcome: 'draw' }
-  const you = state.you.color
-  if (you === '') return { headline: `ฝ่าย${colorName(winner)}ชนะ`, reason, outcome: 'watch' }
-  return you === winner
-    ? { headline: 'คุณชนะ!', reason, outcome: 'win' }
-    : { headline: 'คุณแพ้', reason, outcome: 'loss' }
 }
 
 /** รหัสห้อง 6 ตัวแบ่งเป็นสองกลุ่ม เช่น "K7Q 2XM" ให้อ่านและบอกต่อง่าย */
@@ -156,7 +201,7 @@ export function rematchView(state: StateMsg): RematchView {
       opponentAsked: false,
       opponentLeft: true,
       button: 'คู่แข่งออกไปแล้ว',
-      note: 'คู่แข่งออกจากห้องไปแล้ว เล่นต่อในห้องนี้ไม่ได้ สร้างห้องใหม่เพื่อเล่นเกมถัดไปได้เลย',
+      note: 'คู่แข่งออกจากห้องไปแล้ว เล่นต่อในห้องนี้ไม่ได้ ถ้าอยากเล่นอีกให้สร้างห้องใหม่',
     }
   }
   return {
@@ -164,11 +209,11 @@ export function rematchView(state: StateMsg): RematchView {
     asked,
     opponentAsked,
     opponentLeft: false,
-    button: asked ? 'รอคู่แข่งกดเล่นต่อ…' : 'เล่นต่อ',
+    button: asked ? 'รอคู่แข่ง…' : 'เล่นต่อ',
     note: asked
-      ? 'เกมใหม่จะเริ่มเมื่อคู่แข่งกดเล่นต่อด้วย แล้วสุ่มฝ่ายใหม่'
+      ? 'พอคู่แข่งกดเล่นต่อด้วย เกมใหม่จะเริ่มและสุ่มฝ่ายใหม่'
       : opponentAsked
-        ? 'คู่แข่งอยากเล่นต่อ! กด "เล่นต่อ" เพื่อเริ่มเกมใหม่'
-        : 'กด "เล่นต่อ" ทั้งสองคนเพื่อเริ่มเกมใหม่ในห้องนี้ ระบบจะสุ่มฝ่ายใหม่',
+        ? 'คู่แข่งชวนเล่นต่อ กดปุ่มด้านล่างเพื่อเริ่มเลย'
+        : 'ถ้ากดเล่นต่อทั้งสองคน เกมใหม่จะเริ่มในห้องนี้และสุ่มฝ่ายใหม่',
   }
 }

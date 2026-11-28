@@ -29,7 +29,7 @@ export function ResignButton({ disabled, onResign }: Props) {
               <h2 className="dialog-title" id="resign-title">
                 ยอมแพ้เกมนี้?
               </h2>
-              <p>คู่แข่งจะชนะทันที และย้อนกลับไม่ได้</p>
+              <p>คู่แข่งจะชนะทันที กดแล้วเปลี่ยนใจไม่ได้</p>
               <div className="row wrap" style={{ justifyContent: 'center' }}>
                 <button type="button" className="btn mint" autoFocus onClick={() => setConfirming(false)}>
                   เล่นต่อ
@@ -42,7 +42,7 @@ export function ResignButton({ disabled, onResign }: Props) {
                     onResign()
                   }}
                 >
-                  ยืนยันยอมแพ้
+                  ยอมแพ้
                 </button>
               </div>
             </div>

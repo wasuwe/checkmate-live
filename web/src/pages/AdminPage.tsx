@@ -144,7 +144,7 @@ function CreditsEditor({ navigate }: Props) {
   if (data === null) {
     return (
       <main className="screen admin">
-        <h1 className="title">จัดการข้อมูล · เครดิตและแกลเลอรี</h1>
+        <h1 className="title">จัดการเครดิตและแกลเลอรี</h1>
         <section className="card">
           <h2 className="card-title">ยังไม่มีข้อมูลจริง</h2>
           <p className="pretty">
@@ -205,7 +205,7 @@ function CreditsEditor({ navigate }: Props) {
   return (
     <main className="screen wide admin" style={{ gap: 16 }}>
       <div className="row wrap admin-head">
-        <h1 className="title grow">จัดการข้อมูล · เครดิตและแกลเลอรี</h1>
+        <h1 className="title grow">จัดการเครดิตและแกลเลอรี</h1>
         <button type="button" className="btn mini" onClick={() => navigate(MEMBERS_PATH)}>
           ดูสมาชิก
         </button>
@@ -527,7 +527,7 @@ function PersonRow({ item, accept, markDirty, ...row }: RowProps<Person>) {
         </span>
       }
       title={p.name || 'ยังไม่มีชื่อ'}
-      subtitle={[p.handle, p.link ? 'มีลิงก์' : 'ไม่มีลิงก์', safeImage(item.image) ? 'มีรูป' : 'ยังไม่มีรูป'].filter(Boolean).join(' · ')}
+      subtitle={[p.handle, p.link ? 'มีลิงก์' : 'ไม่มีลิงก์', safeImage(item.image) ? 'มีรูป' : 'ยังไม่มีรูป'].filter(Boolean).join(', ')}
     >
       <div className="oc-edit">
         {/* รูปเป็นของรุ่นล่าสุดบนเซิร์ฟเวอร์เสมอ จึงใช้ item ไม่ใช่ draft */}
@@ -608,7 +608,7 @@ function OcRow({ item, data, accept, markDirty, ...row }: RowProps<Oc> & { data:
           <span className="oc-no">{ocNumber(data, item)}</span> {o.name || 'ยังไม่มีชื่อ'}
         </>
       }
-      subtitle={[o.title, `เจ้าของ ${personOf(data, o.owner).name}`, image ? 'มีรูป' : 'ยังไม่มีรูป'].filter(Boolean).join(' · ')}
+      subtitle={[o.title, `เจ้าของ ${personOf(data, o.owner).name}`, image ? 'มีรูป' : 'ยังไม่มีรูป'].filter(Boolean).join(', ')}
     >
       <div className="oc-edit">
         {/* รูปเป็นของรุ่นล่าสุดบนเซิร์ฟเวอร์เสมอ จึงใช้ item ไม่ใช่ draft และปิดไว้ระหว่างที่ฟอร์มยังไม่ได้บันทึก */}
@@ -623,7 +623,7 @@ function OcRow({ item, data, accept, markDirty, ...row }: RowProps<Oc> & { data:
             <input className="input" value={o.title} maxLength={60} onChange={(e) => d.set({ title: e.target.value })} />
           </label>
           <label className="field">
-            เจ้าของ (Owner)
+            เจ้าของ
             <select className="input" value={o.owner} onChange={(e) => d.set({ owner: e.target.value })}>
               {data.people.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -633,7 +633,7 @@ function OcRow({ item, data, accept, markDirty, ...row }: RowProps<Oc> & { data:
             </select>
           </label>
           <label className="field">
-            ผู้วาด (Artist)
+            ผู้วาด
             <select className="input" value={o.artist} onChange={(e) => d.set({ artist: e.target.value })}>
               {data.people.map((p) => (
                 <option key={p.id} value={p.id}>
