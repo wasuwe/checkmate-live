@@ -7,7 +7,7 @@ import { ClockRow } from '../components/ClockRow'
 import { CoinToss } from '../components/CoinToss'
 import { CurtainScreen } from '../components/CurtainScreen'
 import { Lobby } from '../components/Lobby'
-import { GameBoard, type PieceInfo } from '../components/GameBoard'
+import { GameBoard } from '../components/GameBoard'
 import { ResignButton } from '../components/ResignButton'
 import { Stands } from '../components/Stands'
 import { useChatPopup, type ChatPopup } from '../hooks/useChatPopup'
@@ -48,7 +48,6 @@ export function RoomPage({ roomId, navigate }: Props) {
   const [turnSeq, turnToast] = useTurnAlert(state)
   const closing = useRoomClosing(state, game.stateAt)
   // หมากที่กำลังชี้อยู่บนกระดาน แสดงชื่อและวิธีเดินในแผงข้าง (จอกว้าง) แทนที่จะลอยทับกระดาน
-  const [pieceInfo, setPieceInfo] = useState<PieceInfo | null>(null)
 
   // เกมจบมาครบเวลาแล้ว: ม่านปิด (เซิร์ฟเวอร์ปิดห้องในเวลาเดียวกัน หลังจากนั้นการเชื่อมต่อจะได้ "ไม่พบห้อง")
   if (closing.closed || (game.fatal === 'room_not_found' && state?.status === 'finished')) {
@@ -197,14 +196,7 @@ export function RoomPage({ roomId, navigate }: Props) {
             <p className="small">
               {gameName(gameId)} {describeTimeControl(state.tc)}
             </p>
-            {pieceInfo ? (
-              <div className="piece-info">
-                <b>{pieceInfo.name}</b>
-                {pieceInfo.desc && <span>{pieceInfo.desc}</span>}
-              </div>
-            ) : (
-              <p className="tiny game-side-tip">ชี้ที่หมากเพื่อดูวิธีเดิน กดปุ่มแชทเพื่อคุยกับคู่แข่ง</p>
-            )}
+            <p className="tiny game-side-tip">ชี้ที่หมากเพื่อดูวิธีเดิน กดปุ่มแชทเพื่อคุยกับคู่แข่ง</p>
           </div>
 
           {state.status === 'waiting' && <WaitingCard roomId={roomId} />}
@@ -227,7 +219,7 @@ export function RoomPage({ roomId, navigate }: Props) {
               </div>
             )}
             {/* key ตามลำดับเกม: เล่นต่อแล้วกระดานเริ่มใหม่หมด ไม่มีค่าค้างจากเกมก่อน */}
-            <GameBoard key={state.round ?? 0} state={state} online={online} errorSeq={game.errorSeq} session={game.session} sendMove={game.sendMove} onPieceInfo={setPieceInfo} />
+            <GameBoard key={state.round ?? 0} state={state} online={online} errorSeq={game.errorSeq} session={game.session} sendMove={game.sendMove} />
           </Clocks>
           <Stands spectators={state.spectators} watching={state.watching} />
         </div>

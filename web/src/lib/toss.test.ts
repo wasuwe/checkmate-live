@@ -14,7 +14,7 @@ function state(patch: Partial<StateMsg> = {}): StateMsg {
     players: { w: { connected: true, name: 'น้ำผึ้ง' }, b: { connected: true, guest: true } },
     you: { role: 'player', color: 'w' },
     tc: '10+0',
-    clock: { w: 600_000, b: 600_000, running: 'w', delay: 3500 },
+    clock: { w: 600_000, b: 600_000, running: 'w', delay: 5000 },
     ...patch,
   }
 }
@@ -32,7 +32,7 @@ describe('coin toss', () => {
 
   // หมากรุกสากลและหมากรุกไทย: สุ่มฝ่ายขาวดำ ไม่ใช่สุ่มว่าใครเริ่มก่อน (เจ้าของโปรเจกต์กำหนด)
   test('chess: the coin has a white and a black face and lands on the colour the player got', () => {
-    expect(tossView(state())).toEqual({
+    expect(tossView(state())).toMatchObject({
       title: 'สุ่มฝ่ายขาวดำ',
       faces: 'colors',
       front: 'ขาว',
@@ -55,7 +55,7 @@ describe('coin toss', () => {
 
   // หมากฮอสและหมากหนีบ: โยนหาคนเริ่มก่อนตามเดิม
   test('checkers and neeb: the player who moves first sees the coin land on their own side', () => {
-    expect(tossView(state({ game: 'checkers' }))).toEqual({
+    expect(tossView(state({ game: 'checkers' }))).toMatchObject({
       title: 'โยนเหรียญหาคนเดินก่อน',
       faces: 'sides',
       front: 'คุณ',
@@ -87,7 +87,25 @@ describe('coin toss', () => {
   test('the clock does not count down during the toss, and the picture ends before the clock starts', () => {
     const s = state()
     expect(clockAt(s, 1000, 1000 + 3000).w).toBe(600_000)
-    expect(clockAt(s, 1000, 1000 + 3500 + 2000).w).toBe(598_000)
-    expect(TOSS_TOTAL_MS).toBeLessThanOrEqual(3500)
+    expect(clockAt(s, 1000, 1000 + 5000 + 2000).w).toBe(598_000)
+    // ภาพต้องจบก่อนนาฬิกาเริ่ม: START_DELAY ค่าเริ่มต้นของเซิร์ฟเวอร์คือ 5 วินาที (server/cmd/server/main.go)
+    expect(TOSS_TOTAL_MS).toBeLessThanOrEqual(5000)
+  })
+
+  // ฉากหนังสือนิทาน: หน้าซ้ายขวาเป็นผู้เล่นสองฝั่ง ริบบิ้นบอกฝ่ายของแต่ละคน
+  test('the storybook shows the viewer on the left page, and a ribbon for each side', () => {
+    const players = { w: { connected: true, name: 'น้ำผึ้ง', set: 'sky' }, b: { connected: true, guest: true, set: 'cocoa' } }
+    const asWhite = tossView(state({ players }))
+    expect(asWhite.pages).toEqual([
+      { color: 'w', name: 'น้ำผึ้ง', you: true, set: 'sky', ribbon: 'ฝ่ายขาว เดินก่อน' },
+      { color: 'b', name: 'ผู้เล่นรับเชิญ', you: false, set: 'cocoa', ribbon: 'ฝ่ายดำ' },
+    ])
+    const asBlack = tossView(state({ players, you: { role: 'player', color: 'b' } }))
+    expect(asBlack.pages.map((p) => [p.color, p.you])).toEqual([['b', true], ['w', false]])
+    // ผู้ชมเห็นฝ่ายขาวอยู่หน้าซ้าย และไม่มีหน้าไหนเป็นของตัวเอง
+    const watching = tossView(state({ players, you: { role: 'spectator', color: '' } }))
+    expect(watching.pages.map((p) => [p.color, p.you])).toEqual([['w', false], ['b', false]])
+    // หมากฮอสและหมากหนีบ: ริบบิ้นบอกว่าใครเดินก่อน
+    expect(tossView(state({ game: 'checkers' })).pages.map((p) => p.ribbon)).toEqual(['เดินก่อน', 'เดินทีหลัง'])
   })
 })

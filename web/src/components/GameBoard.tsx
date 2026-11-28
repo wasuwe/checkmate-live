@@ -14,17 +14,12 @@ import {
 } from '../lib/moves'
 import { halfOf, isDarkSquare, piecesFor, sideSets, squareStyle, useSetPrefs, type Kind } from '../lib/pieceSets'
 import { RULES } from '../lib/rules'
+import { placeTag } from '../lib/pieceTag'
 import { colorName } from '../lib/text'
 import { useStylePrefs } from '../lib/pieceStyles'
 import type { GameId, Promo, StateMsg } from '../lib/protocol'
 import { FxBurst } from './Fx'
 import { PromotionDialog } from './PromotionDialog'
-
-/** ชื่อและวิธีเดินของหมากที่ชี้อยู่ */
-export interface PieceInfo {
-  name: string
-  desc: string
-}
 
 interface Props {
   state: StateMsg
@@ -35,8 +30,6 @@ interface Props {
   /** เปลี่ยนทุกครั้งที่การเชื่อมต่อขาด ตาเดินที่ยังรอคำตอบจาก socket เดิมถือว่าไม่ถึงเซิร์ฟเวอร์ */
   session: number
   sendMove: (from: string, to: string, promo: Promo) => boolean
-  /** บอกหน้าที่ครอบอยู่ว่ากำลังชี้ที่หมากตัวไหน (null = ไม่ได้ชี้) ให้แสดงคำอธิบายนอกกระดานได้ */
-  onPieceInfo?: (info: PieceInfo | null) => void
 }
 
 /** ตาเดินที่ส่งไปแล้วและกำลังรอเซิร์ฟเวอร์ยืนยัน */
@@ -160,7 +153,7 @@ function withHighlight(base: CSSProperties | undefined, h: Highlight): CSSProper
 }
 const NO_REACH: PieceReach = { targets: [], captures: [], victims: [] }
 
-export function GameBoard({ state, online, errorSeq, session, sendMove, onPieceInfo }: Props) {
+export function GameBoard({ state, online, errorSeq, session, sendMove }: Props) {
   const { set } = useSetPrefs()
   // กระดานแบ่งครึ่ง: ครึ่งของฝั่งไหนและตัวหมากของฝั่งนั้นใช้ชุดที่ผู้เล่นฝั่งนั้นเลือกไว้ในห้องรอ
   const whiteSet = sideSets(set, state.players).w
@@ -268,15 +261,12 @@ export function GameBoard({ state, online, errorSeq, session, sendMove, onPieceI
   for (const sq of targets) mark(sq, picked.captures.includes(sq) ? CAPTURE : MOVE)
   // หมากที่จะถูกกินแม้ไม่ได้อยู่ที่ช่องปลายทาง (กินผ่าน กินข้าม หนีบ)
   for (const sq of picked.victims) mark(sq, CAPTURE)
-  const tipName = hover && hoverPiece ? pieceTip(game, hoverPiece).name : null
-  const tipDesc = hover && hoverPiece ? pieceTip(game, hoverPiece).desc : ''
-  // ส่งให้หน้าที่ครอบอยู่ทุกครั้งที่หมากที่ชี้เปลี่ยน (และล้างเมื่อกระดานถูกถอดออก)
-  useEffect(() => {
-    onPieceInfo?.(tipName === null ? null : { name: tipName, desc: tipDesc })
-    // onPieceInfo เป็นตัวตั้งค่า state ของหน้าที่ครอบอยู่ ไม่ใช่เหตุให้ส่งซ้ำ
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tipName, tipDesc])
-  useEffect(() => () => onPieceInfo?.(null), [])  // eslint-disable-line react-hooks/exhaustive-deps
+  // ป้ายคำอธิบายของหมากที่ชี้: วางข้างตัวหมาก เลือกด้านที่ทับช่องที่ไฮไลต์อยู่น้อยที่สุด
+  const tip = hover && hoverPiece ? pieceTip(game, hoverPiece) : null
+  const tipPlace =
+    tip && hover
+      ? placeTag(hover, flipped, new Set([...hovered.targets, ...hovered.victims, ...targets, ...picked.victims]), new Set(boardOf(fen).keys()))
+      : null
   const bottomSet = sets[flipped ? 'b' : 'w']
 
   return (
@@ -306,12 +296,15 @@ export function GameBoard({ state, online, errorSeq, session, sendMove, onPieceI
         />
       </div>
 
-      {/* ป้ายชื่อหมากเกาะขอบล่างของกระดาน ไม่ทับช่อง (จอกว้างซ่อนไว้ แล้วแสดงในแผงข้างพร้อมวิธีเดินแทน) */}
-      {tipName !== null && (
-        <div className="piece-tip" role="tooltip">
-          <b>{tipName}</b>
-          {tipDesc && <span>{tipDesc}</span>}
-        </div>
+      {/* ป้ายชื่อและวิธีเดินของหมากที่ชี้ วางข้างตัวหมาก มีปลายชี้ไปที่หมากตัวนั้น */}
+      {tip && tipPlace && (
+        <>
+          <span className={`piece-tag-tail ${tipPlace.side}`} style={tipPlace.tail} aria-hidden="true" />
+          <div className={`piece-tag ${tipPlace.side}`} style={tipPlace.tag} role="tooltip">
+            <b>{tip.name}</b>
+            {tip.desc && <span>{tip.desc}</span>}
+          </div>
+        </>
       )}
 
       {fx && <BoardFx key={fx.seq} event={fx.event} flipped={flipped} game={game} />}

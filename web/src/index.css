@@ -2368,29 +2368,6 @@ body:has(.home)::before {
   background: linear-gradient(180deg, #151d52 0%, var(--night-1) 30%, var(--night-2) 75%, #8493dc 100%);
 }
 
-.toss-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 22px 30px 16px;
-  background: var(--paper);
-  border: 1px solid var(--gold);
-  border-radius: 18px;
-  box-shadow:
-    0 0 0 5px var(--paper),
-    0 0 0 6px var(--gold),
-    0 30px 60px rgba(0, 0, 0, 0.35);
-  text-align: center;
-  animation: dialogIn 0.45s var(--ease-out) both;
-}
-
-.toss-title {
-  font-family: var(--font-head);
-  font-weight: 700;
-  font-size: 18px;
-}
-
 .coin-stage {
   position: relative;
   width: 132px;
@@ -2470,18 +2447,6 @@ body:has(.home)::before {
   border-radius: 50%;
   background: rgba(30, 42, 107, 0.25);
   animation: coinShadow 2.4s both;
-}
-
-/* ผลขึ้นหลังเหรียญหยุด */
-.toss-result {
-  font-family: var(--font-head);
-  font-weight: 600;
-  font-size: clamp(20px, 5.5vw, 24px);
-  animation: tossResult 0.4s var(--bounce) 2.35s both;
-}
-
-.toss-skip {
-  opacity: 0.7;
 }
 
 @keyframes coinLift {
@@ -5730,78 +5695,118 @@ a.cb-card:focus-visible {
   color: #fbf8f1;
 }
 
-/* ---------- ชี้ที่หมาก: ป้ายชื่อหมาก ---------- */
+/* ---------- ชี้ที่หมาก: ป้ายชื่อและวิธีเดิน อยู่ข้างตัวหมาก ---------- */
 
-/* จอแคบ: ป้ายกระดาษกรอบทองเกาะขอบล่างของกระดาน (คร่อมกรอบ) ไม่ทับช่องที่ไฮไลต์อยู่ */
-.piece-tip {
+/* ป้ายกระดาษกรอบทองแบบคำบรรยายภาพในหนังสือนิทาน ตำแหน่งมาจาก GameBoard (placeTag): ด้านที่ทับช่องไฮไลต์น้อยที่สุด */
+.piece-tag {
+  --tag-gap: max(1cqw, 6px);
+  --tag-w: clamp(150px, 46cqw, 250px);
   position: absolute;
-  left: 50%;
-  bottom: 0;
   z-index: 11;
-  /* กึ่งกลางป้ายอยู่กลางช่องว่างระหว่างกระดานกับแถบผู้เล่น (กรอบกระดาน 6px + ระยะห่าง 8px) จึงแทบไม่ทับอะไร */
-  translate: -50% calc(50% + 7px);
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  max-width: 96%;
-  padding: 0 12px;
-  border: 1px solid var(--gold);
-  border-radius: 999px;
-  background: var(--paper);
-  box-shadow: 0 4px 12px rgba(20, 25, 70, 0.25);
-  color: var(--ink);
-  font-size: 11.5px;
-  line-height: 1.5;
-  white-space: nowrap;
-  pointer-events: none;
-  animation: tipIn 0.16s var(--ease-out) both;
-}
-
-.piece-tip > b {
-  flex: none;
-  font-family: var(--font-head);
-  font-size: 13px;
-  color: var(--gold-ink);
-}
-
-.piece-tip > span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--muted);
-}
-
-@keyframes tipIn {
-  from {
-    opacity: 0;
-  }
-}
-
-/* จอกว้าง: ชื่อและวิธีเดินอยู่ในแผงข้างกระดานแทน */
-.piece-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  max-width: 250px;
-  margin-top: 8px;
-  padding: 8px 14px;
-  border-top: 1px solid var(--gold);
-  border-bottom: 1px solid var(--gold);
-  font-size: 13px;
+  gap: 1px;
+  width: max-content;
+  max-width: var(--tag-w);
+  padding: 6px 11px 7px;
+  border: 1.5px solid var(--gold);
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow:
+    inset 0 0 0 2px var(--paper),
+    inset 0 0 0 3px rgba(201, 151, 58, 0.35),
+    0 6px 16px rgba(20, 25, 70, 0.28);
+  color: var(--ink);
+  font-size: clamp(11.5px, 1.9cqw, 13.5px);
   line-height: 1.45;
-  color: var(--muted);
-  animation: tipIn 0.16s var(--ease-out) both;
+  text-wrap: pretty;
+  pointer-events: none;
+  animation: tagIn 0.18s var(--ease-out) both;
 }
 
-.piece-info > b {
+.piece-tag > b {
   font-family: var(--font-head);
-  font-size: 17px;
+  font-size: 1.2em;
+  line-height: 1.3;
   color: var(--gold-ink);
 }
 
-@media (min-width: 1100px) and (min-height: 540px), (min-width: 900px) and (min-aspect-ratio: 7/5) and (min-height: 540px), (orientation: landscape) and (min-width: 560px) and (max-height: 539px) {
-  .piece-tip {
-    display: none;
+.piece-tag > span {
+  color: var(--muted);
+}
+
+/* เหนือหรือใต้หมาก: กึ่งกลางตรงกับหมาก แต่ไม่ล้นขอบซ้ายขวาของกระดาน */
+.piece-tag.above,
+.piece-tag.below {
+  left: clamp(var(--tag-w) / 2, var(--tag-x), 100% - var(--tag-w) / 2);
+  width: var(--tag-w);
+}
+
+.piece-tag.above {
+  translate: -50% calc(-100% - var(--tag-gap));
+}
+
+.piece-tag.below {
+  translate: -50% var(--tag-gap);
+}
+
+/* ซ้ายหรือขวาของหมาก: กึ่งกลางแนวตั้งตรงกับหมาก แต่ไม่ล้นขอบบนล่างของกระดาน (ป้ายสูงไม่เกินราวสองช่อง) */
+.piece-tag.right,
+.piece-tag.left {
+  top: clamp(12.5%, var(--tag-y), 87.5%);
+  translate: 0 -50%;
+}
+
+.piece-tag.right {
+  margin-left: var(--tag-gap);
+}
+
+.piece-tag.left {
+  margin-right: var(--tag-gap);
+}
+
+/* ปลายชี้ไปที่หมาก: สี่เหลี่ยมข้าวหลามตัดกรอบทอง ครึ่งหนึ่งซ่อนอยู่ใต้ป้าย */
+.piece-tag-tail {
+  --tag-gap: max(1cqw, 6px);
+  position: absolute;
+  z-index: 12;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--gold);
+  background: var(--paper);
+  rotate: 45deg;
+  pointer-events: none;
+  animation: tagIn 0.18s var(--ease-out) both;
+}
+
+.piece-tag-tail.above {
+  translate: -50% calc(-50% - var(--tag-gap) - 1px);
+  border-top-color: transparent;
+  border-left-color: transparent;
+}
+
+.piece-tag-tail.below {
+  translate: -50% calc(-50% + var(--tag-gap) + 1px);
+  border-bottom-color: transparent;
+  border-right-color: transparent;
+}
+
+.piece-tag-tail.right {
+  translate: calc(-50% + var(--tag-gap) + 1px) -50%;
+  border-top-color: transparent;
+  border-right-color: transparent;
+}
+
+.piece-tag-tail.left {
+  translate: calc(-50% - var(--tag-gap) - 1px) -50%;
+  border-bottom-color: transparent;
+  border-left-color: transparent;
+}
+
+@keyframes tagIn {
+  from {
+    opacity: 0;
+    scale: 0.94;
   }
 }
 
@@ -6067,8 +6072,8 @@ a.cb-card:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .chat-open.unread,
-  .piece-tip,
-  .piece-info,
+  .piece-tag,
+  .piece-tag-tail,
   .stands-seat.taken .stands-chair {
     animation: none;
   }
@@ -6297,5 +6302,346 @@ a.cb-card:focus-visible {
     50% {
       box-shadow: inset 0 0 2.4cqw 0.3cqw var(--sq-glow);
     }
+  }
+}
+
+/* ---------- ฉากเปิดเกม: หนังสือนิทานเปิดออกกลางท้องฟ้ายามค่ำ ---------- */
+/*
+ * ลำดับภาพ (รวม 4.8 วินาที = TOSS_TOTAL_MS): ดาวระยิบและคำว่า "กาลครั้งหนึ่ง" ขึ้น หนังสือเปิด ตัวละครของสองฝั่งเด้งขึ้นมา
+ * เหรียญถูกโยนเหนือสันหนังสือ (เริ่มที่ --coin-at) พอเหรียญหยุด ริบบิ้นบอกฝ่ายและข้อความผลขึ้น แล้วภาพพุ่งเข้าไปในหนังสือ
+ * สไตล์พื้นฐานคือภาพตอนจบ การเคลื่อนไหวทั้งหมดเป็น keyframes แบบ from ผู้ที่ปิดการเคลื่อนไหวจึงเห็นผลทันที
+ */
+
+.overlay.toss {
+  --coin-at: 1.15s;
+  --dive-at: 4.28s;
+  flex-direction: column;
+  overflow: hidden;
+  animation:
+    fade 0.25s ease both,
+    storyDive 0.5s ease-in var(--dive-at) forwards;
+}
+
+/* ดาวสองชั้น ระยิบสลับกัน และประกายสี่แฉกสีทอง */
+.story-sky,
+.story-sky::before,
+.story-sky::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.story-sky {
+  background-image:
+    radial-gradient(circle at 6% 14%, #ffffff 0 1.1px, transparent 1.8px),
+    radial-gradient(circle at 17% 62%, #ffffff 0 1.1px, transparent 1.8px),
+    radial-gradient(circle at 24% 8%, #ffffff 0 1.1px, transparent 1.8px),
+    radial-gradient(circle at 33% 86%, #ffffff 0 1.1px, transparent 1.8px),
+    radial-gradient(circle at 46% 5%, #ffffff 0 1.1px, transparent 1.8px),
+    radial-gradient(circle at 58% 92%, #ffffff 0 1.1px, transparent 1.8px),
+    radial-gradient(circle at 67% 12%, #ffffff 0 1.1px, transparent 1.8px),
+    radial-gradient(circle at 78% 80%, #ffffff 0 1.1px, transparent 1.8px),
+    radial-gradient(circle at 88% 22%, #ffffff 0 1.1px, transparent 1.8px),
+    radial-gradient(circle at 94% 58%, #ffffff 0 1.1px, transparent 1.8px),
+    radial-gradient(circle at 12% 90%, #ffffff 0 1.1px, transparent 1.8px),
+    radial-gradient(circle at 52% 96%, #ffffff 0 1.1px, transparent 1.8px);
+  animation: twinkle 2.3s ease-in-out infinite alternate;
+}
+
+.story-sky::before {
+  content: '';
+  background-image:
+    radial-gradient(circle at 10% 38%, #dfe4ff 0 1.5px, transparent 2.2px),
+    radial-gradient(circle at 20% 26%, #dfe4ff 0 1.5px, transparent 2.2px),
+    radial-gradient(circle at 29% 72%, #dfe4ff 0 1.5px, transparent 2.2px),
+    radial-gradient(circle at 40% 94%, #dfe4ff 0 1.5px, transparent 2.2px),
+    radial-gradient(circle at 63% 4%, #dfe4ff 0 1.5px, transparent 2.2px),
+    radial-gradient(circle at 72% 90%, #dfe4ff 0 1.5px, transparent 2.2px),
+    radial-gradient(circle at 83% 9%, #dfe4ff 0 1.5px, transparent 2.2px),
+    radial-gradient(circle at 91% 76%, #dfe4ff 0 1.5px, transparent 2.2px),
+    radial-gradient(circle at 96% 36%, #dfe4ff 0 1.5px, transparent 2.2px),
+    radial-gradient(circle at 3% 70%, #dfe4ff 0 1.5px, transparent 2.2px);
+  animation: twinkle 1.7s ease-in-out -0.9s infinite alternate-reverse;
+}
+
+.story-sky::after {
+  content: '';
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0Q12 12 24 12Q12 12 12 24Q12 12 0 12Q12 12 12 0Z' fill='%23f6dfa0'/%3E%3C/svg%3E") no-repeat 8% 22% / 20px,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0Q12 12 24 12Q12 12 12 24Q12 12 0 12Q12 12 12 0Z' fill='%23f6dfa0'/%3E%3C/svg%3E") no-repeat 90% 12% / 26px,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0Q12 12 24 12Q12 12 12 24Q12 12 0 12Q12 12 12 0Z' fill='%23f6dfa0'/%3E%3C/svg%3E") no-repeat 15% 78% / 14px,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0Q12 12 24 12Q12 12 12 24Q12 12 0 12Q12 12 12 0Z' fill='%23f6dfa0'/%3E%3C/svg%3E") no-repeat 86% 84% / 18px,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0Q12 12 24 12Q12 12 12 24Q12 12 0 12Q12 12 12 0Z' fill='%23f6dfa0'/%3E%3C/svg%3E") no-repeat 50% 3% / 12px;
+  animation: twinkle 2.9s ease-in-out -1.4s infinite alternate;
+}
+
+@keyframes twinkle {
+  from {
+    opacity: 0.35;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.story-scene {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(100%, clamp(340px, 46vw, 620px));
+  text-align: center;
+  color: #fbf8f1;
+  animation: storyZoom 0.5s ease-in var(--dive-at) forwards;
+}
+
+.story-once {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: clamp(28px, 7.4vw, 40px);
+  line-height: 1.25;
+  color: #f6dfa0;
+  text-shadow: 0 2px 16px rgba(246, 223, 160, 0.5);
+  animation: storyRise 0.6s var(--ease-out) 0.05s both;
+}
+
+.story-meeting {
+  font-size: clamp(14px, 3.8vw, 17px);
+  color: #dfe4ff;
+  animation: storyRise 0.6s var(--ease-out) 0.3s both;
+}
+
+/* หนังสือ: ปกสีครามขอบทอง ข้างในเป็นหน้ากระดาษสองหน้า */
+.story-book {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  margin: 14px 0 66px;
+  padding: 7px 7px 9px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #2f3a94, #1a2160);
+  box-shadow:
+    0 0 0 1.5px var(--gold),
+    inset 0 0 0 1px rgba(246, 223, 160, 0.4),
+    0 26px 50px rgba(0, 0, 0, 0.45);
+  perspective: 1400px;
+  animation: bookIn 0.7s var(--ease-out) 0.15s both;
+}
+
+.story-page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 12px 10px 34px;
+  background-color: var(--paper);
+  color: var(--ink);
+  backface-visibility: hidden;
+}
+
+/* เงาเข้าหาสันหนังสือ */
+.story-page.left {
+  border-radius: 10px 2px 2px 10px;
+  background-image: linear-gradient(90deg, rgba(90, 60, 20, 0) 78%, rgba(90, 60, 20, 0.17));
+  transform-origin: right center;
+  animation: pageLeft 0.85s var(--ease-out) 0.3s both;
+}
+
+.story-page.right {
+  border-radius: 2px 10px 10px 2px;
+  background-image: linear-gradient(270deg, rgba(90, 60, 20, 0) 78%, rgba(90, 60, 20, 0.17));
+  transform-origin: left center;
+  animation: pageRight 0.85s var(--ease-out) 0.3s both;
+}
+
+/* ริบบิ้นบอกฝ่าย: ขึ้นเมื่อเหรียญหยุด */
+.story-ribbon {
+  padding: 1px 16px 2px;
+  background: linear-gradient(180deg, #f6dfa0, #dcae56);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 50%, 100% 100%, 0 100%, 8px 50%);
+  color: #4a3212;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: clamp(12px, 3.3vw, 14.5px);
+  white-space: nowrap;
+  animation: ribbonIn 0.45s var(--bounce) calc(var(--coin-at) + 2.25s) both;
+}
+
+/* ตัวละครนิทานของฝั่งนั้น ยืนในวงแสงทอง */
+.story-hero {
+  width: clamp(84px, 25vw, 132px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(246, 223, 160, 0.6), rgba(246, 223, 160, 0) 70%);
+  animation: heroPop 0.55s var(--bounce) 0.95s both;
+}
+
+.story-page.right .story-hero {
+  animation-delay: 1.08s;
+}
+
+.story-hero-piece {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 3px 2px rgba(20, 25, 70, 0.3));
+}
+
+.story-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-head);
+  font-size: clamp(13.5px, 3.7vw, 17px);
+}
+
+/* ชื่อขึ้นพร้อมตัวละคร */
+.story-name,
+.story-you {
+  animation: storyRise 0.45s var(--ease-out) 1.15s both;
+}
+
+.story-you {
+  padding: 0 9px;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  color: var(--gold-ink);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* เหรียญวางคร่อมขอบล่างของหนังสือตรงสัน แล้วถูกดีดขึ้นเหนือหน้ากระดาษ */
+.story-book .coin-stage {
+  position: absolute;
+  left: 50%;
+  bottom: -62px;
+  z-index: 2;
+  translate: -50% 0;
+  scale: 0.8;
+  transform-origin: 50% 100%;
+  pointer-events: none;
+}
+
+.toss .coin-lift,
+.toss .coin,
+.toss .coin-shadow {
+  animation-delay: var(--coin-at);
+}
+
+.toss-title {
+  font-size: 13.5px;
+  color: #c9d0f7;
+}
+
+/* ผลขึ้นหลังเหรียญหยุด */
+.toss-result {
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: clamp(20px, 5.5vw, 26px);
+  line-height: 1.35;
+  text-shadow: 0 2px 12px rgba(10, 14, 50, 0.5);
+  animation: tossResult 0.4s var(--bounce) calc(var(--coin-at) + 2.35s) both;
+}
+
+.toss-skip {
+  margin-top: 4px;
+  color: #c9d0f7;
+  opacity: 0.75;
+}
+
+@keyframes storyRise {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+}
+
+@keyframes bookIn {
+  from {
+    opacity: 0;
+    scale: 0.82;
+    translate: 0 26px;
+  }
+}
+
+@keyframes pageLeft {
+  from {
+    transform: rotateY(84deg);
+    filter: brightness(0.72);
+  }
+}
+
+@keyframes pageRight {
+  from {
+    transform: rotateY(-84deg);
+    filter: brightness(0.72);
+  }
+}
+
+@keyframes heroPop {
+  from {
+    opacity: 0;
+    scale: 0.4;
+    translate: 0 14px;
+  }
+}
+
+@keyframes ribbonIn {
+  from {
+    opacity: 0;
+    scale: 0.5;
+    translate: 0 -6px;
+  }
+}
+
+/* จบฉาก: ภาพพุ่งเข้าไปในหนังสือแล้วจางออก เผยกระดานที่อยู่ข้างหลัง */
+@keyframes storyDive {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes storyZoom {
+  to {
+    scale: 1.5;
+  }
+}
+
+/* จอเตี้ย (มือถือแนวนอน): ย่อให้เห็นครบในจอเดียว */
+@media (max-height: 520px) {
+  .story-once {
+    font-size: 22px;
+  }
+
+  .story-meeting {
+    display: none;
+  }
+
+  .story-book {
+    width: min(100%, 400px);
+    margin: 6px 0 46px;
+  }
+
+  .story-page {
+    padding: 6px 10px 22px;
+  }
+
+  .story-hero {
+    width: 62px;
+  }
+
+  .story-book .coin-stage {
+    bottom: -44px;
+    scale: 0.56;
+  }
+
+  .toss-title {
+    display: none;
   }
 }
