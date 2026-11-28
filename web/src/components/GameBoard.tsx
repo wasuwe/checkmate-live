@@ -17,7 +17,8 @@ import { RULES } from '../lib/rules'
 import { placeTag } from '../lib/pieceTag'
 import { colorName } from '../lib/text'
 import { useStylePrefs } from '../lib/pieceStyles'
-import type { GameId, Promo, StateMsg } from '../lib/protocol'
+import type { Color, GameId, Promo, StateMsg } from '../lib/protocol'
+import { CutIn } from './CutIn'
 import { FxBurst } from './Fx'
 import { PromotionDialog } from './PromotionDialog'
 
@@ -200,6 +201,24 @@ export function GameBoard({ state, online, errorSeq, session, sendMove }: Props)
     [hover, hoverPiece, activePending, state],
   )
   const fx = useBoardFx(state)
+  // ฉากตัวละครโผล่ตอนกินหมากและตอนชนะบนกระดาน: ใช้หมากที่เพิ่งเดิน (ตัวอักษรใน FEN ตัวพิมพ์ใหญ่ = ฝ่ายขาว)
+  // ผู้เล่นปิดได้ด้วยการตั้งเอฟเฟกต์ของเหตุการณ์นั้นเป็น "ไม่มี"
+  const fxPrefs = useFxPrefs()
+  const moved = state.lastMove ? boardOf(state.fen).get(state.lastMove.to) : undefined
+  const cut =
+    fx && moved && (fx.event.kind === 'capture' || fx.event.kind === 'mate') && fxPrefs[fx.event.kind] !== 'none'
+      ? (() => {
+          const color: Color = moved === moved.toUpperCase() ? 'w' : 'b'
+          return {
+            kind: fx.event.kind,
+            word: fx.event.kind === 'mate' ? checkWords(game).mate : 'กิน!',
+            color,
+            set: sets[color],
+            pieceKind: moved.toUpperCase(),
+            from: color === (myColor === 'b' ? 'b' : 'w') ? ('right' as const) : ('left' as const),
+          }
+        })()
+      : null
 
   // หมากที่เพิ่งเดินเด้งลงช่องหนึ่งครั้งต่อตาเดิน
   const landOn = lastMove?.to
@@ -308,6 +327,8 @@ export function GameBoard({ state, online, errorSeq, session, sendMove }: Props)
       )}
 
       {fx && <BoardFx key={fx.seq} event={fx.event} flipped={flipped} game={game} />}
+      {/* ฉากตัวละครโผล่: ตัวที่เพิ่งกิน หรือตัวที่ปิดเกม */}
+      {cut && fx && <CutIn key={`cut${fx.seq}`} {...cut} />}
 
       {activePromotion && myColor !== '' && (
         <PromotionDialog

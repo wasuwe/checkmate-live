@@ -56,6 +56,7 @@ interface CardArt {
 const GAME_ART: Record<string, CardArt> = {
   chess: { src: '/cards/game-chess.webp', ribbon: [83.6, 10.6] },
   makruk: { src: '/cards/game-makruk.webp', ribbon: [84.2, 9.6] },
+  checkers: { src: '/cards/game-checkers.webp', ribbon: [83.8, 9.8] },
 }
 
 /** การ์ดจากไฟล์ภาพ: ทั้งใบเป็นภาพ (กรอบ ดาว และริบบิ้นว่างอยู่ในภาพ) ชื่อเป็นข้อความจริงวางทับบนริบบิ้น */

@@ -140,7 +140,7 @@ export interface PieceOptions {
 }
 
 /**
- * ชุดและฝั่งที่มีภาพวาดตัวหมากเป็นไฟล์ครบหกชนิด (web/public/pieces/<ชุด>-<ฝั่ง>-<ชนิด>.webp ขนาด 256 × 256 พื้นโปร่งใส)
+ * ชุดและฝั่งที่มีภาพวาดตัวหมากเป็นไฟล์ครบหกชนิด (web/public/pieces/<ชุด>-<ฝั่ง>-<ชนิด>.webp ขนาด 384 × 384 พื้นโปร่งใส)
  * เจ้าของโปรเจกต์เลือกแนวนี้ 2026-11-28: ตัวละครของชุดแต่งเป็นหมากแต่ละชนิด (สวมมงกุฎ อยู่ในหอคอย ขี่ม้าไม้) วาดด้วย AI ในสไตล์เดียวกับการ์ด
  * ฝั่งที่ยังไม่มีไฟล์ใช้ตัวละครที่วาดในโค้ดตามเดิม
  */
@@ -151,6 +151,21 @@ const ART_PIECES: Record<string, Color[]> = {
 const artPiece = (setId: string, color: Color, kind: string): JSX.Element => (
   <image href={`/pieces/${setId}-${color}-${kind}.webp`} x="0" y="0" width="45" height="45" />
 )
+
+/**
+ * ตัวละครตัวใหญ่ของฝั่งหนึ่ง ใช้ในฉากตัวละครโผล่: ถ้าชุดนั้นมีภาพวาดตัวหมาก ใช้ภาพของหมากชนิด kind (แต่ละชนิดมีท่าของตัวเอง)
+ * ไม่งั้นใช้ตัวละครที่วาดในโค้ด
+ */
+export function characterSvg(set: BoardSet, color: Color, kind: string | undefined, opts: { className?: string } = {}): JSX.Element {
+  if (kind && 'KQRBNP'.includes(kind) && ART_PIECES[set.id]?.includes(color)) {
+    return (
+      <svg viewBox="0 0 45 45" className={opts.className ?? 'piece'}>
+        {artPiece(set.id, color, kind)}
+      </svg>
+    )
+  }
+  return heroSvg(set, color, opts)
+}
 
 /**
  * ตัวละครนิทานของฝั่งหนึ่งในชุด แบบตัวเล็กหัวโต (lib/heroes.tsx) ใช้เป็นภาพประกอบ: การ์ดสะสม ฉากเปิดเกม ห้องรอ
