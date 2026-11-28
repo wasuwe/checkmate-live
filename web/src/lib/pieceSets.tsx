@@ -154,7 +154,7 @@ const ART_PIECES: Record<string, Color[]> = {
   lavender: ['w', 'b'],
   honey: ['w', 'b'],
   lemon: ['w', 'b'],
-  classic: ['w'],
+  classic: ['w', 'b'],
 }
 
 const artPiece = (setId: string, color: Color, kind: string): JSX.Element => (
