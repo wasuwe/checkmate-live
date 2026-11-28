@@ -156,6 +156,7 @@ const ART_PIECES: Record<string, Color[]> = {
   lemon: ['w', 'b'],
   classic: ['w', 'b'],
   sakura: ['w', 'b'],
+  strawberry: ['w'],
 }
 
 const artPiece = (setId: string, color: Color, kind: string): JSX.Element => (
