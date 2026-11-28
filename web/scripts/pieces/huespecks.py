@@ -1,6 +1,6 @@
 # เก็บเศษสีพื้นหลังชิ้นเล็กด้วยโทนสี แทนระยะสี: ใช้เมื่อพื้นของแผ่นเป็นสีที่ตัวละครไม่มี (เช่นพื้นเขียวเข้มกับราชสีห์แผงคอน้ำเงินตัวส้ม)
 # ระยะสีอย่างเดียวพลาดได้: ขอบแผงคอน้ำเงินเข้มอยู่ใกล้เขียวเข้ม จึงถูกทาทับเป็นจุดขาว
-# ใช้: python huespecks.py <prefix> <green|teal|navy> [ขนาดก้อนสูงสุด=150]
+# ใช้: python huespecks.py <prefix> <green|plum|teal|navy> [ขนาดก้อนสูงสุด=150]
 import sys, os
 from collections import deque
 import numpy as np
@@ -14,6 +14,8 @@ for k in 'KQRBNP':
     s = r + g + b
     if hue == 'green':
         near = (g > r + 10) & (g > b + 6) & (s < 230)
+    elif hue == 'plum':
+        near = (r > g + 15) & (b > g + 15) & (s < 230)
     elif hue == 'teal':
         near = (b > r + 20) & (g > r + 12) & (s < 260)
     else:
