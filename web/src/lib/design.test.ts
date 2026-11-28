@@ -50,14 +50,14 @@ describe('board effects', () => {
       fen: 'rnbqkbnr/ppp1pppp/8/3P4/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2',
       lastMove: { from: 'e4', to: 'd5' },
     })
-    expect(fxEventFor(before, after, null)).toEqual({ kind: 'capture', square: 'd5', squares: ['d5'] })
+    expect(fxEventFor(before, after, null)).toEqual({ kind: 'capture', square: 'd5', squares: ['d5'], pieces: ['p'] })
   })
 
   test('the effect plays on the captured enemy piece, not on the landing square', () => {
     // หมากฮอส: ขาว c3 กระโดดข้าม d4 ไปลง e5 ตัวที่ถูกกินอยู่ที่ d4
     const jumpBefore = state({ ply: 4, turn: 'w', fen: '8/8/8/8/3c4/2C5/8/8 w' })
     const jumpAfter = state({ ply: 5, turn: 'b', fen: '8/8/8/4C3/8/8/8/8 b', lastMove: { from: 'c3', to: 'e5' } })
-    expect(fxEventFor(jumpBefore, jumpAfter, null)).toEqual({ kind: 'capture', square: 'd4', squares: ['d4'] })
+    expect(fxEventFor(jumpBefore, jumpAfter, null)).toEqual({ kind: 'capture', square: 'd4', squares: ['d4'], pieces: ['c'] })
     // กินผ่าน (en passant): เบี้ยที่ถูกกินอยู่ที่ d5 ไม่ใช่ช่องที่ไปลง d6
     const epBefore = state({ ply: 4, turn: 'w', fen: '4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 3' })
     const epAfter = state({ ply: 5, turn: 'b', fen: '4k3/8/3P4/8/8/8/8/4K3 b - - 0 3', lastMove: { from: 'e5', to: 'd6' } })

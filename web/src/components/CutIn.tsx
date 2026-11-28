@@ -3,11 +3,11 @@ import { characterSvg, type BoardSet } from '../lib/pieceSets'
 import type { Color } from '../lib/protocol'
 
 interface Props {
-  /** กินหมาก หรือชนะบนกระดาน (Checkmate) ฉากชนะใหญ่และอยู่นานกว่า */
-  kind: 'capture' | 'mate'
+  /** กินหมาก Check หรือชนะบนกระดาน (Checkmate) ฉากชนะใหญ่และอยู่นานกว่า */
+  kind: 'capture' | 'check' | 'mate'
   /** คำตัวโตบนแถบ: คำที่ตัวละครพูดกับฝ่ายตรงข้าม อิงเนื้อเรื่องนิทาน เช่น "คราวนี้ไม่ปล่อยนะ" */
   word: string
-  /** ป้ายเล็กเหนือคำตัวโต บอกว่าเกิดอะไรขึ้น เช่น "กินหมาก" หรือ "Checkmate!" */
+  /** ป้ายเล็กเหนือคำตัวโต บอกว่าเกิดอะไรขึ้น เช่น "กินม้า" "Check!" หรือ "Checkmate!" */
   tag: string
   /** ฝั่งของหมากที่เพิ่งเดิน */
   color: Color
@@ -31,13 +31,14 @@ const STARS: [number, number, number, number][] = [
 /**
  * ฉากตัวละครโผล่ (เจ้าของโปรเจกต์กำหนด 2026-11-28 จากเกมไพ่ที่ตัวละครขึ้นมาเต็มจอตอนลงไพ่ชุดใหญ่):
  * ตอนกินหมาก ตัวที่กินโผล่ขึ้นมาบนแถบสีที่พาดกลางกระดาน พร้อมคำตัวโตที่ตัวละครพูดกับฝ่ายตรงข้ามตามเนื้อเรื่องนิทาน
- * และป้ายเล็กบอกว่าเกิดอะไรขึ้น แล้วหายไปเอง ตอน Checkmate เป็นฉากเดียวกันที่ใหญ่กว่า
+ * และป้ายเล็กบอกว่าเกิดอะไรขึ้น แล้วหายไปเอง ตอน Check ใช้ฉากเดียวกัน ตอน Checkmate เป็นฉากเดียวกันที่ใหญ่กว่า
  * แถบเป็นสีของฝั่งนั้น (ฝ่ายดำ: สีเข้มของชุด / ฝ่ายขาว: สีช่องเข้มของชุด) ตัวละครของผู้ดูมาจากขวา ของคู่แข่งมาจากซ้าย
  * เป็นของประดับล้วน ไม่รับการกด กระดานข้างใต้ยังเล่นต่อได้ การเคลื่อนไหวอยู่ใน CSS (.cutin) ผู้ที่ปิดการเคลื่อนไหวไม่เห็นฉากนี้
  */
 /** จำนวนช่องตัวอักษรที่คำกินจริง: สระบนล่างและวรรณยุกต์ของไทยซ้อนอยู่กับตัวหน้า ไม่กินที่เพิ่ม */
 const visualLength = (text: string) => text.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g, '').length
 
+// ชื่อคลาสของชนิดฉากขึ้นต้นด้วย kind- เพราะเว็บมีคลาส .check ของช่องติ๊กอยู่แล้ว ถ้าใช้ชื่อเดียวกันฉากจะถูกย่อเหลือเท่าช่องติ๊ก
 export function CutIn({ kind, word, tag, color, set, pieceKind, from }: Props) {
   // ขนาดคำตัวโต: ให้พอดีกับครึ่งแถบที่ว่าง (อีกครึ่งเป็นตัวละคร) คำสั้นขึ้นบรรทัดเดียวตัวใหญ่ คำยาวขึ้นสองบรรทัดตัวเล็กลง
   const length = Math.max(2, visualLength(word))
@@ -46,7 +47,7 @@ export function CutIn({ kind, word, tag, color, set, pieceKind, from }: Props) {
   // แถบของฝ่ายขาวใช้สีช่องเข้มของชุด (ตัวละครสีครีมจึงเด่น) ของฝ่ายดำใช้สีเข้มของชุด ตัวอักษรสีครีมทั้งคู่
   const vars = { '--cut': color === 'w' ? set.dark : set.b, '--cut-ink': '#FFF6DA' } as CSSProperties
   return (
-    <div className={`cutin ${kind} from-${from} side-${color}`} style={vars} aria-hidden="true">
+    <div className={`cutin kind-${kind} from-${from} side-${color}`} style={vars} aria-hidden="true">
       <div className="cutin-band">
         <span className="cutin-speed" />
       </div>

@@ -58,6 +58,8 @@ export interface FxEvent {
   square: string | null
   /** ช่องของหมากฝ่ายตรงข้ามที่ถูกกินทุกตัวในตานี้ (การกินเล่นที่ช่องเหล่านี้) */
   squares?: string[]
+  /** ตัวอักษร FEN ของหมากที่ถูกกิน เรียงตาม squares (ใช้เลือกคำพูดในฉากตัวละครโผล่: กินเบี้ย กินตัวใหญ่ กินควีน) */
+  pieces?: string[]
 }
 
 /** หมากบนกระดานจาก FEN: ช่อง → ตัวอักษรของหมาก (ตัวพิมพ์ใหญ่ = ขาว) ใช้ได้กับทุกเกมในระบบ */
@@ -121,7 +123,10 @@ export function fxEventFor(prev: StateMsg | null, next: StateMsg, checkedSquare:
     return { kind: 'mate', square }
   }
   if (checkedSquare) return { kind: 'check', square: checkedSquare }
-  if (taken.length > 0) return { kind: 'capture', square: taken[0], squares: taken }
+  if (taken.length > 0) {
+    const before = boardOf(prev.fen)
+    return { kind: 'capture', square: taken[0], squares: taken, pieces: taken.map((sq) => before.get(sq) ?? '') }
+  }
   return null
 }
 

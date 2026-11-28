@@ -6836,7 +6836,7 @@ a.cb-card:focus-visible {
   animation: cutLife var(--cut-ms) linear both;
 }
 
-.cutin.mate {
+.cutin.kind-mate {
   --cut-ms: 2.5s;
 }
 
@@ -6869,7 +6869,7 @@ a.cb-card:focus-visible {
   animation: cutBand var(--cut-ms) cubic-bezier(0.2, 0.9, 0.2, 1) both;
 }
 
-.cutin.mate .cutin-band {
+.cutin.kind-mate .cutin-band {
   height: 44cqw;
   margin-top: -22cqw;
 }
@@ -6920,7 +6920,7 @@ a.cb-card:focus-visible {
   animation: cutHero var(--cut-ms) cubic-bezier(0.2, 1.3, 0.3, 1) both;
 }
 
-.cutin.mate .cutin-hero {
+.cutin.kind-mate .cutin-hero {
   width: 60cqw;
   bottom: 13%;
 }
@@ -7001,8 +7001,13 @@ a.cb-card:focus-visible {
 }
 
 /* ป้ายเล็กบอกว่าเกิดอะไรขึ้น: แถบครีมขอบทองแบบริบบิ้น */
+/* ตัวอักษรต้องอยู่กลางป้ายทั้งแนวนอนและแนวตั้ง (เจ้าของโปรเจกต์กำหนด 2026-11-28): ตัดที่ว่างเหนือและใต้ตัวอักษรของฟอนต์ออก
+   (text-box) แล้วใช้ระยะขอบบนล่างเท่ากัน เบราว์เซอร์ที่ยังไม่รองรับใช้ระยะขอบที่ชดเชยด้วยตาแทน */
 .cutin-tag {
-  padding: 0.3cqw 2.6cqw 0.5cqw;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5em 1em 0.42em;
   border: 0.35cqw solid #c9973a;
   border-radius: 999px;
   background: #fff6da;
@@ -7011,12 +7016,25 @@ a.cb-card:focus-visible {
   font-family: var(--font-head);
   font-weight: 700;
   font-size: 3.7cqw;
-  line-height: 1.25;
+  line-height: 1;
+  text-align: center;
   white-space: nowrap;
 }
 
-.cutin.mate .cutin-tag {
+@supports (text-box: trim-both cap alphabetic) {
+  .cutin-tag {
+    padding: 0.62em 1em;
+    text-box: trim-both cap alphabetic;
+  }
+}
+
+.cutin.kind-mate .cutin-tag {
   font-size: 4.6cqw;
+}
+
+/* Check: ใหญ่กว่าตอนกินเล็กน้อย อยู่นานขึ้นนิดหนึ่ง */
+.cutin.kind-check {
+  --cut-ms: 1.35s;
 }
 
 /* คำพูดตัวโต: ตัวหนาเอียง สีครีม ขอบเข้มหนา มีเงาซ้อนเป็นชั้นให้ดูนูน ขนาดมาจาก CutIn (พอดีกับครึ่งแถบ ไม่เกินสองบรรทัด) */
