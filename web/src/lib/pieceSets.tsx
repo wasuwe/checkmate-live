@@ -149,7 +149,7 @@ const ART_PIECES: Record<string, Color[]> = {
   sky: ['w', 'b'],
   soda: ['w', 'b'],
   mint: ['w', 'b'],
-  matcha: ['w'],
+  matcha: ['w', 'b'],
 }
 
 const artPiece = (setId: string, color: Color, kind: string): JSX.Element => (
