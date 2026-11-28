@@ -6795,3 +6795,22 @@ a.cb-card:focus-visible {
     scale: 1.06;
   }
 }
+
+/* การ์ดจากไฟล์ภาพ: ภาพเต็มใบ ชื่อวางทับริบบิ้นในภาพ */
+.fable-card.art {
+  background: var(--night-1);
+}
+
+.fc-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fable-card.art .fc-name {
+  left: 21%;
+  right: 21%;
+  font-size: 7.6cqw;
+}

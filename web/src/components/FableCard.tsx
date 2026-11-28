@@ -42,6 +42,33 @@ export function FableCard({ set, className }: { set: BoardSet; className?: strin
   )
 }
 
+/** ภาพการ์ดที่วาดสำเร็จเป็นไฟล์ (web/public/cards) กับตำแหน่งริบบิ้นว่างในภาพ เป็น % ของความสูงการ์ด */
+interface CardArt {
+  src: string
+  /** ขอบบนและความสูงของแถบริบบิ้น ที่ชื่อจะวางทับ */
+  ribbon: [top: number, height: number]
+}
+
+/**
+ * ภาพการ์ดของเกมที่มีไฟล์ภาพแล้ว (เจ้าของโปรเจกต์กำหนด 2026-11-28: ตัวละครที่วาดในโค้ดออกมาเป็นก้อน ๆ ไม่เหมือนภาพเป้าหมาย
+ * จึงใช้ภาพที่ AI วาดเป็นไฟล์จริง) เกมที่ยังไม่มีไฟล์ใช้การ์ดที่วาดในโค้ดไปก่อน
+ */
+const GAME_ART: Record<string, CardArt> = {
+  chess: { src: '/cards/game-chess.webp', ribbon: [83.6, 10.6] },
+}
+
+/** การ์ดจากไฟล์ภาพ: ทั้งใบเป็นภาพ (กรอบ ดาว และริบบิ้นว่างอยู่ในภาพ) ชื่อเป็นข้อความจริงวางทับบนริบบิ้น */
+function ArtCard({ art, name, className }: { art: CardArt; name: string; className?: string }) {
+  return (
+    <span className={`fable-card art${className ? ' ' + className : ''}`}>
+      <img className="fc-art" src={art.src} alt="" draggable={false} />
+      <span className="fc-name" style={{ top: `${art.ribbon[0]}%`, height: `${art.ribbon[1]}%` }}>
+        {name}
+      </span>
+    </span>
+  )
+}
+
 /** หน้าตาของการ์ดแต่ละเกม: ชุดที่ให้สีและตัวละคร กับตัวหมากที่เป็นสัญลักษณ์ของเกมนั้น */
 const GAME_CARDS: Record<string, { set: string; piece: Kind }> = {
   chess: { set: 'sky', piece: 'N' },
@@ -55,6 +82,8 @@ const GAME_CARDS: Record<string, { set: string; piece: Kind }> = {
  * (บอกว่าเป็นเกมอะไร) มีตัวละครอีกตัวยืนบนหัว แต่ละเกมมีสีของตัวเอง ชื่อเกมอยู่บนริบบิ้น
  */
 export function GameCard({ game, name }: { game: string; name: string }) {
+  const art = GAME_ART[game]
+  if (art) return <ArtCard art={art} name={name} className="game" />
   const theme = GAME_CARDS[game] ?? GAME_CARDS.chess
   const set = setById(theme.set)
   return (
