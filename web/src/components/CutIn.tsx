@@ -40,10 +40,11 @@ const visualLength = (text: string) => text.replace(/[\u0E31\u0E34-\u0E3A\u0E47-
 
 // ชื่อคลาสของชนิดฉากขึ้นต้นด้วย kind- เพราะเว็บมีคลาส .check ของช่องติ๊กอยู่แล้ว ถ้าใช้ชื่อเดียวกันฉากจะถูกย่อเหลือเท่าช่องติ๊ก
 export function CutIn({ kind, word, tag, color, set, pieceKind, from }: Props) {
-  // ขนาดคำตัวโต: ให้พอดีกับครึ่งแถบที่ว่าง (อีกครึ่งเป็นตัวละคร) คำสั้นขึ้นบรรทัดเดียวตัวใหญ่ คำยาวขึ้นสองบรรทัดตัวเล็กลง
-  const length = Math.max(2, visualLength(word))
-  const perLine = length <= 7 ? length : Math.ceil(length / 2) + 1
-  const wordSize = Math.max(6, Math.min(length <= 7 ? 19 : 11.5, 45 / (perLine * 0.6)))
+  // คำตัวโตขึ้นได้สองบรรทัด จุดขึ้นบรรทัดมากับคำ (เครื่องหมาย |) ไม่ให้เบราว์เซอร์ตัดคำไทยเอง
+  // ขนาดตัวอักษรคิดจากบรรทัดที่ยาวที่สุด ให้พอดีกับครึ่งแถบที่ว่าง (อีกครึ่งเป็นตัวละคร)
+  const lines = word.split('|')
+  const longest = Math.max(2, ...lines.map(visualLength))
+  const wordSize = Math.max(6, Math.min(lines.length === 1 ? 19 : 12.5, 45 / (longest * 0.6)))
   // แถบของฝ่ายขาวใช้สีช่องเข้มของชุด (ตัวละครสีครีมจึงเด่น) ของฝ่ายดำใช้สีเข้มของชุด ตัวอักษรสีครีมทั้งคู่
   const vars = { '--cut': color === 'w' ? set.dark : set.b, '--cut-ink': '#FFF6DA' } as CSSProperties
   return (
@@ -61,7 +62,9 @@ export function CutIn({ kind, word, tag, color, set, pieceKind, from }: Props) {
       <span className="cutin-text">
         <span className="cutin-tag">{tag}</span>
         <span className="cutin-word" style={{ fontSize: `${wordSize.toFixed(2)}cqw` }}>
-          {word}
+          {lines.map((line, i) => (
+            <span key={i}>{line}</span>
+          ))}
         </span>
       </span>
     </div>

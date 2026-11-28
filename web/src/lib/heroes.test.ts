@@ -29,7 +29,13 @@ describe('fable heroes', () => {
           expect(line.length, `${set.id} ${color}`).toBeGreaterThan(0)
           expect(line, `${set.id} ${color}`).not.toMatch(/[—–·]/)
           // ยาวเกินไปจะขึ้นเกินสองบรรทัดในครึ่งแถบ
-          expect(line.replace(/[ัิ-ฺ็-๎]/g, '').length, line).toBeLessThanOrEqual(18)
+          // จุดขึ้นบรรทัดกำหนดไว้กับคำ (เครื่องหมาย |): ไม่เกินสองบรรทัด และบรรทัดหนึ่งไม่ยาวเกินครึ่งแถบ
+          const parts = line.split('|').map((part) => part.replace(/[ัิ-ฺ็-๎]/g, '').length)
+          expect(parts.length, line).toBeLessThanOrEqual(2)
+          for (const n of parts) {
+            expect(n, line).toBeGreaterThan(0)
+            expect(n, line).toBeLessThanOrEqual(12)
+          }
         }
         expect(new Set(lines).size, `${set.id} ${color}`).toBe(5)
       }
