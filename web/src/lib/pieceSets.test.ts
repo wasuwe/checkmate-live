@@ -90,9 +90,11 @@ describe('board sets', () => {
     // ตัวหมากคลาสสิกบอกชนิดด้วยรูปทรงเอง จึงไม่มีป้าย ส่วนตัวละครนิทานที่ไม่ใช่เบี้ยมีป้าย
     const fable = { K: 'fable', Q: 'fable', R: 'fable', B: 'fable', N: 'fable', P: 'fable' }
     expect(piecesFor(SETS[0]).wK().props.children[1]).toBe(false)
-    expect(piecesFor(SETS[0], { styles: fable }).wK().props.children[1]).toBeTruthy()
-    expect(piecesFor(SETS[0], { styles: fable }).wP().props.children[1]).toBe(false)
-    expect(piecesFor(SETS[0], { styles: fable, badge: false }).wK().props.children[1]).toBe(false)
+    // ป้ายมีเฉพาะตัวละครที่วาดในโค้ด: ใช้ชุดที่ยังไม่มีไฟล์ภาพวาด (ชุดที่มีภาพวาดแล้วบอกชนิดด้วยภาพเอง ไม่มีป้าย)
+    const drawn = setById('strawberry')
+    expect(piecesFor(drawn, { styles: fable }).wK().props.children[1]).toBeTruthy()
+    expect(piecesFor(drawn, { styles: fable }).wP().props.children[1]).toBe(false)
+    expect(piecesFor(drawn, { styles: fable, badge: false }).wK().props.children[1]).toBe(false)
   })
 
   test('preview shows four pieces on a 4x4 board', () => {
