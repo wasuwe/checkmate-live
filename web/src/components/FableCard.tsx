@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { pieceSvg, squareStyle, type BoardSet } from '../lib/pieceSets'
+import { heroSvg, squareStyle, type BoardSet } from '../lib/pieceSets'
 
 /**
  * การ์ดสะสมของชุดหมากรุกหนึ่งชุด (เจ้าของโปรเจกต์กำหนด 2026-11-28 จากภาพอ้างอิง: ตัวละครน่ารักเส้นขอบหนาลงสีเรียบ
@@ -19,8 +19,12 @@ export function FableCard({ set, className }: { set: BoardSet; className?: strin
       <span className="fc-window" aria-hidden="true">
         <span className="fc-ground" style={ground(false)} />
         <span className="fc-ground dark" style={ground(true)} />
-        {pieceSvg(set, 'b', 'P', { badge: false, className: 'fc-hero back' })}
-        {pieceSvg(set, 'w', 'P', { badge: false, className: 'fc-hero front' })}
+        {/* เส้นทองตามรอยแบ่ง อยู่ใต้ตัวละคร */}
+        <svg className="fc-split" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <path d="M0 22L100 78" stroke="#F0C987" strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
+        </svg>
+        {heroSvg(set, 'b', { className: 'fc-hero back' })}
+        {heroSvg(set, 'w', { className: 'fc-hero front' })}
       </span>
       <CardFrame />
       <span className="fc-name">{set.name}</span>
@@ -86,8 +90,6 @@ function CardFrame() {
       {/* กรอบหน้าต่างโค้งสองชั้น */}
       <path d={arch} fill="none" stroke={GOLD} strokeWidth="2.6" strokeLinejoin="round" />
       <path d="M21.5 218.5V110A78.5 78.5 0 0 1 178.5 110V218.5Z" fill="none" stroke={GOLD} strokeWidth="0.8" opacity="0.7" />
-      {/* เส้นแบ่งเฉียงของสองฝั่ง (ตรงกับ clip-path ของ .fc-ground.dark) */}
-      <path d="M26 75.2L174 174.8" stroke={GOLD} strokeWidth="1.1" opacity="0.8" />
 
       {/* ตราบนยอดโค้ง: ดาวในวงทอง มีปีกเล็กสองข้าง */}
       <path d="M84 27C77 22 71 24 66 29C73 28 79 30 84 33M116 27C123 22 129 24 134 29C127 28 121 30 116 33" fill={GOLD} opacity="0.9" />

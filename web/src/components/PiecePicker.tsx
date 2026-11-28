@@ -1,4 +1,4 @@
-import { setById, updateSetPrefs, useSetPrefs, withActive } from '../lib/pieceSets'
+import { heroSvg, setById, updateSetPrefs, useSetPrefs, withActive } from '../lib/pieceSets'
 
 /** ปุ่มสลับชุดหมากรุกจากชุดที่เก็บไว้ มีผลกับหน้าจอของผู้เลือกเท่านั้น คู่แข่งเห็นชุดของตัวเอง */
 export function PiecePicker() {
@@ -15,10 +15,9 @@ export function PiecePicker() {
             aria-pressed={slot === active}
             onClick={() => updateSetPrefs((p) => withActive(p, slot))}
           >
-            <span
-              className="swatch"
-              style={{ background: `linear-gradient(135deg, ${set.light} 50%, ${set.dark} 50%)` }}
-            />
+            <span className="swatch hero-swatch" style={{ background: set.dark }}>
+              {heroSvg(set, 'w', { className: 'hero-swatch-art' })}
+            </span>
             {set.name}
           </button>
         )

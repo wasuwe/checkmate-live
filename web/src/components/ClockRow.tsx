@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { formatClock, LOW_TIME_MS } from '../lib/clock'
 import { Avatar } from './Avatar'
 
@@ -8,6 +9,8 @@ interface Props {
   detail?: string
   /** รหัสรูปโปรไฟล์ (undefined = ไม่แสดงรูปเลย เช่น ตอนยังไม่มีผู้เล่น) */
   avatar?: string
+  /** ภาพแทนเมื่อผู้เล่นไม่มีรูปโปรไฟล์: ตัวละครนิทานของฝั่งนั้น */
+  hero?: ReactNode
   ms: number
   /** นาฬิกาของฝั่งนี้กำลังเดิน */
   running: boolean
@@ -27,7 +30,7 @@ interface Props {
 }
 
 /** แถบผู้เล่นและเวลาที่เหลือ วางเหนือและใต้กระดาน แถบของฝั่งที่ถึงตาเดินเป็นสีเหลือง */
-export function ClockRow({ label, detail, avatar, ms, running, chat, alert = false, untimed = false }: Props) {
+export function ClockRow({ label, detail, avatar, hero, ms, running, chat, alert = false, untimed = false }: Props) {
   const low = !untimed && ms < LOW_TIME_MS
   return (
     <div className={`clock-row${running ? ' running' : ''}${alert ? ' turn-alert' : ''}`}>
@@ -40,7 +43,7 @@ export function ClockRow({ label, detail, avatar, ms, running, chat, alert = fal
             aria-expanded={chat.open}
             onClick={chat.onOpen}
           >
-            <Avatar avatar={avatar ?? ''} />
+            <Avatar avatar={avatar ?? ''} fallback={hero} />
             {chat.unread > 0 ? (
               <span className="chat-badge unread">{chat.unread > 9 ? '9+' : chat.unread}</span>
             ) : (
@@ -52,7 +55,7 @@ export function ClockRow({ label, detail, avatar, ms, running, chat, alert = fal
             )}
           </button>
         ) : (
-          avatar !== undefined && <Avatar avatar={avatar} />
+          avatar !== undefined && <Avatar avatar={avatar} fallback={hero} />
         )}
         <span className="clock-names">
           <span className="clock-label">{label}</span>

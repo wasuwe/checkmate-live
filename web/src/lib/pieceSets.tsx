@@ -9,6 +9,7 @@
 
 import { cloneElement, useSyncExternalStore, type CSSProperties, type JSX } from 'react'
 import { FABLE_PATTERNS, fablePiece } from './fables'
+import { heroFigure } from './heroes'
 import { DEFAULT_STYLES, drawPiece, FABLE_STYLE, styleKind, type StylePrefs } from './pieceStyles'
 import type { Color } from './protocol'
 
@@ -136,6 +137,20 @@ export interface PieceOptions {
   styles?: StylePrefs
   /** ชุดของแต่ละฝั่ง: ตัวหมากของฝั่งไหนวาดด้วยชุดของฝั่งนั้น (ไม่ระบุ = ใช้ `set` ทั้งสองฝั่ง) */
   bySide?: Record<Color, BoardSet>
+}
+
+/**
+ * ตัวละครนิทานของฝั่งหนึ่งในชุด แบบตัวเล็กหัวโต (lib/heroes.tsx) ใช้เป็นภาพประกอบ: การ์ดสะสม ฉากเปิดเกม ห้องรอ
+ * ชุดที่ไม่มีตัวละคร (ไม่มีในตอนนี้) ใช้ตัวเบี้ยของชุดแทน
+ */
+export function heroSvg(set: BoardSet, color: Color, opts: { className?: string; style?: CSSProperties } = {}): JSX.Element {
+  const figure = heroFigure(set.id, { fill: color === 'w' ? set.w : set.b, ink: INK, color })
+  if (!figure) return pieceSvg(set, color, 'P', { badge: false, className: opts.className, style: opts.style })
+  return (
+    <svg viewBox="0 0 100 100" className={opts.className ?? 'piece'} style={opts.style}>
+      {figure}
+    </svg>
+  )
 }
 
 /** ตัวหมากหนึ่งตัวเป็น SVG ใช้ได้ทั้งบนกระดานและที่อื่น */

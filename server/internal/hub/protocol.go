@@ -237,6 +237,8 @@ type lobbySeat struct {
 	Sender string `json:"sender,omitempty"`
 	// Host คือที่นั่งของเจ้าของห้อง
 	Host bool `json:"host,omitempty"`
+	// Set คือรหัสชุดหมากรุกที่คนนี้เลือกไว้ ("" = ยังไม่ได้เลือก) หน้าเว็บใช้แสดงตัวละครของชุดบนที่นั่ง
+	Set string `json:"set,omitempty"`
 }
 
 // lobbyInfo คือสถานะของห้องรอ มีเฉพาะตอน status เป็น waiting และเปิดใช้ห้องรอ

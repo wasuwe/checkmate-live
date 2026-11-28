@@ -1,5 +1,4 @@
-import { PieceIcon } from '../components/PieceIcon'
-import type { Kind } from '../lib/pieceSets'
+import { heroSvg, sideSets, useSetPrefs } from '../lib/pieceSets'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChatPanel } from '../components/ChatPanel'
 import { Emblem } from '../components/Emblem'
@@ -334,6 +333,8 @@ function Clocks({
     return () => clearInterval(timer)
   }, [running, untimed])
 
+  const { set: localSet } = useSetPrefs()
+  const sets = sideSets(localSet, state.players)
   const left = clockAt(state, stateAt, Math.max(now, stateAt))
   const bottom: Color = state.you.color === 'b' ? 'b' : 'w'
   const top: Color = bottom === 'w' ? 'b' : 'w'
@@ -348,6 +349,7 @@ function Clocks({
         label={info ? playerName(info, color) + (mine ? ' (คุณ)' : '') : mine ? 'คุณ' : `ฝ่าย${colorName(color)}`}
         detail={info || mine ? `ฝ่าย${colorName(color)}` : 'ยังไม่มีผู้เล่น'}
         avatar={info ? (info.avatar ?? '') : undefined}
+        hero={heroSvg(sets[color], color, { className: 'avatar-hero-art' })}
         ms={left[color]}
         untimed={untimed}
         running={running === color}
@@ -629,6 +631,7 @@ function GameOverDialog({
   sendRematch: () => boolean
 }) {
   const [open, setOpen] = useState(true)
+  const { set: localSet } = useSetPrefs()
   // รอให้เอฟเฟกต์จบเกมบนกระดาน (เช่น รุกฆาต) เล่นก่อน แล้วค่อยขึ้นป็อปอัป
   const [ready, setReady] = useState(false)
   useEffect(() => {
@@ -638,6 +641,8 @@ function GameOverDialog({
   if (!open || !ready) return null
   const { headline, reason, outcome } = resultParts(state)
   const medal = MEDALS[outcome]
+  const sets = sideSets(localSet, state.players)
+  const heroSide: Color = state.you.color !== '' ? state.you.color : state.result === '0-1' ? 'b' : 'w'
   const rematch = rematchView(state)
 
   return (
@@ -650,8 +655,9 @@ function GameOverDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <Emblem width={170} className="gold" />
+        {/* ตัวละครนิทานของผู้ดู (ผู้ชมเห็นตัวละครของฝ่ายที่ชนะ) ยืนในซุ้มเหรียญ */}
         <div className="medal result-medal" style={{ background: medal.bg }} aria-hidden="true">
-          <PieceIcon kind={medal.kind} color="b" />
+          {heroSvg(sets[heroSide], heroSide, { className: `result-hero ${outcome}` })}
         </div>
         <h2 className="title starred" id="result-title">
           {headline}
@@ -700,11 +706,11 @@ function GameOverDialog({
 
 const RESULT_DELAY_MS = 4200
 
-const MEDALS: Record<'win' | 'loss' | 'draw' | 'watch', { kind: Kind; bg: string }> = {
-  win: { kind: 'K', bg: 'var(--butter)' },
-  loss: { kind: 'P', bg: 'var(--lavender)' },
-  draw: { kind: 'R', bg: 'var(--mint)' },
-  watch: { kind: 'Q', bg: 'var(--sky)' },
+const MEDALS: Record<'win' | 'loss' | 'draw' | 'watch', { bg: string }> = {
+  win: { bg: 'var(--butter)' },
+  loss: { bg: 'var(--lavender)' },
+  draw: { bg: 'var(--mint)' },
+  watch: { bg: 'var(--sky)' },
 }
 
 /** แจ้งเมื่อเซิร์ฟเวอร์ปฏิเสธตาเดิน แล้วหายเองใน 3 วินาที */

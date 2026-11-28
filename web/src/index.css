@@ -6642,9 +6642,16 @@ a.cb-card:focus-visible {
   clip-path: polygon(0 22%, 100% 78%, 100% 100%, 0 100%);
 }
 
+.fc-split {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
 .fc-hero {
   position: absolute;
-  width: 58%;
+  width: 66%;
   height: auto;
   aspect-ratio: 1;
   overflow: visible;
@@ -6653,13 +6660,13 @@ a.cb-card:focus-visible {
 }
 
 .fc-hero.front {
-  left: 2%;
-  bottom: 4%;
+  left: -1%;
+  bottom: 2%;
 }
 
 .fc-hero.back {
-  right: 3%;
-  top: 19%;
+  right: 0;
+  top: 15%;
 }
 
 .fc-frame {
@@ -6730,4 +6737,93 @@ a.cb-card:focus-visible {
     0 0 0 3px var(--paper),
     0 0 0 5px var(--gold),
     0 8px 18px rgba(20, 25, 70, 0.3);
+}
+
+/* ---------- ตัวละครนิทานแทนรูปโปรไฟล์ และในจุดต่าง ๆ ของระบบ ---------- */
+
+/* ผู้เล่นที่ไม่มีรูปโปรไฟล์: ตัวละครของฝั่งนั้นในวงกลม */
+.avatar-hero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.avatar-hero-art {
+  width: 118%;
+  height: 118%;
+  flex: none;
+  translate: 0 6%;
+}
+
+/* ห้องรอ: ตัวละครสองตัวของชุดที่เลือก ยืนซ้อนกันในวงกลม */
+.hero-duo {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-duo-back,
+.hero-duo-front {
+  position: absolute;
+}
+
+.hero-duo-back {
+  right: -10%;
+  top: -2%;
+  width: 72%;
+  height: 72%;
+}
+
+.hero-duo-front {
+  left: -8%;
+  bottom: -10%;
+  width: 88%;
+  height: 88%;
+}
+
+/* ปุ่มเลือกชุด: หน้าตัวละครฝ่ายขาวบนสีเข้มของชุด */
+.hero-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.hero-swatch-art {
+  width: 150%;
+  height: 150%;
+  flex: none;
+  translate: 0 12%;
+}
+
+/* ป็อปอัปจบเกม: ตัวละครในซุ้มเหรียญ ชนะแล้วเด้ง แพ้แล้วก้มหน้าเล็กน้อย */
+.result-hero {
+  width: 92%;
+  height: auto;
+  margin-top: 14%;
+  filter: drop-shadow(0 3px 2px rgba(20, 25, 70, 0.3));
+}
+
+.result-hero.win {
+  animation: heroCheer 0.9s var(--bounce) 0.2s both;
+}
+
+.result-hero.loss {
+  rotate: -7deg;
+  opacity: 0.9;
+}
+
+@keyframes heroCheer {
+  0% {
+    translate: 0 10%;
+    scale: 0.8;
+  }
+
+  55% {
+    translate: 0 -10%;
+    scale: 1.06;
+  }
 }
