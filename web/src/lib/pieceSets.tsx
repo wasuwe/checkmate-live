@@ -146,7 +146,7 @@ export interface PieceOptions {
  */
 const ART_PIECES: Record<string, Color[]> = {
   cocoa: ['w', 'b'],
-  sky: ['w'],
+  sky: ['w', 'b'],
 }
 
 const artPiece = (setId: string, color: Color, kind: string): JSX.Element => (
