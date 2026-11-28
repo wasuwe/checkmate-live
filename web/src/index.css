@@ -6283,3 +6283,19 @@ a.cb-card:focus-visible {
     transition: none;
   }
 }
+
+/* ---------- ไฮไลต์ช่องบนกระดาน: แสงที่ขอบในของช่องเต้นเบา ๆ ---------- */
+/* สีมาจาก --sq-glow ที่ GameBoard ใส่ให้ช่อง ประกาศใน no-preference เท่านั้น ผู้ที่ขอลดการเคลื่อนไหวจึงไม่เห็นการเต้น */
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes sq-pulse {
+    0%,
+    100% {
+      box-shadow: inset 0 0 0 0 transparent;
+    }
+
+    50% {
+      box-shadow: inset 0 0 2.4cqw 0.3cqw var(--sq-glow);
+    }
+  }
+}
