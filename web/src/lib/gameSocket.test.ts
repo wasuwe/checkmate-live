@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { GameSocket, type Snapshot, type SocketLike } from './gameSocket'
+import { GameSocket, HEARTBEAT_MS, PROBE_MS, SILENCE_MS, type Snapshot, type SocketLike } from './gameSocket'
 import type { StateMsg } from './protocol'
 
 const ROOM = '482915'
@@ -448,4 +448,108 @@ test('a dropped connection changes the session, so a move sent on it is not show
   expect(after.session).toBe(before + 1)
   expect(after.state?.ply).toBe(0)
   socket.stop()
+})
+
+// ---------- การเชื่อมต่อที่ตายเงียบ ๆ (มือถือจอดับ สลับแอป สลับเครือข่าย) ----------
+
+const pings = (ws: FakeSocket) => ws.sent.filter((m) => m.type === 'ping').length
+
+test('pings the server on a timer while connected', async () => {
+  const { ws } = await joined()
+  expect(pings(ws)).toBe(0)
+  await vi.advanceTimersByTimeAsync(HEARTBEAT_MS)
+  expect(pings(ws)).toBe(1)
+  ws.receive({ type: 'pong' })
+  await vi.advanceTimersByTimeAsync(HEARTBEAT_MS)
+  expect(pings(ws)).toBe(2)
+})
+
+test('a connection that stays alive is never replaced', async () => {
+  const { socket, sockets, ws } = await joined()
+  for (let i = 0; i < 30; i++) {
+    await vi.advanceTimersByTimeAsync(HEARTBEAT_MS)
+    ws.receive({ type: 'pong' })
+  }
+  expect(sockets).toHaveLength(1)
+  expect(socket.getSnapshot().connection).toBe('open')
+})
+
+test('a connection that goes silent is dropped and replaced, and the new one shows the latest board', async () => {
+  const { socket, sockets, ws } = await joined()
+  const session = socket.getSnapshot().session
+  // เซิร์ฟเวอร์ไม่ตอบอะไรเลย และเบราว์เซอร์ไม่เคยแจ้งว่า socket ปิด
+  await vi.advanceTimersByTimeAsync(SILENCE_MS + HEARTBEAT_MS)
+  expect(ws.closed).toBe(true)
+  expect(sockets).toHaveLength(2)
+  expect(socket.getSnapshot().connection).toBe('reconnecting')
+  expect(socket.getSnapshot().session).toBeGreaterThan(session)
+
+  sockets[1].open()
+  sockets[1].receive({ type: 'auth_ok', userId: 'guest_1' })
+  expect(sockets[1].sent.at(-1)).toEqual({ type: 'join', room: ROOM })
+  sockets[1].receive(stateMsg({ ply: 9 }))
+  expect(socket.getSnapshot().connection).toBe('open')
+  expect(socket.getSnapshot().state?.ply).toBe(9)
+})
+
+test('coming back to the page checks the connection and keeps it when the server answers', async () => {
+  const { socket, sockets, ws } = await joined()
+  socket.wake()
+  expect(pings(ws)).toBe(1)
+  socket.wake() // เหตุการณ์ซ้อนกัน (focus + visibilitychange) ถามครั้งเดียวพอ
+  expect(pings(ws)).toBe(1)
+  ws.receive({ type: 'pong' })
+  await vi.advanceTimersByTimeAsync(PROBE_MS + 1)
+  expect(sockets).toHaveLength(1)
+  expect(ws.closed).toBe(false)
+})
+
+test('coming back to the page with a dead connection reconnects within seconds', async () => {
+  const { socket, sockets, ws } = await joined()
+  // โทรศัพท์หลับไปนาน: ตัวจับเวลาของหน้าเว็บหยุดเดิน จึงไม่มี ping ระหว่างนั้น แล้วผู้ใช้กลับมา
+  socket.wake()
+  await vi.advanceTimersByTimeAsync(PROBE_MS)
+  expect(ws.closed).toBe(true)
+  expect(sockets).toHaveLength(2)
+})
+
+test('coming back while waiting to retry reconnects at once, and resumes a paused socket', async () => {
+  const { socket, sockets, ws } = await joined()
+  ws.close() // หลุด: กำลังรอ 500ms ก่อนลองใหม่
+  expect(sockets).toHaveLength(1)
+  socket.wake()
+  await flush()
+  expect(sockets).toHaveLength(2)
+
+  // บางเบราว์เซอร์ส่ง pagehide ตอนสลับแอป แต่ไม่ส่ง pageshow ตอนกลับมา: wake ต้องต่อใหม่ให้
+  socket.pause()
+  await vi.advanceTimersByTimeAsync(60_000)
+  expect(sockets).toHaveLength(2)
+  socket.wake()
+  await flush()
+  expect(sockets).toHaveLength(3)
+})
+
+test('waking twice while the token is still being fetched opens a single socket', async () => {
+  const { socket, sockets, ws } = await joined()
+  ws.close()
+  socket.wake()
+  socket.wake()
+  await vi.advanceTimersByTimeAsync(2000)
+  expect(sockets).toHaveLength(2)
+})
+
+test('no pings and no reconnects after stop or a fatal error', async () => {
+  const a = await joined()
+  a.socket.stop()
+  await vi.advanceTimersByTimeAsync(5 * SILENCE_MS)
+  a.socket.wake()
+  expect(pings(a.ws)).toBe(0)
+  expect(a.sockets).toHaveLength(1)
+
+  const b = await joined()
+  b.ws.receive({ type: 'error', code: 'room_not_found' })
+  await vi.advanceTimersByTimeAsync(5 * SILENCE_MS)
+  b.socket.wake()
+  expect(b.sockets).toHaveLength(1)
 })

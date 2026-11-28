@@ -7,7 +7,7 @@ import { ClockRow } from '../components/ClockRow'
 import { CoinToss } from '../components/CoinToss'
 import { CurtainScreen } from '../components/CurtainScreen'
 import { Lobby } from '../components/Lobby'
-import { GameBoard } from '../components/GameBoard'
+import { GameBoard, type PieceInfo } from '../components/GameBoard'
 import { ResignButton } from '../components/ResignButton'
 import { Stands } from '../components/Stands'
 import { useChatPopup, type ChatPopup } from '../hooks/useChatPopup'
@@ -15,7 +15,7 @@ import { useGameSocket } from '../hooks/useGameSocket'
 import { clockAt, describeTimeControl, isUntimed } from '../lib/clock'
 import { gameName, gameOf } from '../lib/games'
 import { chatNames } from '../lib/lobby'
-import { absences, someoneArrived } from '../lib/presence'
+import { absences, doorShouldRing, newDoorMemory } from '../lib/presence'
 import type { ChatItem, Color, StateMsg } from '../lib/protocol'
 import { capturedSquares } from '../lib/fx'
 import { playDoorSound, playMoveSound } from '../lib/sound'
@@ -47,6 +47,8 @@ export function RoomPage({ roomId, navigate }: Props) {
   const pop = useChatPopup(game.chat, inGame)
   const [turnSeq, turnToast] = useTurnAlert(state)
   const closing = useRoomClosing(state, game.stateAt)
+  // หมากที่กำลังชี้อยู่บนกระดาน แสดงชื่อและวิธีเดินในแผงข้าง (จอกว้าง) แทนที่จะลอยทับกระดาน
+  const [pieceInfo, setPieceInfo] = useState<PieceInfo | null>(null)
 
   // เกมจบมาครบเวลาแล้ว: ม่านปิด (เซิร์ฟเวอร์ปิดห้องในเวลาเดียวกัน หลังจากนั้นการเชื่อมต่อจะได้ "ไม่พบห้อง")
   if (closing.closed || (game.fatal === 'room_not_found' && state?.status === 'finished')) {
@@ -108,12 +110,9 @@ export function RoomPage({ roomId, navigate }: Props) {
       players={state.players}
       names={chatNames(state)}
       tall
-      mutedState={[pop.muted, pop.setMuted]}
       online={online}
       rateLimitedSeq={game.chatLimitedSeq}
       sendChat={game.sendChat}
-      reported={game.reported}
-      sendReport={game.sendReport}
     />
   )
 
@@ -198,7 +197,14 @@ export function RoomPage({ roomId, navigate }: Props) {
             <p className="small">
               {gameName(gameId)} · {describeTimeControl(state.tc)}
             </p>
-            <p className="tiny game-side-tip">กดปุ่ม "แชท" ข้างชื่อคู่แข่งเพื่อคุยกัน</p>
+            {pieceInfo ? (
+              <div className="piece-info">
+                <b>{pieceInfo.name}</b>
+                {pieceInfo.desc && <span>{pieceInfo.desc}</span>}
+              </div>
+            ) : (
+              <p className="tiny game-side-tip">ชี้ที่หมากเพื่อดูว่าเดินอย่างไร · กดปุ่ม "แชท" เพื่อคุยกับคู่แข่ง</p>
+            )}
           </div>
 
           {state.status === 'waiting' && <WaitingCard roomId={roomId} />}
@@ -221,7 +227,7 @@ export function RoomPage({ roomId, navigate }: Props) {
               </div>
             )}
             {/* key ตามลำดับเกม: เล่นต่อแล้วกระดานเริ่มใหม่หมด ไม่มีค่าค้างจากเกมก่อน */}
-            <GameBoard key={state.round ?? 0} state={state} online={online} errorSeq={game.errorSeq} session={game.session} sendMove={game.sendMove} />
+            <GameBoard key={state.round ?? 0} state={state} online={online} errorSeq={game.errorSeq} session={game.session} sendMove={game.sendMove} onPieceInfo={setPieceInfo} />
           </Clocks>
           <Stands spectators={state.spectators} watching={state.watching} />
         </div>
@@ -398,6 +404,7 @@ function ChatPopover({ pop, children }: { pop: ChatPopup; children: React.ReactN
  */
 function useTurnAlert(state: StateMsg | null): [number, boolean] {
   const prev = useRef<StateMsg | null>(null)
+  const door = useRef(newDoorMemory())
   const [seq, setSeq] = useState(0)
   const [toastSeq, setToastSeq] = useState(0)
 
@@ -410,7 +417,8 @@ function useTurnAlert(state: StateMsg | null): [number, boolean] {
       playMoveSound(capturedSquares(before, state).length > 0 ? 'capture' : 'move')
     }
     // คู่แข่งหรือผู้ชมเข้าห้อง: เสียงประตูเปิดกับกระดิ่งประตู (ใช้ตัวเปิด/ปิดเสียงเดียวกับเสียงหมาก)
-    if (state && someoneArrived(before, state) && turnSoundOn()) playDoorSound()
+    // ตัดสินทุก state แม้ปิดเสียงอยู่ เพื่อให้ความจำเรื่องคนเข้าออกถูกต้องตอนเปิดเสียงกลับมา
+    if (state && doorShouldRing(before, state, door.current, Date.now()) && turnSoundOn()) playDoorSound()
     if (!state || !becameMyTurn(before, state)) return
     const next = seq + 1
     setSeq(next)

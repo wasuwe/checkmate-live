@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
-import { lineEnds, reachOf } from './moves'
+import { reachOf } from './moves'
 import { halfOf, isDarkSquare, setById, sideSets } from './pieceSets'
-import { someoneArrived } from './presence'
+import { DOOR_GAP_MS, doorShouldRing, newDoorMemory, SAME_PERSON_MS } from './presence'
 import type { StateMsg } from './protocol'
 import { rematchView } from './text'
 
@@ -22,7 +22,7 @@ function state(patch: Partial<StateMsg> = {}): StateMsg {
 
 const sorted = (list: string[]) => [...list].sort()
 
-describe('reach of a piece (highlights and hover lines)', () => {
+describe('reach of a piece (square highlights when picked or hovered)', () => {
   test('chess: the side to move gets its legal moves', () => {
     expect(sorted(reachOf(state(), 'g1').targets)).toEqual(['f3', 'h3'])
     expect(reachOf(state(), 'e4').targets).toEqual([]) // ช่องว่าง
@@ -79,12 +79,6 @@ describe('reach of a piece (highlights and hover lines)', () => {
     expect(reachOf(s, 'a1')).toEqual({ targets: ['a2'], captures: ['a2'], victims: ['b2', 'c2'] })
   })
 
-  test('one line per direction, ending on the farthest square', () => {
-    expect(sorted(lineEnds('a1', ['a2', 'a3', 'a4', 'b1', 'c1']))).toEqual(['a4', 'c1'])
-    // ม้า: ทุกช่องอยู่คนละทิศ จึงได้เส้นละช่อง
-    expect(sorted(lineEnds('g1', ['f3', 'h3', 'e2']))).toEqual(['e2', 'f3', 'h3'])
-    expect(lineEnds('d4', [])).toEqual([])
-  })
 })
 
 describe('the board is split between the two players\' sets', () => {
@@ -151,30 +145,59 @@ describe('door bell when someone enters the room', () => {
       lobby: { seats: [seat(true), ...Array.from({ length: others }, () => seat(false))] },
       watching,
     })
+  const MINUTE = 60_000
 
   test('rings when the opponent sits down and when a spectator comes in', () => {
-    expect(someoneArrived(lobby(0), lobby(1))).toBe(true)
-    expect(someoneArrived(lobby(1), lobby(1, 1))).toBe(true)
-    expect(someoneArrived(lobby(1, 1), lobby(1, 2))).toBe(true)
+    const memory = newDoorMemory()
+    expect(doorShouldRing(lobby(0), lobby(1), memory, 0)).toBe(true)
+    expect(doorShouldRing(lobby(1), lobby(1, 1), memory, MINUTE)).toBe(true)
+    expect(doorShouldRing(lobby(1, 1), lobby(1, 2), memory, 2 * MINUTE)).toBe(true)
   })
 
   test('does not ring for our own arrival, for people leaving, or when nothing changed', () => {
-    expect(someoneArrived(null, lobby(1, 3))).toBe(false)
-    expect(someoneArrived(lobby(1, 1), lobby(1, 0))).toBe(false)
-    expect(someoneArrived(lobby(1), lobby(1))).toBe(false)
+    const memory = newDoorMemory()
+    expect(doorShouldRing(null, lobby(1, 3), memory, 0)).toBe(false)
+    expect(doorShouldRing(lobby(1, 1), lobby(1, 0), memory, 0)).toBe(false)
+    expect(doorShouldRing(lobby(1), lobby(1), memory, MINUTE)).toBe(false)
   })
 
   test('does not ring when the same people only change places', () => {
+    const memory = newDoorMemory()
     const playing = state({ players: { w: { connected: true }, b: { connected: true } }, watching: 1 })
     // ห้องรอกลายเป็นเกม
-    expect(someoneArrived(lobby(1, 1), playing)).toBe(false)
+    expect(doorShouldRing(lobby(1, 1), playing, memory, 0)).toBe(false)
     // คนที่ถูกเชิญออกจากที่นั่งกลายเป็นผู้ชม
-    expect(someoneArrived(lobby(1, 0), lobby(0, 1))).toBe(false)
+    expect(doorShouldRing(lobby(1, 0), lobby(0, 1), memory, 0)).toBe(false)
   })
 
-  test('rings when a player who dropped out of the game comes back', () => {
+  // กันเสียงดังซ้ำไปเรื่อย ๆ: คนที่เน็ตไม่นิ่งหลุดแล้วต่อกลับทุกไม่กี่วินาที
+  test('does not ring again and again for someone whose connection keeps dropping', () => {
+    const memory = newDoorMemory()
     const away = state({ players: { w: { connected: true }, b: { connected: false } } })
     const back = state({ players: { w: { connected: true }, b: { connected: true } } })
-    expect(someoneArrived(away, back)).toBe(true)
+    let rings = 0
+    for (let i = 0; i < 30; i++) {
+      const t = i * 8000 // หลุดและกลับทุก 8 วินาที เป็นเวลา 4 นาที
+      doorShouldRing(back, away, memory, t)
+      if (doorShouldRing(away, back, memory, t + 3000)) rings++
+    }
+    expect(rings).toBe(0)
+  })
+
+  test('a spectator reloading the page does not ring, a new one later does', () => {
+    const memory = newDoorMemory()
+    expect(doorShouldRing(lobby(1, 0), lobby(1, 1), memory, 0)).toBe(true)
+    // โหลดหน้าใหม่: ออกแล้วกลับเข้ามาในหนึ่งวินาที
+    expect(doorShouldRing(lobby(1, 1), lobby(1, 0), memory, MINUTE)).toBe(false)
+    expect(doorShouldRing(lobby(1, 0), lobby(1, 1), memory, MINUTE + 1000)).toBe(false)
+    // อีกคนเข้ามาทีหลังนานพอ
+    expect(doorShouldRing(lobby(1, 1), lobby(1, 2), memory, MINUTE + SAME_PERSON_MS + 1000)).toBe(true)
+  })
+
+  test('two people arriving at almost the same moment ring once', () => {
+    const memory = newDoorMemory()
+    expect(doorShouldRing(lobby(1, 0), lobby(1, 1), memory, 0)).toBe(true)
+    expect(doorShouldRing(lobby(1, 1), lobby(1, 2), memory, DOOR_GAP_MS - 1)).toBe(false)
+    expect(doorShouldRing(lobby(1, 2), lobby(1, 3), memory, DOOR_GAP_MS + 1)).toBe(true)
   })
 })

@@ -50,12 +50,22 @@ export function useGameSocket(roomId: string): GameConnection {
 
     // ออกจากหน้า (รวมถึงกรณีหน้าถูกเก็บใน back/forward cache) ต้องปิด socket ให้เซิร์ฟเวอร์รู้
     const onHide = () => socket.pause()
-    const onShow = () => socket.resume()
+    // กลับมาที่หน้า หรือเครือข่ายกลับมา: ตรวจว่าการเชื่อมต่อยังใช้ได้จริง แล้วต่อใหม่ถ้าไม่ได้
+    // (มือถือที่จอดับ สลับแอป หรือสลับเครือข่าย มักทิ้ง socket ที่ตายแล้วไว้โดยไม่แจ้ง)
+    const onWake = () => {
+      if (document.visibilityState === 'visible') socket.wake()
+    }
     window.addEventListener('pagehide', onHide)
-    window.addEventListener('pageshow', onShow)
+    window.addEventListener('pageshow', onWake)
+    window.addEventListener('focus', onWake)
+    window.addEventListener('online', onWake)
+    document.addEventListener('visibilitychange', onWake)
     return () => {
       window.removeEventListener('pagehide', onHide)
-      window.removeEventListener('pageshow', onShow)
+      window.removeEventListener('pageshow', onWake)
+      window.removeEventListener('focus', onWake)
+      window.removeEventListener('online', onWake)
+      document.removeEventListener('visibilitychange', onWake)
       socketRef.current = null
       socket.stop()
     }

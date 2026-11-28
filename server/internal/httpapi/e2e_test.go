@@ -427,6 +427,25 @@ func TestWebSocketProtocolErrors(t *testing.T) {
 	c.expectError("already_joined")
 }
 
+// หน้าเว็บส่ง ping เป็นระยะเพื่อรู้ว่าการเชื่อมต่อยังใช้ได้ เซิร์ฟเวอร์ต้องตอบ pong ทั้งก่อนและหลังเข้าห้อง
+func TestWebSocketPingIsAnsweredWithPong(t *testing.T) {
+	s := newTestServer(t, hub.Config{})
+	_, token := s.newGuest()
+	c := s.connect(token)
+
+	c.send(map[string]string{"type": "ping"})
+	c.until("pong before joining", func(m msg) bool { return m.Type == "pong" })
+
+	roomID := s.newRoom(token)
+	c.send(map[string]string{"type": "join", "room": roomID})
+	c.until("state", func(m msg) bool { return m.Type == "state" })
+	c.send(map[string]string{"type": "ping"})
+	c.until("pong in a room", func(m msg) bool { return m.Type == "pong" })
+
+	c.sendRaw(`{"type":"ping","room":"` + roomID + `"}`)
+	c.expectError("bad_message")
+}
+
 func TestWebSocketOversizedMessageDisconnects(t *testing.T) {
 	s := newTestServer(t, hub.Config{})
 	_, token := s.newGuest()

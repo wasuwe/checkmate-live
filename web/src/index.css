@@ -1504,11 +1504,6 @@ body:has(.home)::before {
   grid-template-rows: repeat(5, 1fr);
 }
 
-.mini-board.four {
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(4, 1fr);
-}
-
 .mini-board > div {
   position: relative;
   display: flex;
@@ -1526,10 +1521,6 @@ body:has(.home)::before {
   width: 92%;
   height: 92%;
   overflow: visible;
-}
-
-.mini-board.four > div {
-  font-size: 19cqw;
 }
 
 .mini-dot {
@@ -2163,23 +2154,6 @@ body:has(.home)::before {
 
 .chat-list li.mine .chat-text {
   background: #e6e8f7;
-}
-
-.chat-actions {
-  display: flex;
-  gap: 12px;
-  font-size: 12px;
-}
-
-.chat-actions button.link {
-  font-weight: 600;
-  min-height: 24px;
-}
-
-.chat-empty,
-.chat-muted,
-.chat-reported {
-  font-size: 13px;
 }
 
 .chat-form {
@@ -5756,55 +5730,78 @@ a.cb-card:focus-visible {
   color: #fbf8f1;
 }
 
-/* ---------- ชี้ที่หมาก: ป้ายชื่อหมากลอยเหนือช่อง (เส้นทางเดินวาดโดยกระดานเอง) ---------- */
+/* ---------- ชี้ที่หมาก: ป้ายชื่อหมาก ---------- */
 
+/* จอแคบ: ป้ายกระดาษกรอบทองเกาะขอบล่างของกระดาน (คร่อมกรอบ) ไม่ทับช่องที่ไฮไลต์อยู่ */
 .piece-tip {
   position: absolute;
+  left: 50%;
+  bottom: 0;
   z-index: 11;
-  width: 12.5%;
-  height: 0;
-  pointer-events: none;
+  /* กึ่งกลางป้ายอยู่กลางช่องว่างระหว่างกระดานกับแถบผู้เล่น (กรอบกระดาน 6px + ระยะห่าง 8px) จึงแทบไม่ทับอะไร */
+  translate: -50% calc(50% + 7px);
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  overflow: visible;
-}
-
-.piece-tip-box {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  width: max-content;
-  max-width: min(230px, 46cqw);
-  margin-bottom: 5px;
-  padding: 5px 12px 6px;
+  align-items: baseline;
+  gap: 8px;
+  max-width: 96%;
+  padding: 0 12px;
   border: 1px solid var(--gold);
-  border-radius: 12px;
-  background: var(--pill);
-  box-shadow: 0 6px 16px rgba(20, 25, 70, 0.3);
-  color: #e3dbc9;
-  font-size: 12px;
-  line-height: 1.4;
-  text-align: center;
+  border-radius: 999px;
+  background: var(--paper);
+  box-shadow: 0 4px 12px rgba(20, 25, 70, 0.25);
+  color: var(--ink);
+  font-size: 11.5px;
+  line-height: 1.5;
+  white-space: nowrap;
+  pointer-events: none;
   animation: tipIn 0.16s var(--ease-out) both;
 }
 
-.piece-tip-box > b {
-  color: #fbf8f1;
-  font-size: 14px;
+.piece-tip > b {
+  flex: none;
+  font-family: var(--font-head);
+  font-size: 13px;
+  color: var(--gold-ink);
 }
 
-/* หมากแถวบนสุด: ป้ายลงมาอยู่ใต้ช่องแทน จะได้ไม่ล้นออกนอกกระดาน */
-.piece-tip.below {
-  justify-content: flex-start;
-  translate: 0 calc(12.5cqw + 5px);
+.piece-tip > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted);
 }
 
 @keyframes tipIn {
   from {
     opacity: 0;
-    scale: 0.92;
+  }
+}
+
+/* จอกว้าง: ชื่อและวิธีเดินอยู่ในแผงข้างกระดานแทน */
+.piece-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 250px;
+  margin-top: 8px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--gold);
+  border-bottom: 1px solid var(--gold);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+  animation: tipIn 0.16s var(--ease-out) both;
+}
+
+.piece-info > b {
+  font-family: var(--font-head);
+  font-size: 17px;
+  color: var(--gold-ink);
+}
+
+@media (min-width: 1100px) and (min-height: 540px), (min-width: 900px) and (min-aspect-ratio: 7/5) and (min-height: 540px), (orientation: landscape) and (min-width: 560px) and (max-height: 539px) {
+  .piece-tip {
+    display: none;
   }
 }
 
@@ -6070,7 +6067,8 @@ a.cb-card:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .chat-open.unread,
-  .piece-tip-box,
+  .piece-tip,
+  .piece-info,
   .stands-seat.taken .stands-chair {
     animation: none;
   }
@@ -6231,5 +6229,57 @@ a.cb-card:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .btn.nudge {
     animation: none;
+  }
+}
+
+/* ---------- ภาพตัวอย่างของชุดหมากรุกในคลัง: ตัวหมากเป็นตัวเด่น ---------- */
+
+.set-show {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--gold);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 3px 10px rgba(30, 42, 107, 0.16);
+}
+
+.set-show > div {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+
+/* เบี้ยตัวละครของสองฝั่ง: ช่องใหญ่ครึ่งความกว้าง */
+.set-show > .big {
+  grid-column: span 2;
+}
+
+.set-show .show-piece {
+  width: 84%;
+  height: 84%;
+  overflow: visible;
+  filter: drop-shadow(0 2px 1.5px rgba(20, 25, 70, 0.28));
+}
+
+.set-show > .big .show-piece {
+  width: 92%;
+  height: 92%;
+  transition: translate 0.4s var(--bounce);
+}
+
+/* ชี้ที่ชุดไหน ตัวละครของชุดนั้นเด้งขึ้นเล็กน้อย ฝั่งดำตามหลังนิดหนึ่ง */
+.catalog-item:hover .set-show > .big .show-piece,
+.slot-pick:hover .set-show > .big .show-piece {
+  translate: 0 -5%;
+}
+
+.catalog-item:hover .set-show > .big + .big .show-piece,
+.slot-pick:hover .set-show > .big + .big .show-piece {
+  transition-delay: 0.07s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .set-show > .big .show-piece {
+    transition: none;
   }
 }
