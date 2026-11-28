@@ -6908,11 +6908,11 @@ a.cb-card:focus-visible {
   }
 }
 
-/* ตัวละครตัวใหญ่: พุ่งเข้าจากด้านข้าง เลยไปนิดแล้วเด้งกลับ มีขอบสีครีมรอบตัวแบบสติกเกอร์ */
+/* ตัวละครตัวใหญ่: พุ่งเข้าจากด้านข้าง เลยไปนิดแล้วเด้งกลับ มีขอบสีครีมรอบตัวแบบสติกเกอร์ กินที่ครึ่งหนึ่งของกระดาน */
 .cutin-hero {
   position: absolute;
-  bottom: 14%;
-  width: 62cqw;
+  bottom: 17%;
+  width: 54cqw;
   height: auto;
   aspect-ratio: 1;
   overflow: visible;
@@ -6922,16 +6922,17 @@ a.cb-card:focus-visible {
 }
 
 .cutin.mate .cutin-hero {
-  width: 70cqw;
+  width: 60cqw;
+  bottom: 13%;
 }
 
 .cutin.from-right .cutin-hero {
-  right: -4%;
+  right: -3%;
   --from: 70cqw;
 }
 
 .cutin.from-left .cutin-hero {
-  left: -4%;
+  left: -3%;
   --from: -70cqw;
 }
 
@@ -6958,73 +6959,83 @@ a.cb-card:focus-visible {
   }
 }
 
-/* คำตัวโต: ตัวเอียงหนา ขอบสีตรงข้ามกับแถบ เข้ามาจากอีกด้านหนึ่ง */
-.cutin-word {
+/* ข้อความ: อยู่กลางครึ่งแถบฝั่งตรงข้ามกับตัวละคร เอียงตามแถบ ป้ายเล็กอยู่บน คำตัวโตอยู่ล่าง */
+.cutin-text {
   position: absolute;
   top: 50%;
-  max-width: 62%;
-  translate: 0 -55%;
+  width: 48%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4cqw;
+  translate: 0 -50%;
   rotate: -5deg;
-  font-family: var(--font-head);
-  font-weight: 900;
-  font-style: italic;
-  font-size: 15cqw;
-  line-height: 1;
-  white-space: nowrap;
-  color: var(--cut-ink);
-  -webkit-text-stroke: 0.45cqw color-mix(in srgb, var(--cut) 55%, #000);
-  paint-order: stroke fill;
-  text-shadow: 0.7cqw 0.8cqw 0 rgba(0, 0, 0, 0.3);
   animation: cutWord var(--cut-ms) cubic-bezier(0.2, 1.2, 0.3, 1) both;
 }
 
-/* Checkmate: คำยาว จึงวางพาดตามขอบล่างของแถบ ทับช่วงลำตัวของตัวละคร ไม่บังหน้า */
-.cutin.mate .cutin-word {
-  top: 68%;
-  left: 0;
-  right: 0;
-  max-width: none;
-  text-align: center;
-  font-size: 14cqw;
-}
-
-.cutin.mate.from-right .cutin-word,
-.cutin.mate.from-left .cutin-word {
-  left: 0;
-  right: 0;
-}
-
-.cutin.mate .cutin-hero {
-  bottom: 20%;
-}
-
-.cutin.from-right .cutin-word {
-  left: 5%;
+.cutin.from-right .cutin-text {
+  left: 1.5%;
   --word-from: -60cqw;
 }
 
-.cutin.from-left .cutin-word {
-  right: 5%;
+.cutin.from-left .cutin-text {
+  right: 1.5%;
   --word-from: 60cqw;
 }
 
 @keyframes cutWord {
   0%,
   8% {
-    translate: var(--word-from) -55%;
+    translate: var(--word-from) -50%;
     opacity: 0;
   }
 
   26%,
   82% {
-    translate: 0 -55%;
+    translate: 0 -50%;
     opacity: 1;
   }
 
   100% {
-    translate: calc(var(--word-from) * -0.4) -55%;
+    translate: calc(var(--word-from) * -0.4) -50%;
     opacity: 0;
   }
+}
+
+/* ป้ายเล็กบอกว่าเกิดอะไรขึ้น: แถบครีมขอบทองแบบริบบิ้น */
+.cutin-tag {
+  padding: 0.3cqw 2.6cqw 0.5cqw;
+  border: 0.35cqw solid #c9973a;
+  border-radius: 999px;
+  background: #fff6da;
+  box-shadow: 0 0.6cqw 0 rgba(0, 0, 0, 0.25);
+  color: #4a3212;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 3.7cqw;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.cutin.mate .cutin-tag {
+  font-size: 4.6cqw;
+}
+
+/* เสียงร้องตัวโต: ตัวหนาเอียง สีครีม ขอบเข้มหนา มีเงาซ้อนเป็นชั้นให้ดูนูน ขนาดมาจาก CutIn (พอดีกับครึ่งแถบ) */
+.cutin-word {
+  font-family: var(--font-head);
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1.05;
+  white-space: nowrap;
+  color: #fff6da;
+  -webkit-text-stroke: 0.9cqw #2b2a33;
+  paint-order: stroke fill;
+  text-shadow:
+    0.35cqw 0.35cqw 0 #2b2a33,
+    0.7cqw 0.7cqw 0 #2b2a33,
+    1.05cqw 1.05cqw 0 #2b2a33,
+    1.4cqw 1.4cqw 0 rgba(0, 0, 0, 0.35);
 }
 
 /* เส้นแสงสองเส้นตัดผ่านฉาก */

@@ -18,6 +18,7 @@ import { placeTag } from '../lib/pieceTag'
 import { colorName } from '../lib/text'
 import { useStylePrefs } from '../lib/pieceStyles'
 import type { Color, GameId, Promo, StateMsg } from '../lib/protocol'
+import { fableShout } from '../lib/fables'
 import { CutIn } from './CutIn'
 import { FxBurst } from './Fx'
 import { PromotionDialog } from './PromotionDialog'
@@ -211,7 +212,9 @@ export function GameBoard({ state, online, errorSeq, session, sendMove }: Props)
           const color: Color = moved === moved.toUpperCase() ? 'w' : 'b'
           return {
             kind: fx.event.kind,
-            word: fx.event.kind === 'mate' ? checkWords(game).mate : 'กิน!',
+            // เสียงร้องตามเผ่าของตัวละคร ชุดที่ไม่มีเสียงร้องใช้คำบอกเหตุการณ์แทน
+            word: fableShout(sets[color].id, color, fx.event.kind) || (fx.event.kind === 'mate' ? checkWords(game).mate : 'กิน!'),
+            tag: fx.event.kind === 'mate' ? checkWords(game).mate : 'กินหมาก',
             color,
             set: sets[color],
             pieceKind: moved.toUpperCase(),
