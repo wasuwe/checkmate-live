@@ -19,6 +19,7 @@ import { colorName } from '../lib/text'
 import { useStylePrefs } from '../lib/pieceStyles'
 import type { Color, GameId, Promo, StateMsg } from '../lib/protocol'
 import { fableLine, type FableMoment } from '../lib/fables'
+import { keepThaiWords } from '../lib/thaiBreak'
 import { CutIn } from './CutIn'
 import { FxBurst } from './Fx'
 import { PromotionDialog } from './PromotionDialog'
@@ -332,7 +333,7 @@ export function GameBoard({ state, online, errorSeq, session, sendMove }: Props)
           <span className={`piece-tag-tail ${tipPlace.side}`} style={tipPlace.tail} aria-hidden="true" />
           <div className={`piece-tag ${tipPlace.side}`} style={tipPlace.tag} role="tooltip">
             <b>{tip.name}</b>
-            {tip.desc && <span>{tip.desc}</span>}
+            {tip.desc && <span>{keepThaiWords(tip.desc)}</span>}
           </div>
         </>
       )}

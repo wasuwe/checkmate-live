@@ -1,4 +1,5 @@
 import { goBack } from '../lib/router'
+import { keepThaiWords } from '../lib/thaiBreak'
 import { setTermsAccepted, TERMS, TERMS_UPDATED } from '../lib/terms'
 
 interface Props {
@@ -19,7 +20,7 @@ export function TermsPage({ navigate }: Props) {
             <div>
               <h2 className="card-title">{t.title}</h2>
               <p className="pretty" style={{ fontSize: 15, lineHeight: 1.6 }}>
-                {t.body}
+                {keepThaiWords(t.body)}
               </p>
             </div>
           </li>

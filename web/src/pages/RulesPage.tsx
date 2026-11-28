@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { keepThaiWords } from '../lib/thaiBreak'
 import { gameName, isGameId, PLAYABLE } from '../lib/games'
 import { pieceSvg, useSetPrefs } from '../lib/pieceSets'
 import type { GameId } from '../lib/protocol'
@@ -43,7 +44,7 @@ export function RulesPage({ navigate }: Props) {
               {b.title}
             </h2>
             <p className="pretty" style={{ fontSize: 15, lineHeight: 1.6 }}>
-              {b.body}
+              {keepThaiWords(b.body)}
             </p>
           </section>
         ))}
@@ -78,7 +79,7 @@ export function RulesPage({ navigate }: Props) {
                 </h3>
               </div>
               <p className="small pretty" style={{ lineHeight: 1.55 }}>
-                {p.desc}
+                {keepThaiWords(p.desc)}
               </p>
             </div>
           </section>
@@ -108,7 +109,7 @@ export function RulesPage({ navigate }: Props) {
                   {ex.title}
                 </h3>
                 <p className="small pretty" style={{ lineHeight: 1.55 }}>
-                  {ex.caption}
+                  {keepThaiWords(ex.caption)}
                 </p>
               </div>
             </section>
@@ -136,7 +137,7 @@ export function RulesPage({ navigate }: Props) {
           <div key={r.title}>
             <h3 style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 16 }}>{r.title}</h3>
             <p className="pretty" style={{ fontSize: 15, lineHeight: 1.6 }}>
-              {r.body}
+              {keepThaiWords(r.body)}
             </p>
           </div>
         ))}
